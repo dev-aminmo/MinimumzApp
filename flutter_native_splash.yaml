@@ -1,0 +1,23 @@
+flutter_native_splash:
+
+  # ── Light mode ───────────────────────────────────────────────────────────────
+  color: "#FFFFFF"
+  image: assets/images/logo_minimumz.png
+
+  # ── Dark mode ────────────────────────────────────────────────────────────────
+  color_dark: "#1C1B1F"
+  image_dark: assets/images/logo_minimumz.png
+
+  # ── Android 12+ (adaptive icon style) ───────────────────────────────────────
+  android_12:
+    color: "#FFFFFF"
+    image: assets/images/logo_minimumz.png
+    icon_background_color: "#FFFFFF"
+    color_dark: "#1C1B1F"
+    image_dark: assets/images/logo_minimumz.png
+    icon_background_color_dark: "#1C1B1F"
+
+  # ── Platforms ────────────────────────────────────────────────────────────────
+  android: true
+  ios: true
+  web: false

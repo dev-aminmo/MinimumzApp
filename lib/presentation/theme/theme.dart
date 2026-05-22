@@ -1,0 +1,105 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:minimumz/common/extensions/extensions.dart';
+
+import '../../common/colors.dart';
+
+
+
+class AppTheme {
+  static final lightTheme = ThemeData(
+    colorScheme: ColorScheme.fromSeed(seedColor: ColorConstant.primary, surfaceTint: ColorConstant.cream),
+    useMaterial3: true,
+    scaffoldBackgroundColor: ColorConstant.cream,
+    textTheme: GoogleFonts.interTextTheme().copyWith(
+      headlineLarge: headlineLarge,
+      headlineMedium: headlineMedium,
+      headlineSmall: headlineSmall,
+      bodyLarge: bodyLarge,
+      bodyMedium: bodyMedium,
+      bodySmall: bodySmall,
+    ),
+    appBarTheme: AppBarTheme(
+      surfaceTintColor: Colors.transparent,
+      backgroundColor: ColorConstant.cream,
+      systemOverlayStyle: SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.dark,
+        statusBarBrightness: Brightness.light,
+        systemNavigationBarColor: ColorConstant.cream,
+      ),
+    ),
+    dialogTheme: DialogThemeData(surfaceTintColor: ColorConstant.cream, backgroundColor: ColorConstant.cream),
+    listTileTheme: ListTileThemeData(
+      titleTextStyle: bodyMedium.copyWith(fontWeight: FontWeight.normal),
+    ),
+    // card color used for icon button backgrounds
+    cardColor: ColorConstant.beige,
+  );
+
+  // ==========================================================================================
+
+  static final darkTheme = ThemeData(
+    colorScheme: ColorScheme.fromSeed(seedColor: ColorConstant.primary, brightness: Brightness.dark),
+    useMaterial3: true,
+    scaffoldBackgroundColor: ColorConstant.scaffoldDark,
+    textTheme: GoogleFonts.interTextTheme().copyWith(
+      headlineLarge: headlineLarge.dark(),
+      headlineMedium: headlineMedium.dark(),
+      headlineSmall: headlineSmall.dark(),
+      bodyLarge: bodyLarge.dark(),
+      bodyMedium: bodyMedium.dark(),
+      bodySmall: bodySmall.dark(),
+    ),
+    appBarTheme: AppBarTheme(
+      surfaceTintColor: Colors.transparent,
+      backgroundColor: ColorConstant.scaffoldDark,
+      systemOverlayStyle: SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+        systemNavigationBarColor: ColorConstant.scaffoldDark,
+      ),
+    ),
+    bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+      backgroundColor: Color(0xff29363D),
+    ),
+    dialogTheme: DialogThemeData(
+      backgroundColor: const Color(0xff222E34),
+      surfaceTintColor: Colors.transparent,
+    ),
+    listTileTheme: ListTileThemeData(
+      titleTextStyle: bodyMedium.dark().copyWith(fontWeight: FontWeight.normal),
+      iconColor: Colors.white,
+    ),
+    // card color is used here to for icon button bg color
+    cardColor: const Color(0xff222E34),
+    iconTheme: const IconThemeData(color: Colors.white),
+  );
+
+  // ========================================================================================== //
+
+  // Headline 1
+  // 34px Bold
+  static const headlineLarge = TextStyle(fontSize: 34, fontWeight: FontWeight.bold, color: Colors.black);
+
+  // Headline 2
+  // 28px Semi-bold
+  static const headlineMedium = TextStyle(fontSize: 28, fontWeight: FontWeight.w600, color: Colors.black);
+  // Headline 3
+  // 22px Medium
+  static const headlineSmall = TextStyle(fontSize: 22, fontWeight: FontWeight.w500, color: Colors.black);
+
+  // Body 1
+  // 17px Medium
+  static const bodyLarge = TextStyle(fontSize: 17, fontWeight: FontWeight.normal, color: Colors.black);
+
+  // Body 2
+  // 15px Medium
+  static const bodyMedium = TextStyle(fontSize: 15, fontWeight: FontWeight.normal, color: Colors.black);
+
+  // Body 3
+  // 13px Medium
+  static const bodySmall = TextStyle(fontSize: 13, fontWeight: FontWeight.normal, color: Colors.black);
+}

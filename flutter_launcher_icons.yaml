@@ -1,0 +1,22 @@
+flutter_launcher_icons:
+
+  # ── Source image ──────────────────────────────────────────────────────────────
+  image_path: "assets/images/logo_minimumz.png"
+
+  # ── Android ───────────────────────────────────────────────────────────────────
+  android: "launcher_icon"
+  min_sdk_android: 21
+
+  # Adaptive icon (Android 8+): logo on cream background
+  adaptive_icon_background: "#FFFBF5"
+  adaptive_icon_foreground: "assets/images/logo_minimumz.png"
+
+  # ── iOS ───────────────────────────────────────────────────────────────────────
+  ios: true
+  # Fill transparent pixels with cream so App Store accepts the icon
+  remove_alpha_ios: true
+  background_color_ios: "#FFFBF5"
+
+  # ── Web / other ───────────────────────────────────────────────────────────────
+  web:
+    generate: false
