@@ -395,4 +395,208 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get openSettings => 'Open Settings';
+
+  @override
+  String get tagline => 'Your store, your style.';
+
+  @override
+  String get confirmPassword => 'Confirm Password';
+
+  @override
+  String get passwordResetSuccess =>
+      'Password reset successfully. Please sign in.';
+
+  @override
+  String get passwordResetFailed =>
+      'Failed to reset password. The code may have expired.';
+
+  @override
+  String get writeNewPassword => 'Please write your new password.';
+
+  @override
+  String get resetting => 'Resetting...';
+
+  @override
+  String get resetPassword => 'Reset Password';
+
+  @override
+  String get failedToSendResetCode =>
+      'Failed to send reset code. Please try again.';
+
+  @override
+  String get enterDigitCode => 'Please enter the 4-digit code.';
+
+  @override
+  String get invalidOrExpiredCode =>
+      'Invalid or expired code. Please try again.';
+
+  @override
+  String get verifying => 'Verifying...';
+
+  @override
+  String get confirmCode => 'Confirm Code';
+
+  @override
+  String get verificationCode => 'Verification Code';
+
+  @override
+  String get codeWasSentTo => 'A 4-digit code was sent to';
+
+  @override
+  String get searchThroughStore => 'Search through the store';
+
+  @override
+  String get noResultsFound => 'No results found';
+
+  @override
+  String get searchFailed => 'Search failed';
+
+  @override
+  String get clearWishlist => 'Clear Wishlist';
+
+  @override
+  String get removeAllFromWishlist => 'Remove all items from wishlist?';
+
+  @override
+  String get clear => 'Clear';
+
+  @override
+  String get inWishlist => 'in wishlist';
+
+  @override
+  String get yourWishlistIsEmpty => 'Your wishlist is empty';
+
+  @override
+  String get updateInformation => 'Update Information';
+
+  @override
+  String get addressBook => 'Address Book';
+
+  @override
+  String get editAddress => 'Edit Address';
+
+  @override
+  String get addAddress => 'Add Address';
+
+  @override
+  String get deleteAddressTitle => 'Delete address?';
+
+  @override
+  String get noSavedAddresses => 'No saved addresses yet';
+
+  @override
+  String get failedToDeleteAddress => 'Failed to delete address';
+
+  @override
+  String get failedToLoadAddresses => 'Failed to load addresses';
+
+  @override
+  String get failedToSaveAddressRetry =>
+      'Failed to save address. Please try again.';
+
+  @override
+  String get addressLine2Optional => 'Address Line 2 (optional)';
+
+  @override
+  String get twoChars => '2 chars';
+
+  @override
+  String get informationUpdated => 'Information updated';
+
+  @override
+  String get failedToUpdate => 'Failed to update';
+
+  @override
+  String get phoneOptional => 'Phone (optional)';
+
+  @override
+  String get failedToLoadReviews => 'Failed to load reviews';
+
+  @override
+  String get submitReview => 'Submit Review';
+
+  @override
+  String get submitting => 'Submitting...';
+
+  @override
+  String get yourName => 'Your name';
+
+  @override
+  String get describeExperience => 'Describe your experience...';
+
+  @override
+  String get ratingTitle => 'Rating';
+
+  @override
+  String get nameLabel => 'Name';
+
+  @override
+  String get nameRequired => 'Name is required';
+
+  @override
+  String get commentRequired => 'Comment is required';
+
+  @override
+  String get reviewSubmitted =>
+      'Review submitted! It will appear after approval.';
+
+  @override
+  String get failedToSubmitReview => 'Failed to submit review. Try again.';
+
+  @override
+  String get ratingLabel => 'rating';
+
+  @override
+  String get startsFrom => 'Starts From';
+
+  @override
+  String get price => 'Price';
+
+  @override
+  String get totalPrice => 'Total Price';
+
+  @override
+  String get withVatSd => 'with VAT, SD';
+
+  @override
+  String get errorAddingItem => 'Error adding item';
+
+  @override
+  String get noProductsInCategory => 'No products in this category';
+
+  @override
+  String get errorLoadingProducts => 'Error loading products';
+
+  @override
+  String get orderConfirmed => 'Order Confirmed!';
+
+  @override
+  String get orderConfirmedMessage =>
+      'Your order has been confirmed, we will send you confirmation shortly.';
+
+  @override
+  String get goToOrders => 'Go to Orders';
+
+  @override
+  String get continueShopping => 'Continue Shopping';
+
+  @override
+  String get qty => 'Qty';
+
+  @override
+  String get delete => 'Delete';
+
+  @override
+  String get mustPurchaseToReview =>
+      'Only buyers can leave a review for this product.';
+
+  @override
+  String get loginToReview => 'Please sign in to submit a review.';
+
+  @override
+  String get viewsCount => 'views';
+
+  @override
+  String get itemsRemovedUnavailable =>
+      'items removed from your cart as they\'re not available in your country';
 }

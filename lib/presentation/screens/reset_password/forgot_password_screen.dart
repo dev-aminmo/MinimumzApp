@@ -42,7 +42,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to send reset code. Please try again.')),
+          SnackBar(content: Text(context.l10n.failedToSendResetCode)),
         );
       }
     } finally {

@@ -871,6 +871,396 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Open Settings'**
   String get openSettings;
+
+  /// No description provided for @tagline.
+  ///
+  /// In en, this message translates to:
+  /// **'Your store, your style.'**
+  String get tagline;
+
+  /// No description provided for @confirmPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm Password'**
+  String get confirmPassword;
+
+  /// No description provided for @passwordResetSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Password reset successfully. Please sign in.'**
+  String get passwordResetSuccess;
+
+  /// No description provided for @passwordResetFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to reset password. The code may have expired.'**
+  String get passwordResetFailed;
+
+  /// No description provided for @writeNewPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Please write your new password.'**
+  String get writeNewPassword;
+
+  /// No description provided for @resetting.
+  ///
+  /// In en, this message translates to:
+  /// **'Resetting...'**
+  String get resetting;
+
+  /// No description provided for @resetPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset Password'**
+  String get resetPassword;
+
+  /// No description provided for @failedToSendResetCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to send reset code. Please try again.'**
+  String get failedToSendResetCode;
+
+  /// No description provided for @enterDigitCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter the 4-digit code.'**
+  String get enterDigitCode;
+
+  /// No description provided for @invalidOrExpiredCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid or expired code. Please try again.'**
+  String get invalidOrExpiredCode;
+
+  /// No description provided for @verifying.
+  ///
+  /// In en, this message translates to:
+  /// **'Verifying...'**
+  String get verifying;
+
+  /// No description provided for @confirmCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm Code'**
+  String get confirmCode;
+
+  /// No description provided for @verificationCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Verification Code'**
+  String get verificationCode;
+
+  /// No description provided for @codeWasSentTo.
+  ///
+  /// In en, this message translates to:
+  /// **'A 4-digit code was sent to'**
+  String get codeWasSentTo;
+
+  /// No description provided for @searchThroughStore.
+  ///
+  /// In en, this message translates to:
+  /// **'Search through the store'**
+  String get searchThroughStore;
+
+  /// No description provided for @noResultsFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No results found'**
+  String get noResultsFound;
+
+  /// No description provided for @searchFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Search failed'**
+  String get searchFailed;
+
+  /// No description provided for @clearWishlist.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear Wishlist'**
+  String get clearWishlist;
+
+  /// No description provided for @removeAllFromWishlist.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove all items from wishlist?'**
+  String get removeAllFromWishlist;
+
+  /// No description provided for @clear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get clear;
+
+  /// No description provided for @inWishlist.
+  ///
+  /// In en, this message translates to:
+  /// **'in wishlist'**
+  String get inWishlist;
+
+  /// No description provided for @yourWishlistIsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Your wishlist is empty'**
+  String get yourWishlistIsEmpty;
+
+  /// No description provided for @updateInformation.
+  ///
+  /// In en, this message translates to:
+  /// **'Update Information'**
+  String get updateInformation;
+
+  /// No description provided for @addressBook.
+  ///
+  /// In en, this message translates to:
+  /// **'Address Book'**
+  String get addressBook;
+
+  /// No description provided for @editAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Address'**
+  String get editAddress;
+
+  /// No description provided for @addAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Address'**
+  String get addAddress;
+
+  /// No description provided for @deleteAddressTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete address?'**
+  String get deleteAddressTitle;
+
+  /// No description provided for @noSavedAddresses.
+  ///
+  /// In en, this message translates to:
+  /// **'No saved addresses yet'**
+  String get noSavedAddresses;
+
+  /// No description provided for @failedToDeleteAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to delete address'**
+  String get failedToDeleteAddress;
+
+  /// No description provided for @failedToLoadAddresses.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load addresses'**
+  String get failedToLoadAddresses;
+
+  /// No description provided for @failedToSaveAddressRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to save address. Please try again.'**
+  String get failedToSaveAddressRetry;
+
+  /// No description provided for @addressLine2Optional.
+  ///
+  /// In en, this message translates to:
+  /// **'Address Line 2 (optional)'**
+  String get addressLine2Optional;
+
+  /// No description provided for @twoChars.
+  ///
+  /// In en, this message translates to:
+  /// **'2 chars'**
+  String get twoChars;
+
+  /// No description provided for @informationUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Information updated'**
+  String get informationUpdated;
+
+  /// No description provided for @failedToUpdate.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to update'**
+  String get failedToUpdate;
+
+  /// No description provided for @phoneOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone (optional)'**
+  String get phoneOptional;
+
+  /// No description provided for @failedToLoadReviews.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load reviews'**
+  String get failedToLoadReviews;
+
+  /// No description provided for @submitReview.
+  ///
+  /// In en, this message translates to:
+  /// **'Submit Review'**
+  String get submitReview;
+
+  /// No description provided for @submitting.
+  ///
+  /// In en, this message translates to:
+  /// **'Submitting...'**
+  String get submitting;
+
+  /// No description provided for @yourName.
+  ///
+  /// In en, this message translates to:
+  /// **'Your name'**
+  String get yourName;
+
+  /// No description provided for @describeExperience.
+  ///
+  /// In en, this message translates to:
+  /// **'Describe your experience...'**
+  String get describeExperience;
+
+  /// No description provided for @ratingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Rating'**
+  String get ratingTitle;
+
+  /// No description provided for @nameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get nameLabel;
+
+  /// No description provided for @nameRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Name is required'**
+  String get nameRequired;
+
+  /// No description provided for @commentRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Comment is required'**
+  String get commentRequired;
+
+  /// No description provided for @reviewSubmitted.
+  ///
+  /// In en, this message translates to:
+  /// **'Review submitted! It will appear after approval.'**
+  String get reviewSubmitted;
+
+  /// No description provided for @failedToSubmitReview.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to submit review. Try again.'**
+  String get failedToSubmitReview;
+
+  /// No description provided for @ratingLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'rating'**
+  String get ratingLabel;
+
+  /// No description provided for @startsFrom.
+  ///
+  /// In en, this message translates to:
+  /// **'Starts From'**
+  String get startsFrom;
+
+  /// No description provided for @price.
+  ///
+  /// In en, this message translates to:
+  /// **'Price'**
+  String get price;
+
+  /// No description provided for @totalPrice.
+  ///
+  /// In en, this message translates to:
+  /// **'Total Price'**
+  String get totalPrice;
+
+  /// No description provided for @withVatSd.
+  ///
+  /// In en, this message translates to:
+  /// **'with VAT, SD'**
+  String get withVatSd;
+
+  /// No description provided for @errorAddingItem.
+  ///
+  /// In en, this message translates to:
+  /// **'Error adding item'**
+  String get errorAddingItem;
+
+  /// No description provided for @noProductsInCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'No products in this category'**
+  String get noProductsInCategory;
+
+  /// No description provided for @errorLoadingProducts.
+  ///
+  /// In en, this message translates to:
+  /// **'Error loading products'**
+  String get errorLoadingProducts;
+
+  /// No description provided for @orderConfirmed.
+  ///
+  /// In en, this message translates to:
+  /// **'Order Confirmed!'**
+  String get orderConfirmed;
+
+  /// No description provided for @orderConfirmedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Your order has been confirmed, we will send you confirmation shortly.'**
+  String get orderConfirmedMessage;
+
+  /// No description provided for @goToOrders.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to Orders'**
+  String get goToOrders;
+
+  /// No description provided for @continueShopping.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue Shopping'**
+  String get continueShopping;
+
+  /// No description provided for @qty.
+  ///
+  /// In en, this message translates to:
+  /// **'Qty'**
+  String get qty;
+
+  /// No description provided for @delete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get delete;
+
+  /// No description provided for @mustPurchaseToReview.
+  ///
+  /// In en, this message translates to:
+  /// **'Only buyers can leave a review for this product.'**
+  String get mustPurchaseToReview;
+
+  /// No description provided for @loginToReview.
+  ///
+  /// In en, this message translates to:
+  /// **'Please sign in to submit a review.'**
+  String get loginToReview;
+
+  /// No description provided for @viewsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'views'**
+  String get viewsCount;
+
+  /// No description provided for @itemsRemovedUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'items removed from your cart as they\'re not available in your country'**
+  String get itemsRemovedUnavailable;
 }
 
 class _AppLocalizationsDelegate

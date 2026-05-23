@@ -9,6 +9,7 @@ import '../screens/orders/orders_screen.dart';
 import '../screens/account_information/address_book_screen.dart';
 import '../screens/notifications_screen.dart';
 import '../screens/settings_screen.dart';
+import '../screens/categories_screen.dart';
 
 part 'app_router.gr.dart';
 
@@ -39,7 +40,7 @@ class AppRouter extends _$AppRouter {
           page: DashboardRoute.page,
           children: [
             AutoRoute(page: HomeRoute.page),
-            AutoRoute(page: SearchRoute.page),
+            AutoRoute(page: CategoriesRoute.page),
             AutoRoute(page: WishlistRoute.page),
             AutoRoute(page: CartRoute.page),
           ],

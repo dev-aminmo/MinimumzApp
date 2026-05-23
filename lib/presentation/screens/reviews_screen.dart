@@ -83,8 +83,8 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
       child: Scaffold(
         appBar: CustomAppBar(
           title: widget.productTitle != null
-              ? 'Reviews · ${widget.productTitle}'
-              : 'Reviews',
+              ? '${context.l10n.reviews} · ${widget.productTitle}'
+              : context.l10n.reviews,
         ),
         body: CustomScrollView(
           slivers: [
@@ -117,11 +117,11 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
                   padding: EdgeInsets.all(16),
                   child: Center(child: CircularProgressIndicator.adaptive()),
                 ),
-                noItemsFoundIndicatorBuilder: (_) => const Padding(
-                  padding: EdgeInsets.only(top: 40),
-                  child: Center(child: Text('No reviews yet')),
+                noItemsFoundIndicatorBuilder: (context) => Padding(
+                  padding: const EdgeInsets.only(top: 40),
+                  child: Center(child: Text(context.l10n.noReviewsYet)),
                 ),
-                firstPageErrorIndicatorBuilder: (_) => Padding(
+                firstPageErrorIndicatorBuilder: (context) => Padding(
                   padding: const EdgeInsets.only(top: 40),
                   child: Center(
                     child: Column(
@@ -129,12 +129,12 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
                       children: [
                         Text(
                           _pagingController.error?.toString() ??
-                              'Failed to load reviews',
+                              context.l10n.failedToLoadReviews,
                         ),
                         const SizedBox(height: 12),
                         ElevatedButton(
                           onPressed: _pagingController.refresh,
-                          child: const Text('Retry'),
+                          child: Text(context.l10n.retry),
                         ),
                       ],
                     ),
@@ -177,7 +177,7 @@ class _Header extends StatelessWidget {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('$count ${count == 1 ? "Review" : "Reviews"}',
+            Text('$count ${context.l10n.reviews}',
                 style: context.bodyMediumW500),
             const SizedBox(height: 5),
             Row(
@@ -214,11 +214,11 @@ class _Header extends StatelessWidget {
             await context.router.push(AddReviewRoute(productId: productId));
             onReviewAdded();
           },
-          child: const Row(
+          child: Row(
             children: [
-              Icon(minimumzIcons.edit_square, size: 18),
-              SizedBox(width: 5),
-              Text('Add Review'),
+              const Icon(minimumzIcons.edit_square, size: 18),
+              const SizedBox(width: 5),
+              Text(context.l10n.addReview),
             ],
           ),
         ),
@@ -290,7 +290,7 @@ class _ReviewCard extends StatelessWidget {
                   children: [
                     Text(review.rating.toStringAsFixed(1),
                         style: context.bodyMediumW500),
-                    Text(' rating',
+                    Text(' ${context.l10n.ratingLabel}',
                         style: context.bodyExtraSmall
                             ?.copyWith(color: ColorConstant.manatee)),
                   ],

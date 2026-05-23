@@ -9,6 +9,9 @@ class ProductType {
   /// Example: "Clothing"
   final String? value;
 
+  final String? logo;
+  final String? banner;
+
   /// The date with timezone at which the resource was created.
   final DateTime? createdAt;
 
@@ -24,6 +27,8 @@ class ProductType {
   ProductType({
     this.id,
     required this.value,
+    this.logo,
+    this.banner,
     this.createdAt,
     this.updatedAt,
     this.deletedAt,
@@ -34,6 +39,8 @@ class ProductType {
     return ProductType(
       id: json['id'],
       value: json['value'],
+      logo: json['logo'],
+      banner: json['banner'],
       createdAt: DateTime.tryParse(json['created_at'] ?? '')?.toLocal(),
       updatedAt: DateTime.tryParse(json['updated_at'] ?? '')?.toLocal(),
       deletedAt: DateTime.tryParse(json['deleted_at'] ?? '')?.toLocal(),
@@ -45,6 +52,8 @@ class ProductType {
     var json = <String, dynamic>{};
     json['id'] = id;
     json['value'] = value;
+    json['logo'] = logo;
+    json['banner'] = banner;
     json['created_at'] = createdAt.toString();
     json['updated_at'] = updatedAt.toString();
     json['deleted_at'] = deletedAt.toString();

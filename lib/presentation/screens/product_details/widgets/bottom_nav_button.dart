@@ -1,3 +1,4 @@
+import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fluttertoast/fluttertoast.dart';
@@ -5,6 +6,7 @@ import 'package:minimumz/common/colors.dart';
 import 'package:minimumz/common/extensions/extensions.dart';
 import 'package:minimumz/domain/repository/preference_repository.dart';
 import 'package:minimumz/presentation/components/index.dart';
+import 'package:minimumz/presentation/routes/app_router.dart';
 import 'package:minimumz/presentation/screens/cart/bloc/cart/cart_bloc.dart';
 import 'package:minimumz/presentation/screens/cart/bloc/line_item/line_item_bloc.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
@@ -156,9 +158,9 @@ class _ProductDetailsBottomNavButtonState
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('Total Price',
+                                  Text(context.l10n.totalPrice,
                                       style: context.bodyMediumW600),
-                                  Text('with VAT,SD',
+                                  Text(context.l10n.withVatSd,
                                       style: context.bodyExtraSmall?.copyWith(
                                           color: ColorConstant.manatee)),
                                 ],
@@ -170,40 +172,75 @@ class _ProductDetailsBottomNavButtonState
                             ],
                           ),
                         ),
-                        Container(
-                          color: ColorConstant.primary,
-                          height: 50,
-                          child: BlocBuilder<LineItemBloc, LineItemState>(
-                            builder: (context, state) {
-                              return state.map(
-                                initial: (_) => addRemoveItemWidget,
-                                success: (cart) => addRemoveItemWidget,
-                                loading: (_) => addRemoveItemLoadingWidget,
-                                failure: (error) {
-                                  return Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      const Text('Error adding item'),
-                                      TextButton(
-                                          onPressed: widget.selectedVariant == null ? null : () {
-                                            context.read<LineItemBloc>().add(
-                                                LineItemEvent.add(
-                                                    PreferenceRepository
-                                                        .instance.cartId!,
-                                                    widget.selectedVariant!.id!,
-                                                    1));
-                                          },
-                                          child: const Text('Retry')),
-                                    ],
-                                  );
-                                },
-                              );
-                            },
-                          ),
+                        Row(
+                          children: [
+                            Expanded(
+                              flex: 3,
+                              child: Container(
+                                color: ColorConstant.primary,
+                                height: 50,
+                                child: BlocBuilder<LineItemBloc, LineItemState>(
+                                  builder: (context, state) {
+                                    return state.map(
+                                      initial: (_) => addRemoveItemWidget,
+                                      success: (cart) => addRemoveItemWidget,
+                                      loading: (_) => addRemoveItemLoadingWidget,
+                                      failure: (error) {
+                                        return Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Text(context.l10n.errorAddingItem),
+                                            TextButton(
+                                                onPressed: widget.selectedVariant == null ? null : () {
+                                                  context.read<LineItemBloc>().add(
+                                                      LineItemEvent.add(
+                                                          PreferenceRepository
+                                                              .instance.cartId!,
+                                                          widget.selectedVariant!.id!,
+                                                          1));
+                                                },
+                                                child: Text(context.l10n.retry)),
+                                          ],
+                                        );
+                                      },
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              flex: 2,
+                              child: GestureDetector(
+                                onTap: () => context.router.push(const CartRoute()),
+                                child: Container(
+                                  height: 50,
+                                  color: ColorConstant.brownDark,
+                                  child: Center(
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          context.l10n.checkout,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 13,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        const Icon(Icons.arrow_forward_ios_rounded,
+                                            color: Colors.white, size: 13),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                         Container(
                           height: context.bottomViewPadding,
-                          color: ColorConstant.primary,
+                          color: ColorConstant.brownDark,
                         )
                       ],
                     );
@@ -217,7 +254,7 @@ class _ProductDetailsBottomNavButtonState
                     );
                   }
                   return BottomNavButton(
-                      label: 'Add to Cart',
+                      label: context.l10n.addToCart,
                       onTap: (widget.optionsSelected.length <
                                       (widget.product.options?.length ?? 0) ||
                                   widget.selectedVariant == null)

@@ -1,4 +1,5 @@
 import 'package:auto_route/auto_route.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:gap/gap.dart';
@@ -22,11 +23,22 @@ class CollectionScreen extends StatefulWidget {
 
 class _CollectionScreenState extends State<CollectionScreen> {
   static const _pageSize = 10;
+  static const _minHeight = kToolbarHeight;
 
   final PagingController<int, Product> _pagingController =
       PagingController(firstPageKey: 0);
   late final ProductsBloc _bloc;
   int _loadedCount = 0;
+
+  bool get _hasBanner => widget.collection.banner != null;
+  bool get _hasLogo => widget.collection.logo != null;
+  bool get _hasVisual => _hasBanner || _hasLogo;
+
+  double get _expandedHeight {
+    if (_hasBanner) return 240.0;
+    if (_hasLogo) return 200.0;
+    return 90.0;
+  }
 
   @override
   void initState() {
@@ -57,141 +69,267 @@ class _CollectionScreenState extends State<CollectionScreen> {
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return BlocProvider.value(
-      value: _bloc,
-      child: Scaffold(
-        appBar: CollectionAppBar(
-          collection: widget.collection,
-          actions: [
-            InkWell(
-              borderRadius: const BorderRadius.all(Radius.circular(50)),
-              onTap: () => context.router.push(const CartRoute()),
-              child: Ink(
-                width: 45,
-                height: 45,
-                decoration: ShapeDecoration(
-                  color: context.theme.cardColor,
-                  shape: const CircleBorder(),
+  Widget _buildFlexibleSpace(BuildContext context) {
+    final canPop = context.router.canPop();
+    return LayoutBuilder(
+      builder: (ctx, constraints) {
+        final maxH = _expandedHeight + _minHeight;
+        final expandRatio =
+            ((constraints.maxHeight - _minHeight) / (maxH - _minHeight))
+                .clamp(0.0, 1.0);
+        final collapsedOpacity = (1.0 - expandRatio * 2).clamp(0.0, 1.0);
+        final expandedOpacity = ((expandRatio - 0.5) * 2).clamp(0.0, 1.0);
+
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            // ── Banner: full-bleed background ──────────────────────────────
+            if (_hasBanner)
+              Opacity(
+                opacity: expandedOpacity,
+                child: CachedNetworkImage(
+                  imageUrl: widget.collection.banner!,
+                  width: double.infinity,
+                  height: double.infinity,
+                  fit: BoxFit.cover,
+                  errorWidget: (_, __, ___) => const SizedBox.shrink(),
                 ),
-                child: const Icon(minimumzIcons.bag),
               ),
-            ),
-          ],
-        ),
-        body: SafeArea(
-          child: BlocConsumer<ProductsBloc, ProductsState>(
-            listener: (context, state) {
-              state.whenOrNull(
-                loaded: _onLoaded,
-                error: (error) => _pagingController.error = error,
-              );
-            },
-            builder: (context, state) {
-              return PagedGridView<int, Product>(
-                pagingController: _pagingController,
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  mainAxisExtent: 280,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
+
+            // ── Gradient overlay so text stays readable on banner ──────────
+            if (_hasBanner)
+              Opacity(
+                opacity: expandedOpacity,
+                child: Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Colors.transparent, Color(0x88000000)],
+                    ),
+                  ),
                 ),
-                builderDelegate: PagedChildBuilderDelegate<Product>(
-                  itemBuilder: (_, product, __) => ProductCard(product: product),
-                  firstPageProgressIndicatorBuilder: (_) =>
-                      const Center(child: CircularProgressIndicator.adaptive()),
-                  newPageProgressIndicatorBuilder: (_) => const Padding(
-                    padding: EdgeInsets.all(16),
-                    child: Center(child: CircularProgressIndicator.adaptive()),
-                  ),
-                  noItemsFoundIndicatorBuilder: (_) => const Center(
-                    child: Text('No products in this category'),
-                  ),
-                  firstPageErrorIndicatorBuilder: (context) => Center(
+              ),
+
+            // ── Expanded content: logo + title ─────────────────────────────
+            if (_hasVisual)
+              Opacity(
+                opacity: expandedOpacity,
+                child: Align(
+                  alignment: Alignment.bottomCenter,
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 20),
                     child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(_pagingController.error?.toString() ??
-                            'Error loading products'),
-                        const Gap(12),
-                        ElevatedButton(
-                          onPressed: _pagingController.refresh,
-                          child: const Text('Retry'),
+                        if (_hasLogo) ...[
+                          ClipRRect(
+                            borderRadius:
+                                const BorderRadius.all(Radius.circular(12)),
+                            child: CachedNetworkImage(
+                              imageUrl: widget.collection.logo!,
+                              width: 64,
+                              height: 64,
+                              fit: BoxFit.cover,
+                              errorWidget: (_, __, ___) => Icon(
+                                Icons.category_outlined,
+                                size: 40,
+                                color: _hasBanner
+                                    ? Colors.white70
+                                    : Theme.of(ctx)
+                                        .colorScheme
+                                        .onSurface
+                                        .withValues(alpha: 0.4),
+                              ),
+                            ),
+                          ),
+                          const Gap(10),
+                        ],
+                        Text(
+                          widget.collection.title ?? '',
+                          style: context.bodyMediumW500?.copyWith(
+                            fontSize: 18,
+                            color: _hasBanner ? Colors.white : null,
+                            shadows: _hasBanner
+                                ? [
+                                    const Shadow(
+                                      blurRadius: 4,
+                                      color: Colors.black45,
+                                    )
+                                  ]
+                                : null,
+                          ),
+                          textAlign: TextAlign.center,
                         ),
                       ],
                     ),
                   ),
                 ),
-              );
-            },
-          ),
-        ),
-      ),
+              ),
+
+            // ── Collapsed state: pill with logo + title ────────────────────
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: Padding(
+                padding: EdgeInsets.only(
+                  bottom: 8,
+                  left: canPop ? 64 : 20,
+                  right: 64,
+                ),
+                child: Opacity(
+                  opacity: collapsedOpacity,
+                  child: Container(
+                    height: 40,
+                    alignment: Alignment.center,
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    decoration: BoxDecoration(
+                      color: context.theme.cardColor,
+                      borderRadius:
+                          const BorderRadius.all(Radius.circular(10.0)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (_hasLogo) ...[
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: CachedNetworkImage(
+                              imageUrl: widget.collection.logo!,
+                              width: 24,
+                              height: 24,
+                              fit: BoxFit.cover,
+                              errorWidget: (_, __, ___) =>
+                                  const SizedBox.shrink(),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                        ],
+                        Text(
+                          widget.collection.title ?? '',
+                          style: context.bodyMediumW500,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
-}
-
-class CollectionAppBar extends StatelessWidget implements PreferredSizeWidget {
-  const CollectionAppBar({super.key, required this.collection, this.actions});
-  final ProductCollection collection;
-  final List<Widget>? actions;
 
   @override
   Widget build(BuildContext context) {
     final canPop = context.router.canPop();
-    return Container(
-      height: kToolbarHeight,
-      margin: EdgeInsets.only(top: context.viewPadding.top),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20.0),
-        child: Row(
-          mainAxisSize: MainAxisSize.max,
-          mainAxisAlignment: canPop || actions != null
-              ? MainAxisAlignment.spaceBetween
-              : MainAxisAlignment.center,
-          children: [
-            if (canPop)
-              InkWell(
-                borderRadius: const BorderRadius.all(Radius.circular(50)),
-                onTap: () => context.router.maybePop(),
-                child: Ink(
-                  width: 45,
-                  height: 45,
-                  decoration: ShapeDecoration(
-                    color: context.theme.cardColor,
-                    shape: const CircleBorder(),
-                  ),
-                  child: const Icon(Icons.arrow_back_outlined),
+    return BlocProvider.value(
+      value: _bloc,
+      child: Scaffold(
+        body: BlocConsumer<ProductsBloc, ProductsState>(
+          listener: (context, state) {
+            state.whenOrNull(
+              loaded: _onLoaded,
+              error: (error) => _pagingController.error = error,
+            );
+          },
+          builder: (context, state) {
+            return CustomScrollView(
+              slivers: [
+                SliverAppBar(
+                  pinned: true,
+                  expandedHeight: _expandedHeight,
+                  automaticallyImplyLeading: false,
+                  // Make the appBar itself transparent so the banner shows through
+                  backgroundColor: _hasBanner
+                      ? Colors.transparent
+                      : context.theme.scaffoldBackgroundColor,
+                  leading: canPop
+                      ? Padding(
+                          padding: const EdgeInsets.all(6),
+                          child: InkWell(
+                            borderRadius:
+                                const BorderRadius.all(Radius.circular(50)),
+                            onTap: () => context.router.maybePop(),
+                            child: Ink(
+                              decoration: ShapeDecoration(
+                                color: context.theme.cardColor,
+                                shape: const CircleBorder(),
+                              ),
+                              child: const Icon(Icons.arrow_back_outlined),
+                            ),
+                          ),
+                        )
+                      : null,
+                  actions: [
+                    Padding(
+                      padding: const EdgeInsets.only(
+                          right: 8, top: 6, bottom: 6, left: 8),
+                      child: InkWell(
+                        borderRadius:
+                            const BorderRadius.all(Radius.circular(50)),
+                        onTap: () =>
+                            context.router.push(const CartRoute()),
+                        child: Ink(
+                          width: 40,
+                          height: 40,
+                          decoration: ShapeDecoration(
+                            color: context.theme.cardColor,
+                            shape: const CircleBorder(),
+                          ),
+                          child: const Icon(minimumzIcons.bag),
+                        ),
+                      ),
+                    ),
+                  ],
+                  flexibleSpace: _buildFlexibleSpace(context),
                 ),
-              ),
-            if (!canPop && actions != null)
-              const SizedBox(height: 45, width: 45),
-            Container(
-              height: 40,
-              alignment: Alignment.center,
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-              decoration: BoxDecoration(
-                color: context.theme.cardColor,
-                borderRadius: const BorderRadius.all(Radius.circular(10.0)),
-              ),
-              child: Text(collection.title ?? '',
-                  style: context.bodyMediumW500),
-            ),
-            if (canPop && actions == null)
-              const SizedBox(height: 45, width: 45),
-            if (actions != null)
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                children: actions!,
-              ),
-          ],
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+                  sliver: PagedSliverGrid<int, Product>(
+                    pagingController: _pagingController,
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      mainAxisExtent: 280,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                    ),
+                    builderDelegate: PagedChildBuilderDelegate<Product>(
+                      itemBuilder: (_, product, __) =>
+                          ProductCard(product: product),
+                      firstPageProgressIndicatorBuilder: (_) => const Center(
+                          child: CircularProgressIndicator.adaptive()),
+                      newPageProgressIndicatorBuilder: (_) => const Padding(
+                        padding: EdgeInsets.all(16),
+                        child: Center(
+                            child: CircularProgressIndicator.adaptive()),
+                      ),
+                      noItemsFoundIndicatorBuilder: (context) => Center(
+                        child: Text(context.l10n.noProductsInCategory),
+                      ),
+                      firstPageErrorIndicatorBuilder: (context) => Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(_pagingController.error?.toString() ??
+                                context.l10n.errorLoadingProducts),
+                            const Gap(12),
+                            ElevatedButton(
+                              onPressed: _pagingController.refresh,
+                              child: Text(context.l10n.retry),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );
   }
-
-  @override
-  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
 }

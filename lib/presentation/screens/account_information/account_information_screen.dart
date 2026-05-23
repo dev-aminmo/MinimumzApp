@@ -16,7 +16,7 @@ class AccountInformationScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const CustomAppBar(title: 'Account Information'),
+      appBar: CustomAppBar(title: context.l10n.accountInformation),
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 20.0),
         children: [
@@ -32,13 +32,13 @@ class AccountInformationScreen extends StatelessWidget {
                     return const UpdateInformation();
                   });
             },
-            title: const Text('Update Information'),
+            title: Text(context.l10n.updateInformation),
           ),
           const Divider(height: 0),
           ListTile(
             onTap: () => context.router.push(const AddressBookRoute()),
             leading: const Icon(Icons.location_history),
-            title: const Text('Address Book'),
+            title: Text(context.l10n.addressBook),
           ),
           const Divider(height: 0),
           ListTile(
@@ -49,7 +49,7 @@ class AccountInformationScreen extends StatelessWidget {
               backgroundColor: context.theme.scaffoldBackgroundColor,
               builder: (_) => _PasswordSheet(),
             ),
-            title: const Text('Change Password'),
+            title: Text(context.l10n.changePassword),
           ),
         ],
       ),
@@ -90,13 +90,13 @@ class _PasswordSheetState extends State<_PasswordSheet> {
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Password updated successfully')),
+          SnackBar(content: Text(context.l10n.passwordUpdated)),
         );
       }
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Current password is incorrect')),
+          SnackBar(content: Text(context.l10n.currentPasswordIncorrect)),
         );
       }
     } finally {
@@ -116,7 +116,7 @@ class _PasswordSheetState extends State<_PasswordSheet> {
           children: [
             AppBar(
               automaticallyImplyLeading: false,
-              title: const Text('Change Password'),
+              title: Text(context.l10n.changePassword),
               actions: [
                 _loading
                     ? const Padding(
@@ -128,7 +128,7 @@ class _PasswordSheetState extends State<_PasswordSheet> {
                       )
                     : TextButton(
                         onPressed: _submit,
-                        child: const Text('Save'),
+                        child: Text(context.l10n.save),
                       ),
               ],
             ),
@@ -142,7 +142,7 @@ class _PasswordSheetState extends State<_PasswordSheet> {
                     obscureText: !_showCurrent,
                     textInputAction: TextInputAction.next,
                     decoration: InputDecoration(
-                      hintText: 'Current Password',
+                      hintText: context.l10n.currentPassword,
                       suffixIcon: IconButton(
                         icon: Icon(_showCurrent
                             ? Icons.visibility_off
@@ -152,7 +152,7 @@ class _PasswordSheetState extends State<_PasswordSheet> {
                       ),
                     ),
                     validator: (v) =>
-                        (v == null || v.isEmpty) ? 'Required' : null,
+                        (v == null || v.isEmpty) ? context.l10n.required : null,
                   ),
                   const Gap(10),
                   TextFormField(
@@ -160,7 +160,7 @@ class _PasswordSheetState extends State<_PasswordSheet> {
                     obscureText: !_showNew,
                     textInputAction: TextInputAction.next,
                     decoration: InputDecoration(
-                      hintText: 'New Password',
+                      hintText: context.l10n.newPassword,
                       suffixIcon: IconButton(
                         icon: Icon(_showNew
                             ? Icons.visibility_off
@@ -170,8 +170,8 @@ class _PasswordSheetState extends State<_PasswordSheet> {
                       ),
                     ),
                     validator: (v) {
-                      if (v == null || v.isEmpty) return 'Required';
-                      if (v.length < 6) return 'At least 6 characters';
+                      if (v == null || v.isEmpty) return context.l10n.required;
+                      if (v.length < 6) return context.l10n.atLeast6Characters;
                       return null;
                     },
                   ),
@@ -181,11 +181,11 @@ class _PasswordSheetState extends State<_PasswordSheet> {
                     obscureText: true,
                     textInputAction: TextInputAction.done,
                     onFieldSubmitted: (_) => _submit(),
-                    decoration: const InputDecoration(
-                        hintText: 'Confirm New Password'),
+                    decoration: InputDecoration(
+                        hintText: context.l10n.confirmNewPassword),
                     validator: (v) {
-                      if (v == null || v.isEmpty) return 'Required';
-                      if (v != _newCtrl.text) return 'Passwords do not match';
+                      if (v == null || v.isEmpty) return context.l10n.required;
+                      if (v != _newCtrl.text) return context.l10n.passwordsDoNotMatch;
                       return null;
                     },
                   ),

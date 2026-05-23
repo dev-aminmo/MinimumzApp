@@ -156,7 +156,7 @@ class _SignInWithEmailScreenState extends State<SignInWithEmailScreen> {
 
                         // ── Forgot password ──────────────────────────
                         Align(
-                          alignment: Alignment.centerRight,
+                          alignment: AlignmentDirectional.centerEnd,
                           child: TextButton(
                             onPressed: () => context.router
                                 .push(const ForgotPasswordRoute()),

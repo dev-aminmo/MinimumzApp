@@ -56,16 +56,16 @@ class _WishlistScreenState extends State<WishlistScreen> {
   Future<void> _clearAll() async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Clear Wishlist'),
-        content: const Text('Remove all items from wishlist?'),
+      builder: (ctx) => AlertDialog(
+        title: Text(ctx.l10n.clearWishlist),
+        content: Text(ctx.l10n.removeAllFromWishlist),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel')),
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(ctx.l10n.cancel)),
           TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Clear')),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text(ctx.l10n.clear)),
         ],
       ),
     );
@@ -107,10 +107,10 @@ class _WishlistScreenState extends State<WishlistScreen> {
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('${products.length} Items',
+                            Text('${products.length} ${context.l10n.items}',
                                 style: context.bodyLargeW500),
                             const SizedBox(height: 3),
-                            Text('in wishlist',
+                            Text(context.l10n.inWishlist,
                                 style: context.bodyMedium
                                     ?.copyWith(color: ColorConstant.manatee)),
                           ],
@@ -133,7 +133,7 @@ class _WishlistScreenState extends State<WishlistScreen> {
                                       size: 14,
                                       color: context.bodyMediumW500?.color),
                                   const SizedBox(width: 5),
-                                  Text('Clear', style: context.bodyMediumW500),
+                                  Text(context.l10n.clear, style: context.bodyMediumW500),
                                 ],
                               ),
                             ),
@@ -152,7 +152,7 @@ class _WishlistScreenState extends State<WishlistScreen> {
                             Icon(minimumzIcons.heart,
                                 size: 64, color: ColorConstant.manatee),
                             const SizedBox(height: 16),
-                            Text('Your wishlist is empty',
+                            Text(context.l10n.yourWishlistIsEmpty,
                                 style: context.bodyLargeW500),
                           ],
                         ),

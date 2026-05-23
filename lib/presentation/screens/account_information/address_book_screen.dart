@@ -36,21 +36,21 @@ class _AddressBookScreenState extends State<AddressBookScreen> {
       final list = await getIt<DataStore>().customers.listShippingAddresses();
       if (mounted) setState(() { _addresses = list; _loading = false; });
     } catch (_) {
-      if (mounted) setState(() { _error = 'Failed to load addresses'; _loading = false; });
+      if (mounted) setState(() { _error = 'load_failed'; _loading = false; });
     }
   }
 
   Future<void> _delete(Address address) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Delete address?'),
+      builder: (ctx) => AlertDialog(
+        title: Text(ctx.l10n.deleteAddressTitle),
         content: Text('${address.firstName ?? ''} ${address.lastName ?? ''}\n${address.address1 ?? ''}'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(ctx.l10n.cancel)),
           TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(ctx.l10n.delete, style: const TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -62,7 +62,7 @@ class _AddressBookScreenState extends State<AddressBookScreen> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to delete address')),
+          SnackBar(content: Text(context.l10n.failedToDeleteAddress)),
         );
       }
     }
@@ -86,7 +86,7 @@ class _AddressBookScreenState extends State<AddressBookScreen> {
       value: context.theme.appBarTheme.systemOverlayStyle!,
       child: Scaffold(
         appBar: CustomAppBar(
-          title: 'Address Book',
+          title: context.l10n.addressBook,
           actions: [
             IconButton(
               icon: const Icon(Icons.add),
@@ -101,9 +101,9 @@ class _AddressBookScreenState extends State<AddressBookScreen> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(_error!),
+                        Text(context.l10n.failedToLoadAddresses),
                         const SizedBox(height: 12),
-                        ElevatedButton(onPressed: _load, child: const Text('Retry')),
+                        ElevatedButton(onPressed: _load, child: Text(context.l10n.retry)),
                       ],
                     ),
                   )
@@ -114,12 +114,12 @@ class _AddressBookScreenState extends State<AddressBookScreen> {
                           children: [
                             Icon(Icons.location_off_outlined, size: 56, color: ColorConstant.manatee),
                             const Gap(12),
-                            Text('No saved addresses yet', style: context.bodyMedium?.copyWith(color: ColorConstant.manatee)),
+                            Text(context.l10n.noSavedAddresses, style: context.bodyMedium?.copyWith(color: ColorConstant.manatee)),
                             const Gap(16),
                             FilledButton.icon(
                               onPressed: () => _showForm(),
                               icon: const Icon(Icons.add),
-                              label: const Text('Add Address'),
+                              label: Text(context.l10n.addAddress),
                             ),
                           ],
                         ),
@@ -258,7 +258,7 @@ class _AddressFormSheetState extends State<_AddressFormSheet> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to save address. Please try again.')),
+          SnackBar(content: Text(context.l10n.failedToSaveAddressRetry)),
         );
       }
     } finally {
@@ -284,7 +284,7 @@ class _AddressFormSheetState extends State<_AddressFormSheet> {
       fillColor: context.theme.cardColor,
     );
 
-    String? req(String? v) => (v == null || v.trim().isEmpty) ? 'Required' : null;
+    String? req(String? v) => (v == null || v.trim().isEmpty) ? context.l10n.required : null;
 
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
@@ -295,14 +295,14 @@ class _AddressFormSheetState extends State<_AddressFormSheet> {
           children: [
             AppBar(
               automaticallyImplyLeading: false,
-              title: Text(widget.existing != null ? 'Edit Address' : 'Add Address'),
+              title: Text(widget.existing != null ? context.l10n.editAddress : context.l10n.addAddress),
               actions: [
                 _loading
                     ? const Padding(
                         padding: EdgeInsets.all(14),
                         child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
                       )
-                    : TextButton(onPressed: _submit, child: const Text('Save')),
+                    : TextButton(onPressed: _submit, child: Text(context.l10n.save)),
               ],
             ),
             SingleChildScrollView(
@@ -315,7 +315,7 @@ class _AddressFormSheetState extends State<_AddressFormSheet> {
                         child: TextFormField(
                           controller: _firstName,
                           textInputAction: TextInputAction.next,
-                          decoration: field('First Name', required: true),
+                          decoration: field(context.l10n.firstName, required: true),
                           validator: req,
                         ),
                       ),
@@ -324,7 +324,7 @@ class _AddressFormSheetState extends State<_AddressFormSheet> {
                         child: TextFormField(
                           controller: _lastName,
                           textInputAction: TextInputAction.next,
-                          decoration: field('Last Name', required: true),
+                          decoration: field(context.l10n.lastName, required: true),
                           validator: req,
                         ),
                       ),
@@ -334,20 +334,20 @@ class _AddressFormSheetState extends State<_AddressFormSheet> {
                   TextFormField(
                     controller: _address1,
                     textInputAction: TextInputAction.next,
-                    decoration: field('Address Line 1', required: true),
+                    decoration: field(context.l10n.addressLine1, required: true),
                     validator: req,
                   ),
                   const Gap(10),
                   TextFormField(
                     controller: _address2,
                     textInputAction: TextInputAction.next,
-                    decoration: field('Address Line 2 (optional)'),
+                    decoration: field(context.l10n.addressLine2Optional),
                   ),
                   const Gap(10),
                   TextFormField(
                     controller: _city,
                     textInputAction: TextInputAction.next,
-                    decoration: field('City', required: true),
+                    decoration: field(context.l10n.city, required: true),
                     validator: req,
                   ),
                   const Gap(10),
@@ -360,10 +360,10 @@ class _AddressFormSheetState extends State<_AddressFormSheet> {
                           textInputAction: TextInputAction.next,
                           textCapitalization: TextCapitalization.characters,
                           maxLength: 2,
-                          decoration: field('Country', required: true).copyWith(counterText: ''),
+                          decoration: field(context.l10n.country, required: true).copyWith(counterText: ''),
                           validator: (v) {
-                            if (v == null || v.trim().isEmpty) return 'Required';
-                            if (v.trim().length != 2) return '2 chars';
+                            if (v == null || v.trim().isEmpty) return context.l10n.required;
+                            if (v.trim().length != 2) return context.l10n.twoChars;
                             return null;
                           },
                         ),
@@ -373,7 +373,7 @@ class _AddressFormSheetState extends State<_AddressFormSheet> {
                         child: TextFormField(
                           controller: _province,
                           textInputAction: TextInputAction.next,
-                          decoration: field('Province/State'),
+                          decoration: field(context.l10n.provinceState),
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -381,7 +381,7 @@ class _AddressFormSheetState extends State<_AddressFormSheet> {
                         child: TextFormField(
                           controller: _postalCode,
                           textInputAction: TextInputAction.done,
-                          decoration: field('Postal Code'),
+                          decoration: field(context.l10n.postalCode),
                           onFieldSubmitted: (_) => _submit(),
                         ),
                       ),

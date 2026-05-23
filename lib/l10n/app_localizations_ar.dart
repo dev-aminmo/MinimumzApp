@@ -396,4 +396,205 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get openSettings => 'فتح الإعدادات';
+
+  @override
+  String get tagline => 'متجرك، أسلوبك.';
+
+  @override
+  String get confirmPassword => 'تأكيد كلمة المرور';
+
+  @override
+  String get passwordResetSuccess =>
+      'تم إعادة تعيين كلمة المرور بنجاح. الرجاء تسجيل الدخول.';
+
+  @override
+  String get passwordResetFailed =>
+      'فشل إعادة تعيين كلمة المرور. ربما يكون الرمز منتهي الصلاحية.';
+
+  @override
+  String get writeNewPassword => 'الرجاء كتابة كلمة مرورك الجديدة.';
+
+  @override
+  String get resetting => 'جاري الإعادة...';
+
+  @override
+  String get resetPassword => 'إعادة تعيين كلمة المرور';
+
+  @override
+  String get failedToSendResetCode =>
+      'فشل إرسال رمز الاستعادة. الرجاء المحاولة مجدداً.';
+
+  @override
+  String get enterDigitCode => 'الرجاء إدخال الرمز المكون من 4 أرقام.';
+
+  @override
+  String get invalidOrExpiredCode =>
+      'رمز غير صالح أو منتهي الصلاحية. الرجاء المحاولة مجدداً.';
+
+  @override
+  String get verifying => 'جاري التحقق...';
+
+  @override
+  String get confirmCode => 'تأكيد الرمز';
+
+  @override
+  String get verificationCode => 'رمز التحقق';
+
+  @override
+  String get codeWasSentTo => 'تم إرسال رمز مكون من 4 أرقام إلى';
+
+  @override
+  String get searchThroughStore => 'ابحث في المتجر';
+
+  @override
+  String get noResultsFound => 'لا توجد نتائج';
+
+  @override
+  String get searchFailed => 'فشل البحث';
+
+  @override
+  String get clearWishlist => 'مسح المفضلة';
+
+  @override
+  String get removeAllFromWishlist => 'هل تريد إزالة جميع العناصر من المفضلة؟';
+
+  @override
+  String get clear => 'مسح';
+
+  @override
+  String get inWishlist => 'في المفضلة';
+
+  @override
+  String get yourWishlistIsEmpty => 'مفضلتك فارغة';
+
+  @override
+  String get updateInformation => 'تحديث المعلومات';
+
+  @override
+  String get addressBook => 'دفتر العناوين';
+
+  @override
+  String get editAddress => 'تعديل العنوان';
+
+  @override
+  String get addAddress => 'إضافة عنوان';
+
+  @override
+  String get deleteAddressTitle => 'حذف العنوان؟';
+
+  @override
+  String get noSavedAddresses => 'لا توجد عناوين محفوظة بعد';
+
+  @override
+  String get failedToDeleteAddress => 'فشل حذف العنوان';
+
+  @override
+  String get failedToLoadAddresses => 'فشل تحميل العناوين';
+
+  @override
+  String get failedToSaveAddressRetry =>
+      'فشل حفظ العنوان. الرجاء المحاولة مجدداً.';
+
+  @override
+  String get addressLine2Optional => 'العنوان التفصيلي 2 (اختياري)';
+
+  @override
+  String get twoChars => 'حرفان';
+
+  @override
+  String get informationUpdated => 'تم تحديث المعلومات';
+
+  @override
+  String get failedToUpdate => 'فشل التحديث';
+
+  @override
+  String get phoneOptional => 'الهاتف (اختياري)';
+
+  @override
+  String get failedToLoadReviews => 'فشل تحميل التقييمات';
+
+  @override
+  String get submitReview => 'إرسال التقييم';
+
+  @override
+  String get submitting => 'جاري الإرسال...';
+
+  @override
+  String get yourName => 'اسمك';
+
+  @override
+  String get describeExperience => 'صف تجربتك...';
+
+  @override
+  String get ratingTitle => 'التقييم';
+
+  @override
+  String get nameLabel => 'الاسم';
+
+  @override
+  String get nameRequired => 'الاسم مطلوب';
+
+  @override
+  String get commentRequired => 'التعليق مطلوب';
+
+  @override
+  String get reviewSubmitted => 'تم إرسال التقييم! سيظهر بعد الموافقة عليه.';
+
+  @override
+  String get failedToSubmitReview => 'فشل إرسال التقييم. حاول مجدداً.';
+
+  @override
+  String get ratingLabel => 'تقييم';
+
+  @override
+  String get startsFrom => 'يبدأ من';
+
+  @override
+  String get price => 'السعر';
+
+  @override
+  String get totalPrice => 'السعر الإجمالي';
+
+  @override
+  String get withVatSd => 'شامل ضريبة القيمة المضافة';
+
+  @override
+  String get errorAddingItem => 'خطأ في إضافة العنصر';
+
+  @override
+  String get noProductsInCategory => 'لا توجد منتجات في هذه الفئة';
+
+  @override
+  String get errorLoadingProducts => 'خطأ في تحميل المنتجات';
+
+  @override
+  String get orderConfirmed => 'تم تأكيد طلبك!';
+
+  @override
+  String get orderConfirmedMessage => 'تم تأكيد طلبك، سنرسل لك تأكيداً قريباً.';
+
+  @override
+  String get goToOrders => 'الذهاب إلى الطلبات';
+
+  @override
+  String get continueShopping => 'متابعة التسوق';
+
+  @override
+  String get qty => 'الكمية';
+
+  @override
+  String get delete => 'حذف';
+
+  @override
+  String get mustPurchaseToReview => 'فقط المشترون يمكنهم تقييم هذا المنتج.';
+
+  @override
+  String get loginToReview => 'يرجى تسجيل الدخول لإرسال تقييم.';
+
+  @override
+  String get viewsCount => 'مشاهدة';
+
+  @override
+  String get itemsRemovedUnavailable =>
+      'منتجات تمت إزالتها من سلتك لأنها غير متاحة في بلدك';
 }

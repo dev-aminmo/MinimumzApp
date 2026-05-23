@@ -191,9 +191,21 @@ void _showAllBrands(BuildContext context, List<BrandItem> brands) {
                   onTap: () {
                     Navigator.pop(ctx);
                     context.router.push(CollectionRoute(
-                      collection: ProductCollection(id: brand.id, title: brand.name, filterParam: 'type_id'),
+                      collection: ProductCollection(id: brand.id, title: brand.name, filterParam: 'type_id', logo: brand.logo, banner: brand.banner),
                     ));
                   },
+                  leading: brand.logo != null
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(6),
+                          child: CachedNetworkImage(
+                            imageUrl: brand.logo!,
+                            width: 36,
+                            height: 36,
+                            fit: BoxFit.contain,
+                            errorWidget: (_, __, ___) => const Icon(Icons.storefront_outlined, size: 22),
+                          ),
+                        )
+                      : const Icon(Icons.storefront_outlined, size: 22),
                   title: Text(brand.name ?? ''),
                   trailing: const Icon(Icons.arrow_forward_ios, size: 14),
                 );
@@ -290,10 +302,25 @@ class CategoryTile extends StatelessWidget {
                   width: 1,
                 ),
               ),
-              child: Icon(
-                Icons.category_outlined,
-                color: ColorConstant.primary,
-                size: 26,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(15),
+                child: collection.logo != null
+                    ? CachedNetworkImage(
+                        imageUrl: collection.logo!,
+                        width: 60,
+                        height: 60,
+                        fit: BoxFit.cover,
+                        errorWidget: (_, __, ___) => Icon(
+                          Icons.category_outlined,
+                          color: ColorConstant.primary,
+                          size: 26,
+                        ),
+                      )
+                    : Icon(
+                        Icons.category_outlined,
+                        color: ColorConstant.primary,
+                        size: 26,
+                      ),
               ),
             ),
             const Gap(6),
@@ -416,7 +443,7 @@ class _BrandChip extends StatelessWidget {
       onTap: () {
         // Navigate to collection screen filtered by brand
         context.router.push(CollectionRoute(
-          collection: ProductCollection(id: brand.id, title: brand.name, filterParam: 'type_id'),
+          collection: ProductCollection(id: brand.id, title: brand.name, filterParam: 'type_id', logo: brand.logo, banner: brand.banner),
         ));
       },
       child: Container(
@@ -436,10 +463,11 @@ class _BrandChip extends StatelessWidget {
                 borderRadius: BorderRadius.circular(4),
                 child: CachedNetworkImage(
                   imageUrl: brand.logo!,
-                  width: 20,
-                  height: 20,
+                  width: 22,
+                  height: 22,
                   fit: BoxFit.contain,
-                  errorWidget: (_, __, ___) => const SizedBox.shrink(),
+                  errorWidget: (_, __, ___) =>
+                      const Icon(Icons.storefront_outlined, size: 16),
                 ),
               ),
               const Gap(6),

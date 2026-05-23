@@ -29,12 +29,12 @@ class SignInScreen extends StatelessWidget {
                 const Spacer(flex: 2),
                 Image.asset('assets/images/logo_minimumz.png', height: 80),
                 const Gap(20),
-                Text('MiniMumz',
+                Text(context.l10n.appName,
                     style: context.headlineMedium
                         ?.copyWith(fontWeight: FontWeight.bold)),
                 const Gap(8),
                 Text(
-                  'Your store, your style.',
+                  context.l10n.tagline,
                   style: context.bodyMedium
                       ?.copyWith(color: ColorConstant.manatee),
                 ),

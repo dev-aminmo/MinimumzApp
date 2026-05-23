@@ -148,6 +148,9 @@ class Cart {
   /// An optional key-value map with additional details
   final Map<String, dynamic>? metadata;
 
+  /// Products removed from the cart because they are unavailable in the new country.
+  final List<String>? removedItems;
+
   Cart({
     this.id,
     this.email,
@@ -186,6 +189,7 @@ class Cart {
     this.updatedAt,
     this.deletedAt,
     this.metadata,
+    this.removedItems,
     this.type = CartType.defaultType,
   });
 
@@ -241,6 +245,9 @@ class Cart {
       updatedAt: DateTime.tryParse(json['updated_at'] ?? '')?.toLocal(),
       deletedAt: DateTime.tryParse(json['deleted_at'] ?? '')?.toLocal(),
       metadata: json['metadata'],
+      removedItems: (json['removed_items'] as List?)
+          ?.map((e) => e.toString())
+          .toList(),
       shippingTotal: json['shipping_total'],
       discountTotal: json['discount_total'],
       taxTotal: json['tax_total'],

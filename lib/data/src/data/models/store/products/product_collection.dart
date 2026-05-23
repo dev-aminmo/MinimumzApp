@@ -36,6 +36,12 @@ class ProductCollection {
   /// Defaults to 'category_id'. Use 'type_id' for brand collections.
   final String filterParam;
 
+  /// Optional logo/image URL (category image or brand logo).
+  final String? logo;
+
+  /// Optional banner URL (shown as full-width header in the collection screen).
+  final String? banner;
+
   ProductCollection({
     this.id,
     required this.title,
@@ -46,6 +52,8 @@ class ProductCollection {
     this.deletedAt,
     this.metadata,
     this.filterParam = 'category_id',
+    this.logo,
+    this.banner,
   });
 
   factory ProductCollection.fromJson(Map<String, dynamic> json) {
@@ -63,6 +71,8 @@ class ProductCollection {
       updatedAt: DateTime.tryParse(json['updated_at'] ?? '')?.toLocal(),
       deletedAt: DateTime.tryParse(json['deleted_at'] ?? '')?.toLocal(),
       metadata: json['metadata'],
+      logo: json['logo'],
+      banner: json['banner'],
     );
   }
 

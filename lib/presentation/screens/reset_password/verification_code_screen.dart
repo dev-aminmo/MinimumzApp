@@ -28,7 +28,7 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
   Future<void> _submit() async {
     if (_code.length < 4) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter the 4-digit code.')),
+        SnackBar(content: Text(context.l10n.enterDigitCode)),
       );
       return;
     }
@@ -44,7 +44,7 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Invalid or expired code. Please try again.')),
+          SnackBar(content: Text(context.l10n.invalidOrExpiredCode)),
         );
       }
     } finally {
@@ -61,7 +61,7 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
         child: Scaffold(
           appBar: const CustomAppBar(),
           bottomNavigationBar: BottomNavButton(
-            label: _loading ? 'Verifying...' : 'Confirm Code',
+            label: _loading ? context.l10n.verifying : context.l10n.confirmCode,
             onTap: _loading ? () {} : _submit,
           ),
           body: SafeArea(
@@ -73,7 +73,7 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
                     SizedBox(
                       width: double.infinity,
                       child: Center(
-                        child: Text('Verification Code', style: context.headlineMedium),
+                        child: Text(context.l10n.verificationCode, style: context.headlineMedium),
                       ),
                     ),
                     SvgPicture.asset('assets/images/forgot_password.svg'),
@@ -96,7 +96,7 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
                       child: Text(
-                        'A 4-digit code was sent to ${widget.email}',
+                        '${context.l10n.codeWasSentTo} ${widget.email}',
                         style: context.bodySmall?.copyWith(color: ColorConstant.manatee),
                         textAlign: TextAlign.center,
                       ),

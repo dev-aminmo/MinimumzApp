@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:gap/gap.dart';
 import 'package:minimumz/blocs/auth/authentication_bloc.dart';
+import 'package:minimumz/common/extensions/extensions.dart';
 import 'package:minimumz/data/data.dart';
 import 'package:minimumz/domain/usecase/account_information_usecase.dart';
 
@@ -61,12 +62,12 @@ class _UpdateInformationState extends State<UpdateInformation> {
             .add(const AuthenticationEvent.init());
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Information updated')),
+          SnackBar(content: Text(context.l10n.informationUpdated)),
         );
       },
       (error) => ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-            content: Text(error.message.isEmpty ? 'Update failed' : error.message)),
+            content: Text(error.message.isEmpty ? context.l10n.failedToUpdate : error.message)),
       ),
     );
   }
@@ -83,7 +84,7 @@ class _UpdateInformationState extends State<UpdateInformation> {
           children: [
             AppBar(
               automaticallyImplyLeading: false,
-              title: const Text('Update Information'),
+              title: Text(context.l10n.updateInformation),
               actions: [
                 _loading
                     ? const Padding(
@@ -95,7 +96,7 @@ class _UpdateInformationState extends State<UpdateInformation> {
                       )
                     : TextButton(
                         onPressed: _save,
-                        child: const Text('Save'),
+                        child: Text(context.l10n.save),
                       ),
               ],
             ),
@@ -107,19 +108,17 @@ class _UpdateInformationState extends State<UpdateInformation> {
                   TextFormField(
                     controller: _firstNameCtrl,
                     textInputAction: TextInputAction.next,
-                    decoration:
-                        const InputDecoration(hintText: 'First Name'),
+                    decoration: InputDecoration(hintText: context.l10n.firstName),
                     validator: (v) =>
-                        (v == null || v.trim().isEmpty) ? 'Required' : null,
+                        (v == null || v.trim().isEmpty) ? context.l10n.required : null,
                   ),
                   const Gap(10.0),
                   TextFormField(
                     controller: _lastNameCtrl,
                     textInputAction: TextInputAction.next,
-                    decoration:
-                        const InputDecoration(hintText: 'Last Name'),
+                    decoration: InputDecoration(hintText: context.l10n.lastName),
                     validator: (v) =>
-                        (v == null || v.trim().isEmpty) ? 'Required' : null,
+                        (v == null || v.trim().isEmpty) ? context.l10n.required : null,
                   ),
                   const Gap(10.0),
                   TextFormField(
@@ -127,8 +126,7 @@ class _UpdateInformationState extends State<UpdateInformation> {
                     keyboardType: TextInputType.phone,
                     textInputAction: TextInputAction.done,
                     onFieldSubmitted: (_) => _save(),
-                    decoration:
-                        const InputDecoration(hintText: 'Phone (optional)'),
+                    decoration: InputDecoration(hintText: context.l10n.phoneOptional),
                   ),
                 ],
               ),

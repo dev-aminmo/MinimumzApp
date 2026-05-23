@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:gap/gap.dart';
 import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
 import 'package:minimumz/common/colors.dart';
+import 'package:minimumz/domain/repository/preference_repository.dart';
 import 'package:minimumz/common/extensions/extensions.dart';
 import 'package:minimumz/data/data.dart';
 import 'package:minimumz/di/di.dart';
@@ -63,11 +64,13 @@ class _SearchScreenState extends State<SearchScreen> {
   Future<void> _fetchPage(int pageKey) async {
     if (_currentQuery.isEmpty) return;
     try {
+      final countryId = PreferenceRepository.instance.country?.id;
       final res = await getIt<DataStore>().products.list(
         queryParams: {
           'title': _currentQuery,
           'offset': pageKey,
           'limit': _pageSize,
+          if (countryId != null) 'country_id': countryId,
         },
       );
       if (!mounted) return;
@@ -102,7 +105,7 @@ class _SearchScreenState extends State<SearchScreen> {
     if (_currentQuery.isEmpty) {
       return Center(
         child: Text(
-          'Search through the store',
+          context.l10n.searchThroughStore,
           style: context.bodyLarge?.copyWith(color: ColorConstant.manatee),
         ),
       );
@@ -127,7 +130,7 @@ class _SearchScreenState extends State<SearchScreen> {
         ),
         noItemsFoundIndicatorBuilder: (_) => Center(
           child: Text(
-            'No results found',
+            context.l10n.noResultsFound,
             style: context.bodyMedium?.copyWith(color: ColorConstant.manatee),
           ),
         ),
@@ -136,13 +139,13 @@ class _SearchScreenState extends State<SearchScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                _pagingController.error?.toString() ?? 'Search failed',
+                _pagingController.error?.toString() ?? context.l10n.searchFailed,
                 style: context.bodyMedium?.copyWith(color: ColorConstant.manatee),
               ),
               const Gap(12),
               ElevatedButton(
                 onPressed: _pagingController.refresh,
-                child: const Text('Retry'),
+                child: Text(context.l10n.retry),
               ),
             ],
           ),
@@ -209,7 +212,7 @@ class SearchAppBar extends StatelessWidget implements PreferredSizeWidget {
                     autofocus: true,
                     decoration: InputDecoration(
                       filled: true,
-                      hintText: 'Search ...',
+                      hintText: context.l10n.searchHint,
                       contentPadding: EdgeInsets.zero,
                       border: inputBorder,
                       enabledBorder: inputBorder,

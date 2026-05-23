@@ -52,14 +52,14 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
           );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Password reset successfully. Please sign in.')),
+          SnackBar(content: Text(context.l10n.passwordResetSuccess)),
         );
         context.router.replaceAll([const SignInRoute()]);
       }
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to reset password. The code may have expired.')),
+          SnackBar(content: Text(context.l10n.passwordResetFailed)),
         );
       }
     } finally {
@@ -77,7 +77,7 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
           resizeToAvoidBottomInset: false,
           appBar: const CustomAppBar(),
           bottomNavigationBar: BottomNavButton(
-            label: _loading ? 'Resetting...' : 'Reset Password',
+            label: _loading ? context.l10n.resetting : context.l10n.resetPassword,
             onTap: _loading ? () {} : _submit,
           ),
           body: SafeArea(
@@ -91,7 +91,7 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
                       SizedBox(
                         width: double.infinity,
                         child: Center(
-                          child: Text('New Password', style: context.headlineMedium),
+                          child: Text(context.l10n.newPassword, style: context.headlineMedium),
                         ),
                       ),
                       SvgPicture.asset('assets/images/forgot_password.svg'),
@@ -104,15 +104,15 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
                               obscureText: !_showPassword,
                               textInputAction: TextInputAction.next,
                               decoration: InputDecoration(
-                                labelText: 'New Password',
+                                labelText: context.l10n.newPassword,
                                 suffixIcon: IconButton(
                                   icon: Icon(_showPassword ? Icons.visibility_off : Icons.visibility),
                                   onPressed: () => setState(() => _showPassword = !_showPassword),
                                 ),
                               ),
                               validator: (v) {
-                                if (v == null || v.isEmpty) return 'Required';
-                                if (v.length < 6) return 'At least 6 characters';
+                                if (v == null || v.isEmpty) return context.l10n.required;
+                                if (v.length < 6) return context.l10n.atLeast6Characters;
                                 return null;
                               },
                             ),
@@ -123,15 +123,15 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
                               textInputAction: TextInputAction.done,
                               onFieldSubmitted: (_) => _submit(),
                               decoration: InputDecoration(
-                                labelText: 'Confirm Password',
+                                labelText: context.l10n.confirmPassword,
                                 suffixIcon: IconButton(
                                   icon: Icon(_showConfirm ? Icons.visibility_off : Icons.visibility),
                                   onPressed: () => setState(() => _showConfirm = !_showConfirm),
                                 ),
                               ),
                               validator: (v) {
-                                if (v == null || v.isEmpty) return 'Required';
-                                if (v != _passwordCtrl.text) return 'Passwords do not match';
+                                if (v == null || v.isEmpty) return context.l10n.required;
+                                if (v != _passwordCtrl.text) return context.l10n.passwordsDoNotMatch;
                                 return null;
                               },
                             ),
@@ -143,7 +143,7 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
                   Column(
                     children: [
                       Text(
-                        'Please write your new password.',
+                        context.l10n.writeNewPassword,
                         style: context.bodySmall?.copyWith(color: ColorConstant.manatee),
                         textAlign: TextAlign.center,
                       ),

@@ -21,7 +21,7 @@ class OrderConfirmedScreen extends StatelessWidget {
       child: Scaffold(
         appBar: const CustomAppBar(),
         bottomNavigationBar: BottomNavButton(
-          label: 'Continue Shopping',
+          label: context.l10n.continueShopping,
           onTap: () => context.router.popUntilRouteWithName(DashboardRoute.name),
         ),
         body: SafeArea(
@@ -41,7 +41,7 @@ class OrderConfirmedScreen extends StatelessWidget {
                 Column(
                   children: [
                     Text(
-                      'Order Confirmed!',
+                      context.l10n.orderConfirmed,
                       style: context.headlineMedium,
                     ),
                     const SizedBox(height: 10.0),
@@ -59,11 +59,11 @@ class OrderConfirmedScreen extends StatelessWidget {
                         ),
                       ),
                     const SizedBox(height: 8.0),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 25.0),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 25.0),
                       child: Text(
-                        'Your order has been confirmed, we will send you confirmation shortly.',
-                        style: TextStyle(
+                        context.l10n.orderConfirmedMessage,
+                        style: const TextStyle(
                             fontSize: 15, color: Color(0xff8F959E)),
                         textAlign: TextAlign.center,
                       ),
@@ -86,10 +86,10 @@ class OrderConfirmedScreen extends StatelessWidget {
                             BorderRadius.all(Radius.circular(10.0)),
                         color: Color(0xffF5F5F5),
                       ),
-                      child: const Center(
+                      child: Center(
                           child: Text(
-                        'Go to Orders',
-                        style: TextStyle(
+                        context.l10n.goToOrders,
+                        style: const TextStyle(
                             fontSize: 17.0,
                             color: Color(0xff8F959E),
                             fontWeight: FontWeight.w500),

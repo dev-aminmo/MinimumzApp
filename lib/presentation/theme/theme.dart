@@ -28,7 +28,11 @@ class AppTheme {
         statusBarIconBrightness: Brightness.dark,
         statusBarBrightness: Brightness.light,
         systemNavigationBarColor: ColorConstant.cream,
+        systemNavigationBarContrastEnforced: false,
       ),
+    ),
+    bottomNavigationBarTheme: BottomNavigationBarThemeData(
+      backgroundColor: ColorConstant.cream,
     ),
     dialogTheme: DialogThemeData(surfaceTintColor: ColorConstant.cream, backgroundColor: ColorConstant.cream),
     listTileTheme: ListTileThemeData(
@@ -59,7 +63,8 @@ class AppTheme {
         statusBarColor: Colors.transparent,
         statusBarIconBrightness: Brightness.light,
         statusBarBrightness: Brightness.dark,
-        systemNavigationBarColor: ColorConstant.scaffoldDark,
+        systemNavigationBarColor: const Color(0xff29363D),
+        systemNavigationBarContrastEnforced: false,
       ),
     ),
     bottomNavigationBarTheme: const BottomNavigationBarThemeData(

@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart' hide TextDirection;
 import 'package:minimumz/common/enums.dart';
@@ -54,32 +56,45 @@ extension Unique<E, Id> on List<E> {
   }
 }
 
-extension FormatPrice on num? {
-  // The backend always stores amounts as (price * 100), so we always divide by
-  // 100 and format with 2 decimal places regardless of ISO currency definition.
-  String formatAsPrice(String? currencyCode, {bool includeSymbol = true, bool space = true, bool symbolAtEnd = false}) {
-    if (this == null || currencyCode == null) {
-      return this?.toString() ?? '';
-    }
-    final code = currencyCode.toUpperCase();
-    final value = this! / 100;
-    final formattedNumber = NumberFormat.currency(name: code, symbol: '', decimalDigits: 2).format(value).trim();
+// Returns the number of decimal places (subunit exponent) for a currency code.
+// Must match the backend CartController::currencyDecimals() and
+// ProductResource::currencyDecimals() helpers.
+int currencyDecimals(String code) {
+  switch (code.toUpperCase()) {
+    case 'JPY':
+    case 'KRW':
+    case 'VND':
+      return 0;
+    default:
+      return 2;
+  }
+}
 
-    if (includeSymbol) {
-      return (!symbolAtEnd ? code : '') +
-          (space && !symbolAtEnd ? ' ' : '') +
-          formattedNumber +
-          (space && symbolAtEnd ? ' ' : '') +
-          (symbolAtEnd ? code : '');
-    }
-    return formattedNumber;
+extension FormatPrice on num? {
+  String formatAsPrice(String? currencyCode,
+      {bool includeSymbol = true,
+      bool space = true,
+      bool symbolAtEnd = false}) {
+    if (this == null || currencyCode == null) return this?.toString() ?? '';
+    final code     = currencyCode.toUpperCase();
+    final decimals = currencyDecimals(code);
+    final value    = this! / pow(10, decimals);
+    final isInteger = value == value.toInt();
+    final formatted =
+        NumberFormat.currency(name: code, symbol: '', decimalDigits: isInteger ? 0 : decimals)
+            .format(value)
+            .trim();
+    if (!includeSymbol) return formatted;
+    return (!symbolAtEnd ? code : '') +
+        (space && !symbolAtEnd ? ' ' : '') +
+        formatted +
+        (space && symbolAtEnd ? ' ' : '') +
+        (symbolAtEnd ? code : '');
   }
 
   num formatAsPriceNum(String? currencyCode) {
-    if (this == null || currencyCode == null) {
-      return this ?? 0.0;
-    }
-    return this! / 100;
+    if (this == null || currencyCode == null) return this ?? 0.0;
+    return this! / pow(10, currencyDecimals(currencyCode.toUpperCase()));
   }
 }
 

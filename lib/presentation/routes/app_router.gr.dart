@@ -43,6 +43,12 @@ abstract class _$AppRouter extends RootStackRouter {
         child: const CartScreen(),
       );
     },
+    CategoriesRoute.name: (routeData) {
+      return AutoRoutePage<dynamic>(
+        routeData: routeData,
+        child: const CategoriesScreen(),
+      );
+    },
     CollectionRoute.name: (routeData) {
       final args = routeData.argsAs<CollectionRouteArgs>();
       return AutoRoutePage<dynamic>(
@@ -257,6 +263,20 @@ class CartRoute extends PageRouteInfo<void> {
         );
 
   static const String name = 'CartRoute';
+
+  static const PageInfo<void> page = PageInfo<void>(name);
+}
+
+/// generated route for
+/// [CategoriesScreen]
+class CategoriesRoute extends PageRouteInfo<void> {
+  const CategoriesRoute({List<PageRouteInfo>? children})
+      : super(
+          CategoriesRoute.name,
+          initialChildren: children,
+        );
+
+  static const String name = 'CategoriesRoute';
 
   static const PageInfo<void> page = PageInfo<void>(name);
 }

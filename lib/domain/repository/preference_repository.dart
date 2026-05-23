@@ -13,6 +13,11 @@ class PreferenceRepository {
   final SharedPreferences _prefs;
   static PreferenceRepository get instance => getIt<PreferenceRepository>();
 
+  // Generated once per app launch; used to deduplicate product view counts.
+  static final String sessionId =
+      DateTime.now().millisecondsSinceEpoch.toRadixString(36) +
+      DateTime.now().microsecond.toRadixString(36);
+
   @postConstruct
   void init() {
     try {

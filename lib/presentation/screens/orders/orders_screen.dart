@@ -62,7 +62,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
     return BlocProvider.value(
       value: _bloc,
       child: Scaffold(
-        appBar: const CustomAppBar(title: 'Orders'),
+        appBar: CustomAppBar(title: context.l10n.orders),
         body: SafeArea(
           child: BlocConsumer<OrdersBloc, OrdersState>(
             listener: (context, state) {
@@ -83,20 +83,20 @@ class _OrdersScreenState extends State<OrdersScreen> {
                     padding: EdgeInsets.all(16),
                     child: Center(child: CircularProgressIndicator.adaptive()),
                   ),
-                  noItemsFoundIndicatorBuilder: (_) => const Center(
-                    child: Text('No orders yet'),
+                  noItemsFoundIndicatorBuilder: (ctx) => Center(
+                    child: Text(ctx.l10n.noOrdersYet),
                   ),
-                  firstPageErrorIndicatorBuilder: (_) => Center(
+                  firstPageErrorIndicatorBuilder: (ctx) => Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          _pagingController.error?.toString() ?? 'Error loading orders',
+                          _pagingController.error?.toString() ?? ctx.l10n.errorLoadingOrders,
                         ),
                         const Gap(12),
                         ElevatedButton(
                           onPressed: _pagingController.refresh,
-                          child: const Text('Retry'),
+                          child: Text(ctx.l10n.retry),
                         ),
                       ],
                     ),
@@ -129,8 +129,8 @@ class _OrderTile extends StatelessWidget {
         ),
         builder: (_) => _OrderDetailSheet(order: order),
       ),
-      title: Text('Order #${order.displayId ?? order.id ?? ''}'),
-      subtitle: Text('Placed on ${order.createdAt?.formatDate() ?? ''}'),
+      title: Text('${context.l10n.order} #${order.displayId ?? order.id ?? ''}'),
+      subtitle: Text('${context.l10n.placedOn} ${order.createdAt?.formatDate() ?? ''}'),
       trailing: _StatusChip(order.status.name),
     );
   }
@@ -183,13 +183,8 @@ class _OrderDetailSheet extends StatelessWidget {
     return DateFormat('d MMM yyyy, HH:mm').format(dt.toLocal());
   }
 
-  String _formatPrice(num? amount, String? code) {
-    if (amount == null) return '';
-    final fmt = NumberFormat.simpleCurrency(name: code ?? 'USD');
-    final digits = fmt.decimalDigits ?? 2;
-    final value = amount / (digits > 0 ? 100 : 1);
-    return '${fmt.currencySymbol}${value.toStringAsFixed(digits)}';
-  }
+  String _formatPrice(num? amount, String? code) =>
+      amount.formatAsPrice(code);
 
   @override
   Widget build(BuildContext context) {
@@ -222,7 +217,7 @@ class _OrderDetailSheet extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Order #${order.displayId ?? order.id ?? ''}',
+              Text('${context.l10n.order} #${order.displayId ?? order.id ?? ''}',
                   style: context.bodyLargeW600),
               _StatusChip(order.status.name),
             ],
@@ -234,7 +229,7 @@ class _OrderDetailSheet extends StatelessWidget {
           const Divider(height: 0),
           const Gap(16),
           if (order.items?.isNotEmpty ?? false) ...[
-            Text('Items', style: context.bodyMediumW500),
+            Text(context.l10n.items, style: context.bodyMediumW500),
             const Gap(10),
             ...order.items!
                 .map((item) => _LineItemRow(item: item, currencyCode: currencyCode)),
@@ -242,23 +237,23 @@ class _OrderDetailSheet extends StatelessWidget {
             const Divider(height: 0),
             const Gap(16),
           ],
-          _totalRow('Subtotal', _formatPrice(order.subTotal, currencyCode), context),
+          _totalRow(context.l10n.subtotal, _formatPrice(order.subTotal, currencyCode), context),
           if ((order.shippingTotal ?? 0) > 0)
-            _totalRow('Shipping', _formatPrice(order.shippingTotal, currencyCode), context),
+            _totalRow(context.l10n.shipping, _formatPrice(order.shippingTotal, currencyCode), context),
           if ((order.taxTotal ?? 0) > 0)
-            _totalRow('Tax', _formatPrice(order.taxTotal, currencyCode), context),
+            _totalRow(context.l10n.tax, _formatPrice(order.taxTotal, currencyCode), context),
           if ((order.discountTotal ?? 0) > 0)
-            _totalRow('Discount', '− ${_formatPrice(order.discountTotal, currencyCode)}', context),
+            _totalRow(context.l10n.discount, '− ${_formatPrice(order.discountTotal, currencyCode)}', context),
           const Divider(height: 16),
-          _totalRow('Total', _formatPrice(order.total, currencyCode), context, bold: true),
+          _totalRow(context.l10n.total, _formatPrice(order.total, currencyCode), context, bold: true),
           const Gap(16),
           Row(children: [
-            Text('Fulfillment: ', style: context.bodySmall),
+            Text('${context.l10n.fulfillment}: ', style: context.bodySmall),
             _StatusChip(order.fulfillmentStatus.name),
           ]),
           const Gap(6),
           Row(children: [
-            Text('Payment: ', style: context.bodySmall),
+            Text('${context.l10n.payment}: ', style: context.bodySmall),
             _StatusChip(order.paymentStatus.name),
           ]),
         ],
@@ -336,7 +331,7 @@ class _LineItemRow extends StatelessWidget {
                   Text(item.variant!.title!,
                       style: context.bodyExtraSmall
                           ?.copyWith(color: ColorConstant.manatee)),
-                Text('Qty: ${item.quantity ?? 1}',
+                Text('${context.l10n.qty}: ${item.quantity ?? 1}',
                     style: context.bodyExtraSmall
                         ?.copyWith(color: ColorConstant.manatee)),
               ],

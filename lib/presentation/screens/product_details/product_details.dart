@@ -17,6 +17,7 @@ import 'package:minimumz/presentation/theme/theme.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:minimumz/data/data.dart';
 import 'widgets/bottom_nav_button.dart';
+import 'dart:math';
 
 @RoutePage()
 class ProductDetailsScreen extends StatefulWidget {
@@ -34,6 +35,8 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
   ProductVariant? selectedVariant;
   ReviewItem? _firstReview;
   int _reviewCount = 0;
+  double _avgRating = 0.0;
+  int _viewsCount = 0;
   List<Product> _relatedProducts = [];
 
   List<String> get _imageUrls {
@@ -66,14 +69,20 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
     super.initState();
     _loadReviews();
     _loadRelated();
+    _recordView();
   }
 
   Future<void> _loadRelated() async {
     final categoryId = widget.product.collectionId;
     if (categoryId == null) return;
     try {
+      final countryId = PreferenceRepository.instance.country?.id;
       final result = await getIt<DataStore>().products.list(
-        queryParams: {'category_id[]': categoryId, 'limit': 10},
+        queryParams: {
+          'category_id[]': categoryId,
+          'limit': 10,
+          if (countryId != null) 'country_id': countryId,
+        },
       );
       final others = (result?.products ?? [])
           .where((p) => p.id != widget.product.id)
@@ -91,8 +100,23 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
         setState(() {
           _firstReview = result.reviews.isNotEmpty ? result.reviews.first : null;
           _reviewCount = result.count;
+          _avgRating = result.avgRating;
         });
       }
+    } catch (_) {}
+  }
+
+  Future<void> _recordView() async {
+    final id = widget.product.id;
+    if (id == null) return;
+    // Initialize from the product model first (instantly visible)
+    if (mounted) setState(() => _viewsCount = widget.product.viewsCount);
+    try {
+      final updated = await getIt<DataStore>().reviews.recordView(
+            productId: id,
+            sessionId: PreferenceRepository.sessionId,
+          );
+      if (mounted) setState(() => _viewsCount = updated);
     } catch (_) {}
   }
 
@@ -123,36 +147,22 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
         context.bottomViewPadding == 0.0 ? 30.0 : context.bottomViewPadding;
     final currencyCode = PreferenceRepository.currencyCode;
 
-    num variantPrice() {
-      // in case the customer didn't select any variant then show the lowest price of the product
-      // aka starts from price
+    String variantPrice() {
+      final code = currencyCode.toUpperCase();
       if (selectedVariant == null) {
-        List<MoneyAmount> prices = [];
-        product.variants?.forEach((variant) {
-          variant.prices?.forEach((price) {
-            if (price.currencyCode?.toUpperCase() == currencyCode) {
-              prices.add(price);
-            }
-          });
-        });
-        // Fall back to first available price if none match current currency
-        if (prices.isEmpty) {
-          product.variants?.forEach((variant) {
-            variant.prices?.forEach((p) { if (prices.isEmpty && p.amount != null) prices.add(p); });
-          });
-        }
-        if (prices.isEmpty) return 0;
-        final startFromPrice = prices
-            .map((e) => e.amount ?? 0)
-            .reduce((current, next) => current < next ? current : next);
-        return startFromPrice.formatAsPriceNum(currencyCode);
+        final amounts = (product.variants ?? [])
+            .expand((v) => v.prices ?? <MoneyAmount>[])
+            .where((p) => p.currencyCode?.toUpperCase() == code && p.amount != null)
+            .map((p) => p.amount!)
+            .toList();
+        if (amounts.isEmpty) return '';
+        return amounts.reduce((a, b) => a < b ? a : b).formatAsPrice(code);
       }
-      final amount = selectedVariant?.prices
-          ?.where((price) => price.currencyCode?.toUpperCase() == currencyCode)
-          .firstOrNull
-          ?.amount
-          ?? selectedVariant?.prices?.firstOrNull?.amount;
-      return amount.formatAsPriceNum(currencyCode);
+      final priceEntry = selectedVariant?.prices?.firstWhere(
+        (p) => p.currencyCode?.toUpperCase() == code,
+        orElse: () => MoneyAmount(),
+      );
+      return (priceEntry?.amount ?? 0).formatAsPrice(code);
     }
 
     return Scaffold(
@@ -207,7 +217,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                 },
               ),
               Padding(
-                padding: const EdgeInsets.only(right: 20.0, left: 10.0),
+                padding: const EdgeInsetsDirectional.only(end: 20.0, start: 10.0),
                 child: InkWell(
                   borderRadius: const BorderRadius.all(Radius.circular(50)),
                   onTap: () => context.router.push(const CartRoute()),
@@ -313,21 +323,51 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(selectedVariant == null ? 'Starts From' : 'Price',
+                        Text(selectedVariant == null ? context.l10n.startsFrom : context.l10n.price,
                             style: context.bodySmall),
                         const Gap(5.0),
-                        AnimatedDigitWidget(
-                            value: variantPrice(),
-                            prefix: '$currencyCode ',
-                            textStyle: context.headlineSmall,
-                            fractionDigits: 2),
+                        Text(
+                          variantPrice(),
+                          style: context.headlineSmall,
+                        ),
                       ],
                     ),
                 ],
               ),
             ),
           ),
-          const SliverGap(10),
+          const SliverGap(6),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              child: Row(
+                children: [
+                  if (_avgRating > 0) ...[
+                    const Icon(Icons.star_rounded, color: Colors.amber, size: 16),
+                    const SizedBox(width: 3),
+                    Text(_avgRating.toStringAsFixed(1),
+                        style: context.bodySmallW500),
+                    if (_reviewCount > 0) ...[
+                      const SizedBox(width: 2),
+                      Text('($_reviewCount)',
+                          style: context.bodyExtraSmall
+                              ?.copyWith(color: ColorConstant.manatee)),
+                    ],
+                    const SizedBox(width: 12),
+                  ],
+                  if (_viewsCount > 0) ...[
+                    Icon(Icons.remove_red_eye_outlined,
+                        size: 14, color: ColorConstant.manatee),
+                    const SizedBox(width: 3),
+                    Text(_viewsCount.toString(),
+                        style: context.bodyExtraSmall
+                            ?.copyWith(color: ColorConstant.manatee)),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          const SliverGap(6),
           if (product.description != null)
             SliverToBoxAdapter(
               child: Padding(
@@ -364,8 +404,22 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                     if (product.type?.value != null)
                       _InfoChip(
                         label: product.type!.value!,
+                        imageUrl: product.type!.logo,
                         icon: Icons.storefront_outlined,
                         color: ColorConstant.brownDark,
+                        onTap: () => context.router.pushAndPopUntil(
+                          CollectionRoute(
+                            collection: ProductCollection(
+                              id: product.type!.id,
+                              title: product.type!.value,
+                              filterParam: 'type_id',
+                              logo: product.type!.logo,
+                              banner: product.type!.banner,
+                            ),
+                          ),
+                          predicate: (route) =>
+                              route.settings.name == DashboardRoute.name,
+                        ),
                       ),
                     ...?(product.tags?.map((tag) => _InfoChip(label: tag.value ?? ''))),
                   ],
@@ -528,8 +582,8 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                     children: [
                       Text(
                         _reviewCount > 0
-                            ? 'Reviews ($_reviewCount)'
-                            : 'Reviews',
+                            ? '${context.l10n.reviews} ($_reviewCount)'
+                            : context.l10n.reviews,
                         style: context.bodyLargeW600,
                       ),
                       TextButton(
@@ -537,7 +591,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                                 productId: product.id ?? '',
                                 productTitle: product.title,
                               )),
-                          child: const Text('View All')),
+                          child: Text(context.l10n.viewAll)),
                     ],
                   ),
                 ),
@@ -546,7 +600,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                   child: _firstReview != null
                       ? _ReviewCardItem(review: _firstReview!)
                       : Text(
-                          'No reviews yet.',
+                          context.l10n.noReviewsYet,
                           style: context.bodyMedium
                               ?.copyWith(color: ColorConstant.manatee),
                         ),
@@ -574,7 +628,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                           ),
                         ),
                         const Gap(8),
-                        Text('More like this', style: context.bodyLargeW600),
+                        Text(context.l10n.moreLikeThis, style: context.bodyLargeW600),
                       ],
                     ),
                   ),
@@ -609,15 +663,19 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
 }
 
 class _InfoChip extends StatelessWidget {
-  const _InfoChip({required this.label, this.icon, this.color});
+  const _InfoChip({required this.label, this.icon, this.imageUrl, this.color, this.onTap});
   final String label;
   final IconData? icon;
+  final String? imageUrl;
   final Color? color;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final chipColor = color ?? ColorConstant.manatee;
-    return Container(
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         color: chipColor.withValues(alpha: 0.10),
@@ -627,7 +685,20 @@ class _InfoChip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (icon != null) ...[
+          if (imageUrl != null) ...[
+            ClipRRect(
+              borderRadius: BorderRadius.circular(3),
+              child: CachedNetworkImage(
+                imageUrl: imageUrl!,
+                width: 16,
+                height: 16,
+                fit: BoxFit.contain,
+                errorWidget: (_, __, ___) =>
+                    Icon(Icons.storefront_outlined, size: 13, color: chipColor),
+              ),
+            ),
+            const Gap(4),
+          ] else if (icon != null) ...[
             Icon(icon, size: 13, color: chipColor),
             const Gap(4),
           ],
@@ -638,6 +709,7 @@ class _InfoChip extends StatelessWidget {
                   color: chipColor)),
         ],
       ),
+    ),
     );
   }
 }
@@ -648,22 +720,15 @@ class ProductDetailsRelatedCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final currencyCode = PreferenceRepository.currencyCode;
-    final matchingPrices = <num>[];
-    num? fallbackAmount;
-    product.variants?.forEach((v) {
-      v.prices?.forEach((p) {
-        if (p.amount == null) return;
-        if (p.currencyCode?.toUpperCase() == currencyCode) {
-          matchingPrices.add(p.amount!);
-        } else {
-          fallbackAmount ??= p.amount;
-        }
-      });
-    });
-    final price = matchingPrices.isNotEmpty
-        ? matchingPrices.reduce((a, b) => a < b ? a : b)
-        : fallbackAmount;
+    final currencyCode = PreferenceRepository.currencyCode.toUpperCase();
+    final allPrices = (product.variants ?? [])
+        .expand((v) => v.prices ?? <MoneyAmount>[])
+        .where((p) => p.currencyCode?.toUpperCase() == currencyCode && p.amount != null)
+        .toList();
+
+    final price = allPrices.isEmpty
+        ? null
+        : allPrices.map((p) => p.amount!).reduce((a, b) => a < b ? a : b);
 
     return GestureDetector(
       onTap: () => context.router.push(ProductDetailsRoute(product: product)),
@@ -794,7 +859,7 @@ class _ReviewCardItem extends StatelessWidget {
                   children: [
                     Text(review.rating.toStringAsFixed(1),
                         style: context.bodyMediumW500),
-                    Text(' rating',
+                    Text(' ${context.l10n.ratingLabel}',
                         style: context.bodyExtraSmall
                             ?.copyWith(color: ColorConstant.manatee)),
                   ],

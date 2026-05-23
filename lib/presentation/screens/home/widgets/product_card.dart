@@ -25,30 +25,15 @@ class ProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final currencyCode = PreferenceRepository.currencyCode;
-    num? price;
-    String effectiveCurrency = currencyCode;
+    final currencyCode = PreferenceRepository.currencyCode.toUpperCase();
+    final allPrices = (product.variants ?? [])
+        .expand((v) => v.prices ?? <MoneyAmount>[])
+        .where((p) => p.currencyCode?.toUpperCase() == currencyCode && p.amount != null)
+        .toList();
 
-    // Prefer current-currency prices; fall back to any available price for
-    // old products that only have a single default-currency price.
-    final matchingPrices = <num>[];
-    MoneyAmount? firstFallback;
-    product.variants?.forEach((variant) {
-      variant.prices?.forEach((p) {
-        if (p.amount == null) return;
-        if (p.currencyCode?.toUpperCase() == currencyCode) {
-          matchingPrices.add(p.amount!);
-        } else {
-          firstFallback ??= p;
-        }
-      });
-    });
-    if (matchingPrices.isNotEmpty) {
-      price = matchingPrices.reduce((a, b) => a < b ? a : b);
-    } else if (firstFallback != null) {
-      price = firstFallback!.amount;
-      // Keep effectiveCurrency as the user's selected currency (same as ProductDetails behavior)
-    }
+    final price = allPrices.isEmpty
+        ? null
+        : allPrices.map((p) => p.amount!).reduce((a, b) => a < b ? a : b);
 
     return Container(
       decoration: BoxDecoration(
@@ -93,16 +78,52 @@ class ProductCard extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      product.title ?? '',
-                      style: context.bodyExtraSmallW500,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+
+                    Flexible(
+                      child: Text(
+                        product.title ?? '',
+                        style: context.bodyExtraSmallW500?.copyWith(
+                          fontSize: 18,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                    const Gap(5),
+                    const Gap(4),
+                    Row(
+                      children: [
+                        if (product.avgRating > 0) ...[
+
+                          const Icon(Icons.star_rounded,
+                              color: Colors.amber, size: 12),
+                          const SizedBox(width: 2),
+                          Text(
+                            product.avgRating.toStringAsFixed(1),
+                            style: context.bodyExtraSmall
+                                ?.copyWith(fontWeight: FontWeight.w600),
+                          ),
+                          const SizedBox(width: 6),
+                        ],
+                        if(product.avgRating > 0)
+                        Spacer(),
+                        if (product.viewsCount > 0) ...[
+                          Icon(Icons.remove_red_eye_outlined,
+                              size: 11, color: ColorConstant.manatee),
+                          const SizedBox(width: 2),
+                          Text(
+                            product.viewsCount.toString(),
+                            style: context.bodyExtraSmall
+                                ?.copyWith(color: ColorConstant.manatee),
+                          ),
+                          SizedBox(width: 16,),
+                        ],
+                      ],
+                    ),
+                    const Gap(3),
                     Text(
-                      price.formatAsPrice(effectiveCurrency),
+                      price.formatAsPrice(currencyCode),
                       style: context.bodySmallW500?.copyWith(
                         color: ColorConstant.brownDark,
                       ),

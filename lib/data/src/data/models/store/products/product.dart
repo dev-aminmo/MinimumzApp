@@ -106,6 +106,15 @@ class Product  {
   /// An optional key-value map with additional details
   final Map<String, dynamic>? metadata;
 
+  /// Average approved review rating (0.0 if none)
+  final double avgRating;
+
+  /// Number of approved reviews
+  final int reviewsCount;
+
+  /// Number of unique session views
+  final int viewsCount;
+
   const Product({
     this.id,
     this.title,
@@ -140,6 +149,9 @@ class Product  {
     this.updatedAt,
     this.deletedAt,
     this.metadata,
+    this.avgRating = 0.0,
+    this.reviewsCount = 0,
+    this.viewsCount = 0,
   });
 
   factory Product.fromJson(Map<String, dynamic> json) {
@@ -205,6 +217,9 @@ class Product  {
       handle: json['handle'],
       status: ProductStatus.values.firstWhere((e) => e.value == json['status'], orElse: () => ProductStatus.draft),
       discountable: json['discountable'] ?? false,
+      avgRating: (json['avg_rating'] as num?)?.toDouble() ?? 0.0,
+      reviewsCount: (json['reviews_count'] as num?)?.toInt() ?? 0,
+      viewsCount: (json['views_count'] as num?)?.toInt() ?? 0,
     );
   }
 

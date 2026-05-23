@@ -1,9 +1,8 @@
 import 'package:auto_route/auto_route.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
-import 'package:minimumz/blocs/auth/authentication_bloc.dart';
 import 'package:minimumz/common/extensions/extensions.dart';
 import 'package:minimumz/data/data.dart';
 import 'package:minimumz/di/di.dart';
@@ -23,28 +22,12 @@ class AddReviewScreen extends StatefulWidget {
 
 class _AddReviewScreenState extends State<AddReviewScreen> {
   final _formKey = GlobalKey<FormState>();
-  late final TextEditingController _nameCtrl;
   final _commentCtrl = TextEditingController();
   int _rating = 3;
   bool _loading = false;
 
   @override
-  void initState() {
-    super.initState();
-    final authState = context.read<AuthenticationBloc>().state;
-    final customer = authState.maybeMap(
-      loggedIn: (s) => s.customer,
-      orElse: () => null,
-    );
-    final prefillName = customer != null
-        ? '${customer.firstName ?? ''} ${customer.lastName ?? ''}'.trim()
-        : '';
-    _nameCtrl = TextEditingController(text: prefillName);
-  }
-
-  @override
   void dispose() {
-    _nameCtrl.dispose();
     _commentCtrl.dispose();
     super.dispose();
   }
@@ -55,22 +38,26 @@ class _AddReviewScreenState extends State<AddReviewScreen> {
     try {
       await getIt<DataStore>().reviews.create(
             productId: widget.productId,
-            reviewerName: _nameCtrl.text.trim(),
+            reviewerName: '',
             comment: _commentCtrl.text.trim(),
             rating: _rating,
           );
       if (mounted) {
         context.router.pop();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text(
-                  'Review submitted! It will appear after approval.')),
+          SnackBar(content: Text(context.l10n.reviewSubmitted)),
         );
       }
-    } catch (_) {
+    } catch (e) {
       if (mounted) {
+        final status = e is DioException ? e.response?.statusCode : null;
+        final msg = status == 401
+            ? context.l10n.loginToReview
+            : status == 403
+                ? context.l10n.mustPurchaseToReview
+                : context.l10n.failedToSubmitReview;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to submit review. Try again.')),
+          SnackBar(content: Text(msg)),
         );
       }
     } finally {
@@ -89,9 +76,9 @@ class _AddReviewScreenState extends State<AddReviewScreen> {
       child: GestureDetector(
         onTap: () => FocusScope.of(context).unfocus(),
         child: Scaffold(
-          appBar: const CustomAppBar(title: 'Add Review'),
+          appBar: CustomAppBar(title: context.l10n.addReview),
           bottomNavigationBar: BottomNavButton(
-            label: _loading ? 'Submitting...' : 'Submit Review',
+            label: _loading ? context.l10n.submitting : context.l10n.submitReview,
             onTap: _loading ? () {} : _submit,
           ),
           body: SafeArea(
@@ -104,29 +91,7 @@ class _AddReviewScreenState extends State<AddReviewScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const SizedBox(height: 25.0),
-                      Text('Name', style: context.bodyLargeW500),
-                      const SizedBox(height: 10.0),
-                      TextFormField(
-                        controller: _nameCtrl,
-                        textInputAction: TextInputAction.next,
-                        decoration: InputDecoration(
-                          filled: true,
-                          isDense: true,
-                          hintText: 'Your name',
-                          border: inputBorder,
-                          enabledBorder: inputBorder,
-                          focusedBorder: inputBorder,
-                          hintStyle:
-                              TextStyle(color: ColorConstant.manatee),
-                          fillColor: context.theme.cardColor,
-                        ),
-                        validator: (v) =>
-                            (v == null || v.trim().isEmpty)
-                                ? 'Name is required'
-                                : null,
-                      ),
-                      const SizedBox(height: 20.0),
-                      Text('Your experience',
+                      Text(context.l10n.describeExperience,
                           style: context.bodyLargeW500),
                       const SizedBox(height: 10.0),
                       TextFormField(
@@ -137,7 +102,7 @@ class _AddReviewScreenState extends State<AddReviewScreen> {
                         decoration: InputDecoration(
                           filled: true,
                           isDense: true,
-                          hintText: 'Describe your experience...',
+                          hintText: context.l10n.describeExperience,
                           border: inputBorder,
                           enabledBorder: inputBorder,
                           focusedBorder: inputBorder,
@@ -147,11 +112,11 @@ class _AddReviewScreenState extends State<AddReviewScreen> {
                         ),
                         validator: (v) =>
                             (v == null || v.trim().isEmpty)
-                                ? 'Comment is required'
+                                ? context.l10n.commentRequired
                                 : null,
                       ),
                       const SizedBox(height: 20.0),
-                      Text('Rating', style: context.bodyLargeW500),
+                      Text(context.l10n.ratingTitle, style: context.bodyLargeW500),
                       const SizedBox(height: 10.0),
                       Center(
                         child: RatingBar.builder(
