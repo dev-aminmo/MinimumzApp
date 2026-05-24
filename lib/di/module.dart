@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:minimumz/cubits/locale/locale_cubit.dart';
 import 'package:minimumz/data/src/data_store.dart';
 import 'package:minimumz/domain/repository/preference_repository.dart';
 
@@ -6,8 +7,18 @@ abstract class RegisterCoreDependencies {
   static DataStore createDataStore() => DataStore.initialize(
      baseUrl: 'https://darkorchid-mouse-412686.hostingersite.com/api',
       //baseUrl: 'https://google.com/api',
-      interceptors: [_authInterceptor]
+      interceptors: [_authInterceptor, _localeInterceptor]
 
+  );
+
+  static final Interceptor _localeInterceptor = InterceptorsWrapper(
+    onRequest: (options, handler) {
+      try {
+        final locale = LocaleCubit.instance.state.languageCode;
+        options.headers['Accept-Language'] = locale;
+      } catch (_) {}
+      handler.next(options);
+    },
   );
 
   static final Interceptor _authInterceptor = InterceptorsWrapper(

@@ -194,8 +194,7 @@ class _ProductDetailsBottomNavButtonState
                                                 onPressed: widget.selectedVariant == null ? null : () {
                                                   context.read<LineItemBloc>().add(
                                                       LineItemEvent.add(
-                                                          PreferenceRepository
-                                                              .instance.cartId!,
+                                                          loaded.cart.id!,
                                                           widget.selectedVariant!.id!,
                                                           1));
                                                 },
@@ -262,7 +261,7 @@ class _ProductDetailsBottomNavButtonState
                           : () {
                               context.read<LineItemBloc>().add(
                                   LineItemEvent.add(
-                                      PreferenceRepository.instance.cartId!,
+                                      loaded.cart.id!,
                                       widget.selectedVariant!.id!,
                                       1));
                             });
@@ -274,7 +273,11 @@ class _ProductDetailsBottomNavButtonState
                           child: LoadingAnimationWidget.threeArchedCircle(
                               color: Colors.white, size: 24)),
                     ),
-                orElse: () => const SizedBox.shrink());
+                orElse: () => BottomNavButton(
+                      label: context.l10n.addToCart,
+                      onTap: () =>
+                          context.read<CartBloc>().add(const CartEvent.loadCart()),
+                    ));
           },
         );
       },
