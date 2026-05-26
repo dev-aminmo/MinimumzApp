@@ -85,6 +85,7 @@ class minimumzApp extends StatelessWidget {
         ),
         BlocProvider<CartBloc>(
           create: (_) => CartBloc.instance..add(const CartEvent.loadCart()),
+          lazy: false,
         ),
         BlocProvider<LineItemBloc>(
           create: (_) => LineItemBloc.instance,
@@ -102,11 +103,17 @@ class minimumzApp extends StatelessWidget {
           lazy: false,
         ),
       ],
-      child: BlocBuilder<ThemeCubit, ThemeState>(
-        builder: (context, themeState) {
-          return BlocBuilder<LocaleCubit, Locale>(
-            builder: (context, locale) {
-              return MaterialApp.router(
+      child: BlocListener<AuthenticationBloc, AuthenticationState>(
+        listenWhen: (previous, current) =>
+            !previous.maybeMap(loggedOut: (_) => true, orElse: () => false) &&
+            current.maybeMap(loggedOut: (_) => true, orElse: () => false),
+        listener: (context, _) =>
+            context.read<CartBloc>().add(const CartEvent.loadCart()),
+        child: BlocBuilder<ThemeCubit, ThemeState>(
+          builder: (context, themeState) {
+            return BlocBuilder<LocaleCubit, Locale>(
+              builder: (context, locale) {
+                return MaterialApp.router(
                 title: 'MiniMumz',
                 debugShowCheckedModeBanner: false,
                 themeMode: themeState.themeMode,
@@ -123,9 +130,10 @@ class minimumzApp extends StatelessWidget {
                 routerConfig: _router.config(),
                 builder: EasyLoading.init(),
               );
-            },
-          );
-        },
+              },
+            );
+          },
+        ),
       ),
     );
   }

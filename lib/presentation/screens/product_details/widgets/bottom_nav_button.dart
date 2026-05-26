@@ -29,258 +29,288 @@ class ProductDetailsBottomNavButton extends StatefulWidget {
 
 class _ProductDetailsBottomNavButtonState
     extends State<ProductDetailsBottomNavButton> {
+  // Optimistic state for "add to cart": true while API is in-flight so the
+  // button immediately switches to the "in cart" view without any spinner.
+  bool _optimisticInCart = false;
+
+  void _optimisticUpdate(int newQty) {
+    final cartBloc = context.read<CartBloc>();
+    final currentState = cartBloc.state;
+
+    currentState.whenOrNull(loaded: (cart) {
+      final items = cart.items ?? <LineItem>[];
+      final exists = items.any((e) => e.variantId == widget.selectedVariant?.id);
+
+      List<LineItem> updatedItems;
+      if (exists) {
+        updatedItems = items.map((item) {
+          if (item.variantId == widget.selectedVariant?.id) {
+            final int newTotal = (item.unitPrice ?? 0) * newQty;
+            return item.copyWith(
+              quantity: newQty,
+              total: newTotal,
+              subtotal: newTotal,
+            );
+          }
+          return item;
+        }).toList();
+      } else {
+        // Optimistic add: create a temporary line item
+        final int unitPrice = (widget.selectedVariant?.prices?.firstOrNull?.amount ?? 0).toInt();
+        final int total = unitPrice * newQty;
+        final tempItem = LineItem(
+          id: 'temp_${DateTime.now().millisecondsSinceEpoch}',
+          variantId: widget.selectedVariant?.id,
+          title: widget.product.title,
+          unitPrice: unitPrice,
+          quantity: newQty,
+          total: total,
+          subtotal: total,
+          thumbnail: widget.product.thumbnail,
+        );
+        updatedItems = [...items, tempItem];
+      }
+
+      final updatedCart = cart.copyWith(items: updatedItems).recalculate();
+      cartBloc.add(CartEvent.refreshCart(updatedCart));
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final String currencyCode = PreferenceRepository.currencyCode;
-    return BlocConsumer<LineItemBloc, LineItemState>(
+
+    return BlocListener<LineItemBloc, LineItemState>(
       listener: (context, lineState) {
         lineState.whenOrNull(
-          success: (_) =>
-              context.read<CartBloc>().add(CartEvent.refreshCart(_)),
-          failure: (message) => Fluttertoast.showToast(msg: message),
-        );
-      },
-      builder: (context, lineState) {
-        return BlocBuilder<CartBloc, CartState>(
-          builder: (context, cartState) {
-            return cartState.maybeMap(
-                loaded: (loaded) {
-                  final inCart = loaded.cart.items
-                          ?.map((e) => e.variantId)
-                          .toList()
-                          .contains(widget.selectedVariant?.id) ??
-                      false;
-                  final lineItem = loaded.cart.items
-                      ?.where((element) =>
-                          element.variantId == widget.selectedVariant?.id)
-                      .firstOrNull;
-                  final Widget addRemoveItemWidget = Row(
-                    mainAxisSize: MainAxisSize.max,
-                    children: [
-                      Expanded(
-                        flex: 2,
-                        child: Material(
-                          child: InkWell(
-                            onTap: () {
-                              context.read<LineItemBloc>().add(
-                                  LineItemEvent.update(
-                                      loaded.cart.id!,
-                                      lineItem!.id!,
-                                      lineItem.quantity! - 1));
-                            },
-                            child: Ink(
-                              height: 50,
-                              color: ColorConstant.primary,
-                              child: const Center(
-                                  child: Icon(Icons.remove, color: Colors.white)),
-                            ),
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                          child: Center(
-                              child: Text(lineItem?.quantity
-                                  ?.toString() ??
-                                  '', style: const TextStyle(color: Colors.white),))),
-                      Expanded(
-                        flex: 2,
-                        child: Material(
-                          child: InkWell(
-                            onTap: () {
-                              context.read<LineItemBloc>().add(
-                                  LineItemEvent.update(
-                                      loaded.cart.id!,
-                                      lineItem!.id!,
-                                      lineItem.quantity! + 1));
-                            },
-                            child: Ink(
-                              height: 50,
-                              color: ColorConstant.primary,
-                              child: const Center(
-                                  child: Icon(Icons.add, color: Colors.white)),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  );
-                  final Widget addRemoveItemLoadingWidget = Row(
-                    mainAxisSize: MainAxisSize.max,
-                    children: [
-                      Expanded(
-                        flex: 2,
-                        child: Material(
-                          child: InkWell(
-                            onTap:null,
-                            child: Ink(
-                              height: 50,
-                              color: ColorConstant.primary,
-                              child: const Center(
-                                  child: Icon(Icons.remove, color: Colors.white70)),
-                            ),
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                          child: Center(
-                              child: LoadingAnimationWidget
-                                  .threeArchedCircle(
-                                  color: Colors.white, size: 24))),
-                      Expanded(
-                        flex: 2,
-                        child: Material(
-                          child: InkWell(
-                            onTap:null,
-                            child: Ink(
-                              height: 50,
-                              color: ColorConstant.primary,
-                              child: const Center(
-                                  child: Icon(Icons.add, color: Colors.white70)),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  );
-
-                  if (inCart) {
-                    return Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Divider(height: 0),
-                        Container(
-                          color: context.theme.scaffoldBackgroundColor,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 20, vertical: 10),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(context.l10n.totalPrice,
-                                      style: context.bodyMediumW600),
-                                  Text(context.l10n.withVatSd,
-                                      style: context.bodyExtraSmall?.copyWith(
-                                          color: ColorConstant.manatee)),
-                                ],
-                              ),
-                              Text(
-                                  lineItem?.total.formatAsPrice(currencyCode) ??
-                                      '',
-                                  style: context.bodyLargeW600)
-                            ],
-                          ),
-                        ),
-                        Row(
-                          children: [
-                            Expanded(
-                              flex: 3,
-                              child: Container(
-                                color: ColorConstant.primary,
-                                height: 50,
-                                child: BlocBuilder<LineItemBloc, LineItemState>(
-                                  builder: (context, state) {
-                                    return state.map(
-                                      initial: (_) => addRemoveItemWidget,
-                                      success: (cart) => addRemoveItemWidget,
-                                      loading: (_) => addRemoveItemLoadingWidget,
-                                      failure: (error) {
-                                        return Row(
-                                          mainAxisAlignment: MainAxisAlignment.center,
-                                          children: [
-                                            Text(context.l10n.errorAddingItem),
-                                            TextButton(
-                                                onPressed: widget.selectedVariant == null ? null : () {
-                                                  context.read<LineItemBloc>().add(
-                                                      LineItemEvent.add(
-                                                          loaded.cart.id!,
-                                                          widget.selectedVariant!.id!,
-                                                          1));
-                                                },
-                                                child: Text(context.l10n.retry)),
-                                          ],
-                                        );
-                                      },
-                                    );
-                                  },
-                                ),
-                              ),
-                            ),
-                            Expanded(
-                              flex: 2,
-                              child: GestureDetector(
-                                onTap: () => context.router.push(const CartRoute()),
-                                child: Container(
-                                  height: 50,
-                                  color: ColorConstant.brownDark,
-                                  child: Center(
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text(
-                                          context.l10n.checkout,
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.w600,
-                                            fontSize: 13,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 4),
-                                        const Icon(Icons.arrow_forward_ios_rounded,
-                                            color: Colors.white, size: 13),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        Container(
-                          height: context.bottomViewPadding,
-                          color: ColorConstant.brownDark,
-                        )
-                      ],
-                    );
-                  } else if(!inCart && lineState == LineItemState.loading(lineItemId: widget.selectedVariant?.id)){
-                    return Container(
-                      color: ColorConstant.primary,
-                      height: 50,
-                      child: Center(
-                          child: LoadingAnimationWidget.threeArchedCircle(
-                              color: Colors.white, size: 24)),
-                    );
-                  }
-                  return BottomNavButton(
-                      label: context.l10n.addToCart,
-                      onTap: (widget.optionsSelected.length <
-                                      (widget.product.options?.length ?? 0) ||
-                                  widget.selectedVariant == null)
-                          ? null
-                          : () {
-                              context.read<LineItemBloc>().add(
-                                  LineItemEvent.add(
-                                      loaded.cart.id!,
-                                      widget.selectedVariant!.id!,
-                                      1));
-                            });
-                },
-                loading: (_) => Container(
-                      color: ColorConstant.primary,
-                      height: 50,
-                      child: Center(
-                          child: LoadingAnimationWidget.threeArchedCircle(
-                              color: Colors.white, size: 24)),
-                    ),
-                orElse: () => BottomNavButton(
-                      label: context.l10n.addToCart,
-                      onTap: () =>
-                          context.read<CartBloc>().add(const CartEvent.loadCart()),
-                    ));
+          success: (cart) {
+            setState(() => _optimisticInCart = false);
+            context.read<CartBloc>().add(CartEvent.refreshCart(cart));
+          },
+          failure: (message, lineItemId) {
+            if (lineItemId == widget.selectedVariant?.id) {
+              // Revert optimistic add
+              setState(() => _optimisticInCart = false);
+              if (message.isNotEmpty) Fluttertoast.showToast(msg: message);
+            }
           },
         );
       },
+      child: BlocBuilder<CartBloc, CartState>(
+        builder: (context, cartState) {
+          return cartState.maybeMap(
+            loaded: (loaded) {
+              final inCart = loaded.cart.items
+                      ?.map((e) => e.variantId)
+                      .contains(widget.selectedVariant?.id) ??
+                  false;
+
+              if (inCart || _optimisticInCart) {
+                final lineItem = loaded.cart.items?.firstWhere(
+                  (e) => e.variantId == widget.selectedVariant?.id,
+                  orElse: () => LineItem(title: '', unitPrice: 0, quantity: 1),
+                );
+                final isUpdating = context
+                    .watch<LineItemBloc>()
+                    .state
+                    .maybeWhen(
+                      loading: (id) => id == lineItem?.id,
+                      orElse: () => false,
+                    );
+
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Divider(height: 0),
+                    Container(
+                      color: context.theme.scaffoldBackgroundColor,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 10),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(context.l10n.totalPrice,
+                                  style: context.bodyMediumW600),
+                              Text(context.l10n.withVatSd,
+                                  style: context.bodyExtraSmall?.copyWith(
+                                      color: ColorConstant.manatee)),
+                            ],
+                          ),
+                          Text(
+                              (lineItem!.total ?? 0)
+                                      .formatAsPrice(currencyCode) ??
+                                  '',
+                              style: context.bodyLargeW600),
+                        ],
+                      ),
+                    ),
+                    Row(
+                      children: [
+                        Expanded(
+                          flex: 3,
+                          child: Container(
+                            color: ColorConstant.primary,
+                            height: 50,
+                            child: _QuantityControls(
+                              quantity: lineItem.quantity ?? 1,
+                              isUpdating: isUpdating,
+                              onDecrement: () {
+                                final int newQty = (lineItem.quantity ?? 1) - 1;
+                                if (newQty < 1) {
+                                  // For simplicity, we don't delete optimistically from this button
+                                  // but we could. For now just prevent it.
+                                  return;
+                                }
+                                _optimisticUpdate(newQty);
+                                context.read<LineItemBloc>().add(
+                                    LineItemEvent.update(
+                                        loaded.cart.id!,
+                                        lineItem.id!,
+                                        newQty));
+                              },
+                              onIncrement: () {
+                                final int newQty = (lineItem.quantity ?? 1) + 1;
+                                _optimisticUpdate(newQty);
+                                context.read<LineItemBloc>().add(
+                                    LineItemEvent.update(
+                                        loaded.cart.id!,
+                                        lineItem.id!,
+                                        newQty));
+                              },
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          flex: 2,
+                          child: GestureDetector(
+                            onTap: () => context.router.push(const CartRoute()),
+                            child: Container(
+                              height: 50,
+                              color: ColorConstant.brownDark,
+                              child: Center(
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      context.l10n.checkout,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    const Icon(
+                                        Icons.arrow_forward_ios_rounded,
+                                        color: Colors.white,
+                                        size: 13),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    Container(
+                      height: context.bottomViewPadding,
+                      color: ColorConstant.brownDark,
+                    ),
+                  ],
+                );
+              }
+
+              // Not in cart
+              return BottomNavButton(
+                label: context.l10n.addToCart,
+                onTap: (widget.optionsSelected.length <
+                                (widget.product.options?.length ?? 0) ||
+                            widget.selectedVariant == null)
+                    ? null
+                    : () {
+                        setState(() => _optimisticInCart = true);
+                        _optimisticUpdate(1);
+                        context.read<LineItemBloc>().add(LineItemEvent.add(
+                            loaded.cart.id!,
+                            widget.selectedVariant!.id!,
+                            1));
+                      },
+              );
+            },
+            loading: (_) => BottomNavButton(
+              label: context.l10n.addToCart,
+              onTap: null,
+            ),
+            orElse: () => BottomNavButton(
+              label: context.l10n.addToCart,
+              onTap: () =>
+                  context.read<CartBloc>().add(const CartEvent.loadCart()),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+// +/- row shown inside the "in cart" section
+class _QuantityControls extends StatelessWidget {
+  const _QuantityControls({
+    required this.quantity,
+    required this.isUpdating,
+    required this.onDecrement,
+    required this.onIncrement,
+  });
+  final int quantity;
+  final bool isUpdating;
+  final VoidCallback onDecrement;
+  final VoidCallback onIncrement;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.max,
+      children: [
+        Expanded(
+          flex: 2,
+          child: Material(
+            child: InkWell(
+              onTap: isUpdating ? null : onDecrement,
+              child: Ink(
+                height: 50,
+                color: ColorConstant.primary,
+                child: Center(
+                    child: Icon(Icons.remove,
+                        color: isUpdating ? Colors.white38 : Colors.white)),
+              ),
+            ),
+          ),
+        ),
+        Expanded(
+          child: Center(
+            child: Text(quantity.toString(),
+                    style: const TextStyle(color: Colors.white)),
+          ),
+        ),
+        Expanded(
+          flex: 2,
+          child: Material(
+            child: InkWell(
+              onTap: isUpdating ? null : onIncrement,
+              child: Ink(
+                height: 50,
+                color: ColorConstant.primary,
+                child: Center(
+                    child: Icon(Icons.add,
+                        color: isUpdating ? Colors.white38 : Colors.white)),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

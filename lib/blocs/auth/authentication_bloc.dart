@@ -99,7 +99,12 @@ class AuthenticationBloc
     emit(const _Loading());
     final result = await _authUsecase.logoutCustomer();
     if (result) {
-      await PreferenceRepository.instance.clearCurrencyCode();
+      final prefs = getIt<PreferenceRepository>();
+      await Future.wait([
+        prefs.clearCurrencyCode(),
+        prefs.clearCartId(),
+        prefs.clearCachedCart(),
+      ]);
       emit(const _LoggedOut());
     } else {
       emit(_Error(Failure(message: 'Error signing out')));

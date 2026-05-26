@@ -1,5 +1,6 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:minimumz/common/doh_cache_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:gap/gap.dart';
@@ -88,6 +89,7 @@ class _CollectionScreenState extends State<CollectionScreen> {
               Opacity(
                 opacity: expandedOpacity,
                 child: CachedNetworkImage(
+          cacheManager: DohCacheManager.instance,
                   imageUrl: widget.collection.banner!,
                   width: double.infinity,
                   height: double.infinity,
@@ -127,6 +129,7 @@ class _CollectionScreenState extends State<CollectionScreen> {
                             borderRadius:
                                 const BorderRadius.all(Radius.circular(12)),
                             child: CachedNetworkImage(
+          cacheManager: DohCacheManager.instance,
                               imageUrl: widget.collection.logo!,
                               width: 64,
                               height: 64,
@@ -194,6 +197,7 @@ class _CollectionScreenState extends State<CollectionScreen> {
                           ClipRRect(
                             borderRadius: BorderRadius.circular(4),
                             child: CachedNetworkImage(
+          cacheManager: DohCacheManager.instance,
                               imageUrl: widget.collection.logo!,
                               width: 24,
                               height: 24,

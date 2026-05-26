@@ -74,14 +74,15 @@ extension GetItInjectableX on _i174.GetIt {
         () => _i516.LocaleCubit(gh<_i460.SharedPreferences>()));
     gh.singleton<_i745.PreferenceRepository>(() =>
         _i745.PreferenceRepository(gh<_i460.SharedPreferences>())..init());
-    gh.factory<_i869.CartBloc>(() => _i869.CartBloc(
-          gh<_i272.RetrieveCartUsecase>(),
-          gh<_i269.UpdateCartUsecase>(),
-        ));
     gh.factory<_i503.OrdersBloc>(
         () => _i503.OrdersBloc(gh<_i62.RetrieveOrdersUsecase>()));
     gh.factory<_i705.ProductsBloc>(
         () => _i705.ProductsBloc(gh<_i463.GetHomeProductUsecase>()));
+    gh.factory<_i869.CartBloc>(() => _i869.CartBloc(
+          gh<_i272.RetrieveCartUsecase>(),
+          gh<_i269.UpdateCartUsecase>(),
+          gh<_i745.PreferenceRepository>(),
+        ));
     gh.factory<_i864.AuthenticationBloc>(
         () => _i864.AuthenticationBloc(gh<_i143.AuthenticationUsecase>()));
     gh.factory<_i975.RegionBloc>(

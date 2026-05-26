@@ -558,7 +558,7 @@ mixin _$LineItemState {
     required TResult Function() initial,
     required TResult Function(String? lineItemId) loading,
     required TResult Function(Cart cart) success,
-    required TResult Function(String message) failure,
+    required TResult Function(String message, String? lineItemId) failure,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
@@ -566,7 +566,7 @@ mixin _$LineItemState {
     TResult? Function()? initial,
     TResult? Function(String? lineItemId)? loading,
     TResult? Function(Cart cart)? success,
-    TResult? Function(String message)? failure,
+    TResult? Function(String message, String? lineItemId)? failure,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
@@ -574,7 +574,7 @@ mixin _$LineItemState {
     TResult Function()? initial,
     TResult Function(String? lineItemId)? loading,
     TResult Function(Cart cart)? success,
-    TResult Function(String message)? failure,
+    TResult Function(String message, String? lineItemId)? failure,
     required TResult orElse(),
   }) =>
       throw _privateConstructorUsedError;
@@ -664,7 +664,7 @@ class _$InitialImpl implements _Initial {
     required TResult Function() initial,
     required TResult Function(String? lineItemId) loading,
     required TResult Function(Cart cart) success,
-    required TResult Function(String message) failure,
+    required TResult Function(String message, String? lineItemId) failure,
   }) {
     return initial();
   }
@@ -675,7 +675,7 @@ class _$InitialImpl implements _Initial {
     TResult? Function()? initial,
     TResult? Function(String? lineItemId)? loading,
     TResult? Function(Cart cart)? success,
-    TResult? Function(String message)? failure,
+    TResult? Function(String message, String? lineItemId)? failure,
   }) {
     return initial?.call();
   }
@@ -686,7 +686,7 @@ class _$InitialImpl implements _Initial {
     TResult Function()? initial,
     TResult Function(String? lineItemId)? loading,
     TResult Function(Cart cart)? success,
-    TResult Function(String message)? failure,
+    TResult Function(String message, String? lineItemId)? failure,
     required TResult orElse(),
   }) {
     if (initial != null) {
@@ -805,7 +805,7 @@ class _$LoadingImpl implements _Loading {
     required TResult Function() initial,
     required TResult Function(String? lineItemId) loading,
     required TResult Function(Cart cart) success,
-    required TResult Function(String message) failure,
+    required TResult Function(String message, String? lineItemId) failure,
   }) {
     return loading(lineItemId);
   }
@@ -816,7 +816,7 @@ class _$LoadingImpl implements _Loading {
     TResult? Function()? initial,
     TResult? Function(String? lineItemId)? loading,
     TResult? Function(Cart cart)? success,
-    TResult? Function(String message)? failure,
+    TResult? Function(String message, String? lineItemId)? failure,
   }) {
     return loading?.call(lineItemId);
   }
@@ -827,7 +827,7 @@ class _$LoadingImpl implements _Loading {
     TResult Function()? initial,
     TResult Function(String? lineItemId)? loading,
     TResult Function(Cart cart)? success,
-    TResult Function(String message)? failure,
+    TResult Function(String message, String? lineItemId)? failure,
     required TResult orElse(),
   }) {
     if (loading != null) {
@@ -950,7 +950,7 @@ class _$SuccessImpl implements _Success {
     required TResult Function() initial,
     required TResult Function(String? lineItemId) loading,
     required TResult Function(Cart cart) success,
-    required TResult Function(String message) failure,
+    required TResult Function(String message, String? lineItemId) failure,
   }) {
     return success(cart);
   }
@@ -961,7 +961,7 @@ class _$SuccessImpl implements _Success {
     TResult? Function()? initial,
     TResult? Function(String? lineItemId)? loading,
     TResult? Function(Cart cart)? success,
-    TResult? Function(String message)? failure,
+    TResult? Function(String message, String? lineItemId)? failure,
   }) {
     return success?.call(cart);
   }
@@ -972,7 +972,7 @@ class _$SuccessImpl implements _Success {
     TResult Function()? initial,
     TResult Function(String? lineItemId)? loading,
     TResult Function(Cart cart)? success,
-    TResult Function(String message)? failure,
+    TResult Function(String message, String? lineItemId)? failure,
     required TResult orElse(),
   }) {
     if (success != null) {
@@ -1034,7 +1034,7 @@ abstract class _$$FailureImplCopyWith<$Res> {
           _$FailureImpl value, $Res Function(_$FailureImpl) then) =
       __$$FailureImplCopyWithImpl<$Res>;
   @useResult
-  $Res call({String message});
+  $Res call({String message, String? lineItemId});
 }
 
 /// @nodoc
@@ -1049,12 +1049,17 @@ class __$$FailureImplCopyWithImpl<$Res>
   @override
   $Res call({
     Object? message = null,
+    Object? lineItemId = freezed,
   }) {
     return _then(_$FailureImpl(
       null == message
           ? _value.message
           : message // ignore: cast_nullable_to_non_nullable
               as String,
+      lineItemId: freezed == lineItemId
+          ? _value.lineItemId
+          : lineItemId // ignore: cast_nullable_to_non_nullable
+              as String?,
     ));
   }
 }
@@ -1062,14 +1067,16 @@ class __$$FailureImplCopyWithImpl<$Res>
 /// @nodoc
 
 class _$FailureImpl implements _Failure {
-  const _$FailureImpl(this.message);
+  const _$FailureImpl(this.message, {this.lineItemId});
 
   @override
   final String message;
+  @override
+  final String? lineItemId;
 
   @override
   String toString() {
-    return 'LineItemState.failure(message: $message)';
+    return 'LineItemState.failure(message: $message, lineItemId: $lineItemId)';
   }
 
   @override
@@ -1077,11 +1084,13 @@ class _$FailureImpl implements _Failure {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _$FailureImpl &&
-            (identical(other.message, message) || other.message == message));
+            (identical(other.message, message) || other.message == message) &&
+            (identical(other.lineItemId, lineItemId) ||
+                other.lineItemId == lineItemId));
   }
 
   @override
-  int get hashCode => Object.hash(runtimeType, message);
+  int get hashCode => Object.hash(runtimeType, message, lineItemId);
 
   @JsonKey(ignore: true)
   @override
@@ -1095,9 +1104,9 @@ class _$FailureImpl implements _Failure {
     required TResult Function() initial,
     required TResult Function(String? lineItemId) loading,
     required TResult Function(Cart cart) success,
-    required TResult Function(String message) failure,
+    required TResult Function(String message, String? lineItemId) failure,
   }) {
-    return failure(message);
+    return failure(message, lineItemId);
   }
 
   @override
@@ -1106,9 +1115,9 @@ class _$FailureImpl implements _Failure {
     TResult? Function()? initial,
     TResult? Function(String? lineItemId)? loading,
     TResult? Function(Cart cart)? success,
-    TResult? Function(String message)? failure,
+    TResult? Function(String message, String? lineItemId)? failure,
   }) {
-    return failure?.call(message);
+    return failure?.call(message, lineItemId);
   }
 
   @override
@@ -1117,11 +1126,11 @@ class _$FailureImpl implements _Failure {
     TResult Function()? initial,
     TResult Function(String? lineItemId)? loading,
     TResult Function(Cart cart)? success,
-    TResult Function(String message)? failure,
+    TResult Function(String message, String? lineItemId)? failure,
     required TResult orElse(),
   }) {
     if (failure != null) {
-      return failure(message);
+      return failure(message, lineItemId);
     }
     return orElse();
   }
@@ -1165,9 +1174,11 @@ class _$FailureImpl implements _Failure {
 }
 
 abstract class _Failure implements LineItemState {
-  const factory _Failure(final String message) = _$FailureImpl;
+  const factory _Failure(final String message, {final String? lineItemId}) =
+      _$FailureImpl;
 
   String get message;
+  String? get lineItemId;
   @JsonKey(ignore: true)
   _$$FailureImplCopyWith<_$FailureImpl> get copyWith =>
       throw _privateConstructorUsedError;

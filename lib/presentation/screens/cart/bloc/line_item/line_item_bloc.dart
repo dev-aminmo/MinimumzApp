@@ -19,24 +19,30 @@ class LineItemBloc extends Bloc<LineItemEvent, LineItemState> {
           cartId: event.id,
           variantId: event.variantId,
           quantity: event.quantity);
-      result.when((cart) => emit(_Success(cart)),
-          (error) => emit(_Failure(error.message)));
+      result.when(
+        (cart) => emit(_Success(cart)),
+        (error) => emit(_Failure(error.message, lineItemId: event.variantId)),
+      );
     });
 
     on<_Update>((event, emit) async {
       emit(_Loading(lineItemId: event.lineId));
       final result = await lineItemUsecase.update(
           cartId: event.cartId, quantity: event.quantity, lineId: event.lineId);
-      result.when((cart) => emit(_Success(cart)),
-          (error) => emit(_Failure(error.message)));
+      result.when(
+        (cart) => emit(_Success(cart)),
+        (error) => emit(_Failure(error.message, lineItemId: event.lineId)),
+      );
     });
 
     on<_Delete>((event, emit) async {
       emit(_Loading(lineItemId: event.lineId));
       final result = await lineItemUsecase.delete(
           cartId: event.cartId, lineId: event.lineId);
-      result.when((cart) => emit(_Success(cart)),
-          (error) => emit(_Failure(error.message)));
+      result.when(
+        (cart) => emit(_Success(cart)),
+        (error) => emit(_Failure(error.message, lineItemId: event.lineId)),
+      );
     });
   }
 

@@ -2,6 +2,7 @@ import 'package:animated_digit/animated_digit.dart';
 import 'package:flutter_html/flutter_html.dart';
 import 'package:auto_route/auto_route.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:minimumz/common/doh_cache_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:gap/gap.dart';
@@ -244,6 +245,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                         fit: StackFit.expand,
                         children: [
                           CachedNetworkImage(
+          cacheManager: DohCacheManager.instance,
                               imageUrl: selectedImage!, fit: BoxFit.fitHeight),
                           // Gradient fade at bottom for smooth transition
                           Positioned(
@@ -456,6 +458,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(10),
                             child: CachedNetworkImage(
+          cacheManager: DohCacheManager.instance,
                               imageUrl: url,
                               fit: BoxFit.cover,
                               placeholder: (_, __) => Container(
@@ -689,6 +692,7 @@ class _InfoChip extends StatelessWidget {
             ClipRRect(
               borderRadius: BorderRadius.circular(3),
               child: CachedNetworkImage(
+          cacheManager: DohCacheManager.instance,
                 imageUrl: imageUrl!,
                 width: 16,
                 height: 16,
@@ -754,6 +758,7 @@ class ProductDetailsRelatedCard extends StatelessWidget {
                 aspectRatio: 1.0,
                 child: product.thumbnail != null
                     ? CachedNetworkImage(
+          cacheManager: DohCacheManager.instance,
                         imageUrl: product.thumbnail!,
                         fit: BoxFit.cover,
                         errorWidget: (_, __, ___) => Container(

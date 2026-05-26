@@ -265,6 +265,65 @@ class Cart {
     );
   }
 
+  Cart copyWith({
+    List<LineItem>? items,
+    int? subTotal,
+    int? total,
+  }) {
+    return Cart(
+      id: id,
+      email: email,
+      billingAddressId: billingAddressId,
+      billingAddress: billingAddress,
+      shippingAddressId: shippingAddressId,
+      shippingAddress: shippingAddress,
+      items: items ?? this.items,
+      regionId: regionId,
+      region: region,
+      discounts: discounts,
+      giftCards: giftCards,
+      customerId: customerId,
+      customer: customer,
+      paymentSession: paymentSession,
+      paymentSessions: paymentSessions,
+      paymentId: paymentId,
+      payment: payment,
+      shippingMethods: shippingMethods,
+      completedAt: completedAt,
+      paymentAuthorizedAt: paymentAuthorizedAt,
+      idempotencyKey: idempotencyKey,
+      context: context,
+      salesChannelId: salesChannelId,
+      salesChannel: salesChannel,
+      shippingTotal: shippingTotal,
+      discountTotal: discountTotal,
+      taxTotal: taxTotal,
+      refundedTotal: refundedTotal,
+      total: total ?? this.total,
+      subTotal: subTotal ?? this.subTotal,
+      refundableAmount: refundableAmount,
+      giftCardTotal: giftCardTotal,
+      giftCardTaxTotal: giftCardTaxTotal,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+      deletedAt: deletedAt,
+      metadata: metadata,
+      removedItems: removedItems,
+      type: type,
+    );
+  }
+
+  /// Recalculates cart totals locally for instant UI feedback.
+  Cart recalculate() {
+    if (items == null) return this;
+    final int newSubTotal = items!.fold(0, (sum, item) => sum + (item.total ?? 0));
+    final int newTotal = newSubTotal + (shippingTotal ?? 0) + (taxTotal ?? 0) - (discountTotal ?? 0);
+    return copyWith(
+      subTotal: newSubTotal,
+      total: newTotal,
+    );
+  }
+
   Map<String, dynamic> toJson() {
     var json = <String, dynamic>{};
     json['id'] = id;

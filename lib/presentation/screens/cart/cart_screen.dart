@@ -86,7 +86,8 @@ class _CartScreenState extends State<CartScreen> {
 
       final result = await getIt<DataStore>().carts.complete(cartId: cartId);
       if (result?.type == 'order' && result?.order != null) {
-        await getIt<PreferenceRepository>().clearCartId();
+        final prefs = getIt<PreferenceRepository>();
+        await Future.wait([prefs.clearCartId(), prefs.clearCachedCart()]);
         if (context.mounted) {
           context.read<CartBloc>().add(const CartEvent.loadCart());
           await context.router.push(OrderConfirmedRoute(order: result!.order!));
@@ -155,28 +156,34 @@ class _CartScreenState extends State<CartScreen> {
                     ),
                   )
                 : null,
-            body: state.map(
-              loaded: (s) => s.cart.items?.isEmpty ?? true
+            body: state.maybeWhen(
+              loaded: (s) => s.items?.isEmpty ?? true
                   ? _EmptyCart()
                   : _CartBody(
-                      cart: s.cart,
+                      cart: s,
                       shippingOptions: _shippingOptions,
                       selectedShipping: _selectedShipping,
                       shippingLoading: _shippingLoading,
                       onShippingSelected: (opt) => setState(() => _selectedShipping = opt),
-                      onEditAddress: () => _showAddressSheet(context, s.cart),
+                      onEditAddress: () => _showAddressSheet(context, s),
                     ),
-              loading: (_) => Center(
-                  child: LoadingAnimationWidget.threeArchedCircle(
-                      color: ColorConstant.primary, size: 40)),
-              initial: (_) => Center(
-                  child: LoadingAnimationWidget.threeArchedCircle(
-                      color: ColorConstant.primary, size: 40)),
-              error: (e) => Center(
+              loading: () => cart != null 
+                  ? _CartBody(
+                      cart: cart,
+                      shippingOptions: _shippingOptions,
+                      selectedShipping: _selectedShipping,
+                      shippingLoading: _shippingLoading,
+                      onShippingSelected: (opt) => setState(() => _selectedShipping = opt),
+                      onEditAddress: () => _showAddressSheet(context, cart),
+                    )
+                  : Center(
+                      child: LoadingAnimationWidget.threeArchedCircle(
+                          color: ColorConstant.primary, size: 40)),
+              error: (message) => Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(e.message ?? context.l10n.errorLoadingCart),
+                    Text(message ?? context.l10n.errorLoadingCart),
                     const Gap(12),
                     ElevatedButton(
                         onPressed: () =>
@@ -185,6 +192,9 @@ class _CartScreenState extends State<CartScreen> {
                   ],
                 ),
               ),
+              orElse: () => Center(
+                  child: LoadingAnimationWidget.threeArchedCircle(
+                      color: ColorConstant.primary, size: 40)),
             ),
           );
         },

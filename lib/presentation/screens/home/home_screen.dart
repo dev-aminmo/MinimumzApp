@@ -1,5 +1,6 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:minimumz/common/doh_cache_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:gap/gap.dart';
@@ -198,6 +199,7 @@ void _showAllBrands(BuildContext context, List<BrandItem> brands) {
                       ? ClipRRect(
                           borderRadius: BorderRadius.circular(6),
                           child: CachedNetworkImage(
+          cacheManager: DohCacheManager.instance,
                             imageUrl: brand.logo!,
                             width: 36,
                             height: 36,
@@ -306,6 +308,7 @@ class CategoryTile extends StatelessWidget {
                 borderRadius: BorderRadius.circular(15),
                 child: collection.logo != null
                     ? CachedNetworkImage(
+          cacheManager: DohCacheManager.instance,
                         imageUrl: collection.logo!,
                         width: 60,
                         height: 60,
@@ -462,6 +465,7 @@ class _BrandChip extends StatelessWidget {
               ClipRRect(
                 borderRadius: BorderRadius.circular(4),
                 child: CachedNetworkImage(
+          cacheManager: DohCacheManager.instance,
                   imageUrl: brand.logo!,
                   width: 22,
                   height: 22,

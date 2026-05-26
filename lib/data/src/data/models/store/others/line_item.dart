@@ -250,6 +250,59 @@ class LineItem {
     );
   }
 
+  LineItem copyWith({
+    String? id,
+    int? quantity,
+    int? unitPrice,
+    int? subtotal,
+    int? total,
+  }) {
+    return LineItem(
+      id: id ?? this.id,
+      cartId: cartId,
+      cart: cart,
+      orderId: orderId,
+      order: order,
+      swapId: swapId,
+      swap: swap,
+      claimOrderId: claimOrderId,
+      rawDiscountTotal: rawDiscountTotal,
+      claimOrder: claimOrder,
+      taxLines: taxLines,
+      adjustments: adjustments,
+      title: title,
+      description: description,
+      thumbnail: thumbnail,
+      isReturn: isReturn,
+      isGiftCard: isGiftCard,
+      shouldMerge: shouldMerge,
+      allowDiscounts: allowDiscounts,
+      hasShipping: hasShipping,
+      unitPrice: unitPrice ?? this.unitPrice,
+      variantId: variantId,
+      variant: variant,
+      quantity: quantity ?? this.quantity,
+      fulfilledQuantity: fulfilledQuantity,
+      returnedQuantity: returnedQuantity,
+      shippedQuantity: shippedQuantity,
+      refundable: refundable,
+      subtotal: subtotal ?? this.subtotal,
+      taxTotal: taxTotal,
+      total: total ?? this.total,
+      originalTotal: originalTotal,
+      originalTaxTotal: originalTaxTotal,
+      discountTotal: discountTotal,
+      giftCardTotal: giftCardTotal,
+      includesTax: includesTax,
+      originalItemId: originalItemId,
+      orderEditId: orderEditId,
+      orderEdit: orderEdit,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+      metadata: metadata,
+    );
+  }
+
   Map<String, dynamic> toJson() {
     var json = <String, dynamic>{};
     json['id'] = id;

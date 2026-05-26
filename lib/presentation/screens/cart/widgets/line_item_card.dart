@@ -1,10 +1,10 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:minimumz/common/doh_cache_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:gap/gap.dart';
 import 'package:minimumz/common/extensions/extensions.dart';
-import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:minimumz/data/data.dart';
 
 import '../../../../common/colors.dart';
@@ -13,190 +13,289 @@ import '../../../components/minimumz_icons.dart';
 import '../bloc/cart/cart_bloc.dart';
 import '../bloc/line_item/line_item_bloc.dart';
 
-class LineItemCard extends StatelessWidget {
+class LineItemCard extends StatefulWidget {
   const LineItemCard({super.key, required this.lineItem, required this.cartId});
   final LineItem lineItem;
   final String cartId;
+
+  @override
+  State<LineItemCard> createState() => _LineItemCardState();
+}
+
+class _LineItemCardState extends State<LineItemCard> {
+  late int _qty;
+  bool _hidden = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _qty = widget.lineItem.quantity ?? 1;
+  }
+
+  @override
+  void didUpdateWidget(LineItemCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Accept server quantity once cart refreshes (only when not mid-operation)
+    if (widget.lineItem.quantity != null &&
+        widget.lineItem.quantity != oldWidget.lineItem.quantity) {
+      setState(() => _qty = widget.lineItem.quantity!);
+    }
+  }
+
+  void _optimisticUpdate(int newQty) {
+    final cartBloc = context.read<CartBloc>();
+    final currentState = cartBloc.state;
+    
+    currentState.whenOrNull(loaded: (cart) {
+      if (cart.items == null) return;
+      
+      final updatedItems = cart.items!.map((item) {
+        if (item.id == widget.lineItem.id) {
+          final int newTotal = (item.unitPrice ?? 0) * newQty;
+          return item.copyWith(
+            quantity: newQty,
+            total: newTotal,
+            subtotal: newTotal,
+          );
+        }
+        return item;
+      }).toList();
+      
+      final updatedCart = cart.copyWith(items: updatedItems).recalculate();
+      cartBloc.add(CartEvent.refreshCart(updatedCart));
+    });
+  }
+
+  void _decrement(BuildContext context) {
+    if (_qty <= 1) {
+      setState(() => _hidden = true);
+      context
+          .read<LineItemBloc>()
+          .add(LineItemEvent.delete(widget.cartId, widget.lineItem.id!));
+    } else {
+      setState(() => --_qty);
+      _optimisticUpdate(_qty);
+      context.read<LineItemBloc>().add(
+          LineItemEvent.update(widget.cartId, widget.lineItem.id!, _qty));
+    }
+  }
+
+  void _increment(BuildContext context) {
+    setState(() => ++_qty);
+    _optimisticUpdate(_qty);
+    context.read<LineItemBloc>().add(
+        LineItemEvent.update(widget.cartId, widget.lineItem.id!, _qty));
+  }
+
+  void _delete(BuildContext context) {
+    setState(() => _hidden = true);
+    
+    final cartBloc = context.read<CartBloc>();
+    final currentState = cartBloc.state;
+    currentState.whenOrNull(loaded: (cart) {
+      if (cart.items == null) return;
+      final updatedItems = cart.items!.where((item) => item.id != widget.lineItem.id).toList();
+      final updatedCart = cart.copyWith(items: updatedItems).recalculate();
+      cartBloc.add(CartEvent.refreshCart(updatedCart));
+    });
+
+    context
+        .read<LineItemBloc>()
+        .add(LineItemEvent.delete(widget.cartId, widget.lineItem.id!));
+  }
+
+  void _revert() {
+    setState(() {
+      _qty = widget.lineItem.quantity ?? 1;
+      _hidden = false;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    final invQuantity = lineItem.variant?.inventoryQuantity;
-    final shouldAdd = (invQuantity ?? 1) > (lineItem.quantity?.toInt() ?? 0) ||
-        (lineItem.variant?.allowBackorder ?? false);
+    if (_hidden) return const SizedBox.shrink();
+
+    final variant = widget.lineItem.variant;
+    final invQuantity = variant?.inventoryQuantity;
+    final manageInventory = variant?.manageInventory ?? true;
+    final allowBackorder = variant?.allowBackorder ?? false;
+
+    final canAdd = !manageInventory || allowBackorder || invQuantity == null || invQuantity > _qty;
     final currencyCode = PreferenceRepository.currencyCode;
 
-    return Container(
-      height: 130,
-      padding: const EdgeInsets.all(10.0),
-      decoration: BoxDecoration(
-        color: context.theme.cardColor,
-        borderRadius: const BorderRadius.all(Radius.circular(10.0)),
-      ),
-      child: Row(
-        children: [
-          if (lineItem.thumbnail != null)
-            Container(
-              height: 100,
-              width: 100,
-              decoration: BoxDecoration(
-                  color: context.theme.scaffoldBackgroundColor,
-                  borderRadius: const BorderRadius.all(Radius.circular(10.0)),
-                  image: DecorationImage(
-                      image: CachedNetworkImageProvider(lineItem.thumbnail!),
-                      fit: BoxFit.fitWidth)),
-            ),
-          const Gap(10),
-          Flexible(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      lineItem.title ?? '',
-                      style: context.bodySmallW500,
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 2,
-                    ),
-                    const Gap(5),
-                    Text(
-                      lineItem.variant?.title ?? '',
-                      style: context.bodySmallW500,
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 2,
-                    ),
-                    const Gap(5),
-                    Text(
-                      lineItem.total.formatAsPrice(currencyCode),
-                      style: context.bodyExtraSmall
-                          ?.copyWith(color: ColorConstant.manatee),
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 2,
-                    ),
-                  ],
-                ),
-                BlocConsumer<LineItemBloc, LineItemState>(
-                  listener: (context, state) {
-                    state.whenOrNull(
-                      success: (_) => context
-                          .read<CartBloc>()
-                          .add(CartEvent.refreshCart(_)),
-                      failure: (message) =>
-                          Fluttertoast.showToast(msg: message),
-                    );
-                  },
-                  builder: (context, state) {
-                    final isLoading = state.maybeWhen(
-                        loading: (lineItemId) => lineItemId == lineItem.id,
-                        orElse: () => false);
-                    return Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: [
-                            Material(
-                              color: Colors.transparent,
-                              child: InkWell(
-                                borderRadius:
-                                    const BorderRadius.all(Radius.circular(50)),
-                                onTap: () {
-                                  context.read<LineItemBloc>().add(
-                                      LineItemEvent.update(cartId, lineItem.id!,
-                                          lineItem.quantity! - 1));
-                                },
-                                child: Ink(
-                                  width: 30,
-                                  height: 30,
-                                  decoration: ShapeDecoration(
-                                    color:
-                                        context.theme.scaffoldBackgroundColor,
-                                    shape: const CircleBorder(),
-                                  ),
-                                  child: const Icon(Icons.arrow_drop_down),
-                                ),
-                              ),
-                            ),
-                            const Gap(15),
-                              ConstrainedBox(
-                                constraints: const BoxConstraints(
-                                  minWidth: 30,
-                                  // minHeight: 30,
-                                ),
-                                child: Stack(
-                                  alignment: Alignment.center,
-                                  children: [
-                                    if (isLoading)
-                                      LoadingAnimationWidget.threeArchedCircle(
-                                          color: ColorConstant.primary, size: 24),
-                                    Opacity(
-                                        opacity: isLoading ? 0.1 : 1,
-                                        child: Text(lineItem.quantity?.toString() ?? '')),
-                                  ],
-                                ),
-                              ),
-                            const Gap(15),
-                            Material(
-                              color: Colors.transparent,
-                              child: InkWell(
-                                borderRadius:
-                                    const BorderRadius.all(Radius.circular(50)),
-                                onTap: shouldAdd
-                                    ? () {
-                                        context.read<LineItemBloc>().add(
-                                            LineItemEvent.update(
-                                                cartId,
-                                                lineItem.id!,
-                                                lineItem.quantity! + 1));
-                                      }
-                                    : null,
-                                child: Ink(
-                                  width: 30,
-                                  height: 30,
-                                  decoration: ShapeDecoration(
-                                    color:
-                                        context.theme.scaffoldBackgroundColor,
-                                    shape: const CircleBorder(),
-                                  ),
-                                  child: shouldAdd
-                                      ? const Icon(Icons.arrow_drop_up)
-                                      : Icon(Icons.arrow_drop_up,
-                                          color: ColorConstant.manatee),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        // const Icon(minimumzIcons.delete, size: 18)
-                        Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            borderRadius:
-                                const BorderRadius.all(Radius.circular(50)),
-                            onTap: () {
-                              context.read<LineItemBloc>().add(
-                                  LineItemEvent.delete(cartId, lineItem.id!));
-                            },
-                            child: Ink(
-                              width: 30,
-                              height: 30,
-                              decoration: ShapeDecoration(
-                                color: context.theme.scaffoldBackgroundColor,
-                                shape: const CircleBorder(),
-                              ),
-                              child: const Icon(minimumzIcons.delete, size: 14.0),
-                            ),
+    return BlocListener<LineItemBloc, LineItemState>(
+      listener: (context, state) {
+        state.whenOrNull(
+          success: (cart) =>
+              context.read<CartBloc>().add(CartEvent.refreshCart(cart)),
+          failure: (message, lineItemId) {
+            if (lineItemId == widget.lineItem.id) {
+              _revert();
+              if (message.isNotEmpty) Fluttertoast.showToast(msg: message);
+            }
+          },
+        );
+      },
+      child: Container(
+        height: 130,
+        padding: const EdgeInsets.all(10.0),
+        decoration: BoxDecoration(
+          color: context.theme.cardColor,
+          borderRadius: const BorderRadius.all(Radius.circular(10.0)),
+        ),
+        child: Row(
+          children: [
+            if (widget.lineItem.thumbnail != null)
+              Container(
+                height: 100,
+                width: 100,
+                decoration: BoxDecoration(
+                    color: context.theme.scaffoldBackgroundColor,
+                    borderRadius: const BorderRadius.all(Radius.circular(10.0)),
+                    image: DecorationImage(
+                        image: CachedNetworkImageProvider(
+                            widget.lineItem.thumbnail!,
+                            cacheManager: DohCacheManager.instance),
+                        fit: BoxFit.fitWidth)),
+              ),
+            const Gap(10),
+            Flexible(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.lineItem.title ?? '',
+                        style: context.bodySmallW500,
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 2,
+                      ),
+                      const Gap(5),
+                      Text(
+                        widget.lineItem.variant?.title ?? '',
+                        style: context.bodySmallW500,
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 2,
+                      ),
+                      const Gap(5),
+                      _PriceRow(
+                        lineItem: widget.lineItem,
+                        qty: _qty,
+                        currencyCode: currencyCode,
+                      ),
+                    ],
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          _CircleButton(
+                            onTap: () => _decrement(context),
+                            child: const Icon(Icons.arrow_drop_down),
                           ),
-                        ),
-                      ],
-                    );
-                  },
-                )
-              ],
+                          const Gap(15),
+                          Text(_qty.toString(), style: context.bodySmallW500),
+                          const Gap(15),
+                          _CircleButton(
+                            onTap: canAdd ? () => _increment(context) : null,
+                            child: Icon(Icons.arrow_drop_up,
+                                color: canAdd ? null : ColorConstant.manatee),
+                          ),
+                        ],
+                      ),
+                      _CircleButton(
+                        onTap: () => _delete(context),
+                        child: const Icon(minimumzIcons.delete, size: 14.0),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          )
-        ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PriceRow extends StatelessWidget {
+  const _PriceRow({
+    required this.lineItem,
+    required this.qty,
+    required this.currencyCode,
+  });
+  final LineItem lineItem;
+  final int qty;
+  final String? currencyCode;
+
+  @override
+  Widget build(BuildContext context) {
+    final unitPrice = lineItem.unitPrice ?? 0;
+    final originalTotal = lineItem.originalTotal;
+    final quantity = lineItem.quantity ?? 1;
+
+    final hasDiscount = originalTotal != null &&
+        originalTotal > (lineItem.total ?? 0) &&
+        quantity > 0;
+
+    final currentPrice = (unitPrice * qty).formatAsPrice(currencyCode);
+
+    if (!hasDiscount) {
+      return Text(
+        currentPrice,
+        style: context.bodyExtraSmall?.copyWith(color: ColorConstant.manatee),
+        overflow: TextOverflow.ellipsis,
+      );
+    }
+
+    final originalUnitPrice = (originalTotal / quantity).round();
+    final originalPrice = (originalUnitPrice * qty).formatAsPrice(currencyCode);
+
+    return Row(
+      children: [
+        Text(
+          originalPrice,
+          style: context.bodyExtraSmall?.copyWith(
+            color: ColorConstant.manatee,
+            decoration: TextDecoration.lineThrough,
+          ),
+        ),
+        const Gap(6),
+        Text(
+          currentPrice,
+          style: context.bodyExtraSmall?.copyWith(color: Colors.green),
+        ),
+      ],
+    );
+  }
+}
+
+class _CircleButton extends StatelessWidget {
+  const _CircleButton({required this.child, this.onTap});
+  final Widget child;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: const BorderRadius.all(Radius.circular(50)),
+        onTap: onTap,
+        child: Ink(
+          width: 30,
+          height: 30,
+          decoration: ShapeDecoration(
+            color: context.theme.scaffoldBackgroundColor,
+            shape: const CircleBorder(),
+          ),
+          child: child,
+        ),
       ),
     );
   }

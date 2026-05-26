@@ -125,6 +125,30 @@ class PreferenceRepository {
     }
   }
 
+  // ── Cart cache ──────────────────────────────────────────────────────────────
+  static const String _cachedCartKey = 'cached_cart';
+
+  Cart? get cachedCart {
+    final raw = _prefs.getString(_cachedCartKey);
+    if (raw == null) return null;
+    try {
+      return Cart.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+    } catch (e) {
+      log(e.toString());
+      return null;
+    }
+  }
+
+  Future<void> setCachedCart(Cart cart) async {
+    try {
+      await _prefs.setString(_cachedCartKey, jsonEncode(cart.toJson()));
+    } catch (e) {
+      log(e.toString());
+    }
+  }
+
+  Future<void> clearCachedCart() async => _prefs.remove(_cachedCartKey);
+
   bool get notificationsEnabled => _prefs.getBool(_notificationsKey) ?? true;
 
   Future<void> setNotificationsEnabled(bool value) async =>

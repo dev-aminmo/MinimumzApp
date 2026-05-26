@@ -1,5 +1,6 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:minimumz/common/doh_cache_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:gap/gap.dart';
@@ -159,6 +160,7 @@ class _ProductImage extends StatelessWidget {
       );
     }
     return CachedNetworkImage(
+          cacheManager: DohCacheManager.instance,
       imageUrl: product.thumbnail!,
       fit: BoxFit.cover,
       placeholder: (_, __) => Container(
