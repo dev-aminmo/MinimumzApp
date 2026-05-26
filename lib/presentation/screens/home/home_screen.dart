@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:auto_route/auto_route.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:minimumz/common/doh_cache_manager.dart';
@@ -220,7 +222,44 @@ void _showAllBrands(BuildContext context, List<BrandItem> brands) {
   );
 }
 
-class _CategoriesSection extends StatelessWidget {
+class _CategoriesSection extends StatefulWidget {
+  @override
+  State<_CategoriesSection> createState() => _CategoriesSectionState();
+}
+
+class _CategoriesSectionState extends State<_CategoriesSection> {
+  final ScrollController _scrollController = ScrollController();
+  Timer? _timer;
+  bool _autoPlayStarted = false;
+
+  // Each CategoryTile is width 72 + separator gap 12 = 84 logical pixels.
+  static const double _itemStride = 84.0;
+  static const Duration _interval = Duration(seconds: 3);
+  static const Duration _animDuration = Duration(milliseconds: 500);
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _startAutoPlay() {
+    _timer?.cancel();
+    _timer = Timer.periodic(_interval, (_) {
+      if (!_scrollController.hasClients) return;
+      final max = _scrollController.position.maxScrollExtent;
+      final next = _scrollController.offset + _itemStride;
+      if (next >= max) {
+        _scrollController.animateTo(0,
+            duration: _animDuration, curve: Curves.easeInOut);
+      } else {
+        _scrollController.animateTo(next,
+            duration: _animDuration, curve: Curves.easeInOut);
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<CollectionsBloc, CollectionsState>(
@@ -250,6 +289,12 @@ class _CategoriesSection extends StatelessWidget {
           ),
           loaded: (data) {
             if (data.collections.isEmpty) return const SliverToBoxAdapter(child: SizedBox.shrink());
+
+            if (!_autoPlayStarted) {
+              _autoPlayStarted = true;
+              WidgetsBinding.instance.addPostFrameCallback((_) => _startAutoPlay());
+            }
+
             return SliverToBoxAdapter(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -262,6 +307,7 @@ class _CategoriesSection extends StatelessWidget {
                   SizedBox(
                     height: 90,
                     child: ListView.separated(
+                      controller: _scrollController,
                       padding: const EdgeInsets.symmetric(horizontal: 20),
                       scrollDirection: Axis.horizontal,
                       separatorBuilder: (_, __) => const Gap(12),
@@ -378,6 +424,12 @@ class _BrandsSection extends StatefulWidget {
 class _BrandsSectionState extends State<_BrandsSection> {
   List<BrandItem>? _brands;
   bool _loading = true;
+  final ScrollController _scrollController = ScrollController();
+  Timer? _timer;
+
+  static const double _itemStride = 100.0;
+  static const Duration _interval = Duration(seconds: 3);
+  static const Duration _animDuration = Duration(milliseconds: 500);
 
   @override
   void initState() {
@@ -385,13 +437,41 @@ class _BrandsSectionState extends State<_BrandsSection> {
     _load();
   }
 
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
   Future<void> _load() async {
     try {
       final brands = await getIt<DataStore>().brands.list(limit: 20);
-      if (mounted) setState(() { _brands = brands; _loading = false; });
+      if (mounted) {
+        setState(() { _brands = brands; _loading = false; });
+        if (brands.isNotEmpty) {
+          WidgetsBinding.instance.addPostFrameCallback((_) => _startAutoPlay());
+        }
+      }
     } catch (_) {
       if (mounted) setState(() { _brands = []; _loading = false; });
     }
+  }
+
+  void _startAutoPlay() {
+    _timer?.cancel();
+    _timer = Timer.periodic(_interval, (_) {
+      if (!_scrollController.hasClients) return;
+      final max = _scrollController.position.maxScrollExtent;
+      final next = _scrollController.offset + _itemStride;
+      if (next >= max) {
+        _scrollController.animateTo(0,
+            duration: _animDuration, curve: Curves.easeInOut);
+      } else {
+        _scrollController.animateTo(next,
+            duration: _animDuration, curve: Curves.easeInOut);
+      }
+    });
   }
 
   @override
@@ -423,6 +503,7 @@ class _BrandsSectionState extends State<_BrandsSection> {
                     ),
                   )
                 : ListView.separated(
+                    controller: _scrollController,
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     scrollDirection: Axis.horizontal,
                     separatorBuilder: (_, __) => const Gap(8),
