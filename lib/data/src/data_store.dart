@@ -23,6 +23,7 @@ class DataStore {
     required this.paymentMethods,
     required this.reviews,
     required this.brands,
+    required this.slider,
   });
 
   factory DataStore.initialize({
@@ -74,6 +75,7 @@ class DataStore {
       paymentMethods: PaymentMethodsResource(dio),
       reviews: ReviewsResource(dio),
       brands: BrandsResource(dio),
+      slider: SliderResource(dio),
     );
   }
 
@@ -95,4 +97,5 @@ class DataStore {
   final PaymentMethodsResource paymentMethods;
   final ReviewsResource reviews;
   final BrandsResource brands;
+  final SliderResource slider;
 }

@@ -34,6 +34,7 @@
   "allCategories": "All Categories",
   "brands": "Brands",
   "allBrands": "All Brands",
+  "bestSellers": "Best Sellers",
   "newArrival": "New Arrival",
   "viewAll": "View All",
 
@@ -111,6 +112,7 @@
 
   "products": "Products",
   "addToCart": "Add to Cart",
+  "addedToCart": "Added to cart",
   "outOfStock": "Out of Stock",
   "selectOptions": "Select Options",
   "description": "Description",

@@ -34,6 +34,7 @@
   "allCategories": "جميع الفئات",
   "brands": "العلامات التجارية",
   "allBrands": "جميع العلامات",
+  "bestSellers": "الأكثر مبيعاً",
   "newArrival": "وصل حديثاً",
   "viewAll": "عرض الكل",
 
@@ -111,6 +112,7 @@
 
   "products": "المنتجات",
   "addToCart": "إضافة إلى السلة",
+  "addedToCart": "تمت الإضافة إلى السلة",
   "outOfStock": "غير متوفر",
   "selectOptions": "اختر الخيارات",
   "description": "الوصف",

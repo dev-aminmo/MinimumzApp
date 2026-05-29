@@ -344,7 +344,7 @@ class LineItem {
     json['order_edit'] = orderEdit?.toJson();
     json['created_at'] = createdAt.toString();
     json['updated_at'] = updatedAt.toString();
-    json['metadata'] = metadata.toString();
+    json['metadata'] = metadata;
     return json;
   }
 }

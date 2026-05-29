@@ -9,3 +9,4 @@ export 'product_tax_rate.dart';
 export 'product_type.dart';
 export 'product_type_tax_rate.dart';
 export 'product_variant.dart';
+export 'slider_slide.dart';

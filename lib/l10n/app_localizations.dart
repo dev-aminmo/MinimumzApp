@@ -284,6 +284,12 @@ abstract class AppLocalizations {
   /// **'All Brands'**
   String get allBrands;
 
+  /// No description provided for @bestSellers.
+  ///
+  /// In en, this message translates to:
+  /// **'Best Sellers'**
+  String get bestSellers;
+
   /// No description provided for @newArrival.
   ///
   /// In en, this message translates to:
@@ -691,6 +697,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Add to Cart'**
   String get addToCart;
+
+  /// No description provided for @addedToCart.
+  ///
+  /// In en, this message translates to:
+  /// **'Added to cart'**
+  String get addedToCart;
 
   /// No description provided for @outOfStock.
   ///

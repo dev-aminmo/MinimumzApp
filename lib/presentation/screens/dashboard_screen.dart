@@ -11,6 +11,7 @@ import 'package:minimumz/common/colors.dart';
 import 'package:minimumz/common/extensions/extensions.dart';
 import 'package:minimumz/presentation/components/index.dart';
 import 'package:minimumz/presentation/screens/cart/bloc/cart/cart_bloc.dart';
+import 'package:minimumz/presentation/screens/cart/bloc/line_item/line_item_bloc.dart';
 import '../routes/app_router.dart';
 
 var dashboardScaffoldKey = GlobalKey<ScaffoldState>();
@@ -57,7 +58,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
             final tabsRouter = AutoTabsRouter.of(context);
             final activeIndex = tabsRouter.activeIndex;
 
-            return BlocListener<CartBloc, CartState>(
+            return BlocListener<LineItemBloc, LineItemState>(
+              listenWhen: (_, s) => s.maybeWhen(
+                success: (_) => true,
+                failure: (_, __) => true,
+                orElse: () => false,
+              ),
+              listener: (context, state) {
+                state.whenOrNull(
+                  // Real cart from server replaces any optimistic state.
+                  success: (cart) =>
+                      context.read<CartBloc>().add(CartEvent.refreshCart(cart)),
+                  // On failure, reload real cart to revert optimistic badge update.
+                  failure: (_, __) =>
+                      context.read<CartBloc>().add(const CartEvent.loadCart()),
+                );
+              },
+              child: BlocListener<CartBloc, CartState>(
               listenWhen: (previous, current) {
                 final prev =
                     previous.whenOrNull(loaded: (cart) => cart.removedItems);
@@ -188,6 +205,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                 ],
               ),
+            ),
             ),
             );
           },

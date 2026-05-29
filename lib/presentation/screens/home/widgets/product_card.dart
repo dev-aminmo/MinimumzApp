@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:gap/gap.dart';
 import 'package:minimumz/common/extensions/extensions.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
+import 'package:minimumz/cubits/locale/locale_cubit.dart';
 import 'package:minimumz/cubits/wishlist/wishlist_cubit.dart';
 import 'package:minimumz/data/data.dart';
 import 'package:skeletonizer/skeletonizer.dart';
@@ -13,6 +14,8 @@ import 'package:skeletonizer/skeletonizer.dart';
 import '../../../../common/colors.dart';
 import '../../../../domain/repository/preference_repository.dart';
 import '../../../routes/app_router.dart';
+import '../../cart/bloc/cart/cart_bloc.dart';
+import '../../cart/bloc/line_item/line_item_bloc.dart';
 
 class ProductCard extends StatelessWidget {
   const ProductCard({
@@ -26,6 +29,7 @@ class ProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final locale = context.watch<LocaleCubit>().state.languageCode;
     final currencyCode = PreferenceRepository.currencyCode.toUpperCase();
     final allPrices = (product.variants ?? [])
         .expand((v) => v.prices ?? <MoneyAmount>[])
@@ -35,6 +39,13 @@ class ProductCard extends StatelessWidget {
     final price = allPrices.isEmpty
         ? null
         : allPrices.map((p) => p.amount!).reduce((a, b) => a < b ? a : b);
+
+    final compareAt = allPrices.isEmpty
+        ? null
+        : allPrices
+            .where((p) => p.compareAtAmount != null)
+            .map((p) => p.compareAtAmount!)
+            .fold<int?>(null, (best, v) => best == null || v > best ? v : best);
 
     return Container(
       decoration: BoxDecoration(
@@ -76,59 +87,87 @@ class ProductCard extends StatelessWidget {
               ),
               // ── Info ───────────────────────────────────────────────
               Padding(
-                padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
+                padding: const EdgeInsets.fromLTRB(10, 12, 10, 4),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-
-                    Flexible(
-                      child: Text(
-                        product.title ?? '',
-                        style: context.bodyExtraSmallW500?.copyWith(
-                          fontSize: 18,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                    Text(
+                      product.localizedTitle(locale) ?? '',
+                      style: context.bodyExtraSmallW500?.copyWith(
+                        fontSize: 18,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    const Gap(4),
+                    const Gap(10),
+                    // ── Price + Button ────────────────────────────────
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        if (product.avgRating > 0) ...[
-
-                          const Icon(Icons.star_rounded,
-                              color: Colors.amber, size: 12),
-                          const SizedBox(width: 2),
-                          Text(
-                            product.avgRating.toStringAsFixed(1),
-                            style: context.bodyExtraSmall
-                                ?.copyWith(fontWeight: FontWeight.w600),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                price.formatAsPrice(currencyCode),
+                                style: context.bodySmallW500?.copyWith(
+                                  color: ColorConstant.brownDark,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              if (compareAt != null)
+                                Text(
+                                  compareAt.formatAsPrice(currencyCode),
+                                  style: context.bodyExtraSmall?.copyWith(
+                                    color: ColorConstant.manatee,
+                                    decoration: TextDecoration.lineThrough,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                            ],
                           ),
-                          const SizedBox(width: 6),
-                        ],
-                        if(product.avgRating > 0)
-                        Spacer(),
-                        if (product.viewsCount > 0) ...[
-                          Icon(Icons.remove_red_eye_outlined,
-                              size: 11, color: ColorConstant.manatee),
-                          const SizedBox(width: 2),
-                          Text(
-                            product.viewsCount.toString(),
-                            style: context.bodyExtraSmall
-                                ?.copyWith(color: ColorConstant.manatee),
-                          ),
-                          SizedBox(width: 16,),
+                        ),
+                        if (!shimmer) ...[
+                          const SizedBox(width: 8),
+                          _QuickAddButton(product: product),
                         ],
                       ],
                     ),
-                    const Gap(3),
-                    Text(
-                      price.formatAsPrice(currencyCode),
-                      style: context.bodySmallW500?.copyWith(
-                        color: ColorConstant.brownDark,
+                    // ── Views + Rating ────────────────────────────────
+                    if (product.viewsCount > 0 || product.avgRating > 0) ...[
+                      const Gap(6),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          if (product.viewsCount > 0) ...[
+                            Icon(Icons.remove_red_eye_outlined,
+                                size: 11, color: ColorConstant.manatee),
+                            const SizedBox(width: 2),
+                            Text(
+                              product.viewsCount.toString(),
+                              style: context.bodyExtraSmall
+                                  ?.copyWith(color: ColorConstant.manatee),
+                            ),
+                          ],
+                          if (product.viewsCount > 0 && product.avgRating > 0)
+                            const SizedBox(width: 6),
+                          if (product.avgRating > 0) ...[
+                            const Icon(Icons.star_rounded,
+                                color: Colors.amber, size: 11),
+                            const SizedBox(width: 2),
+                            Text(
+                              product.avgRating.toStringAsFixed(1),
+                              style: context.bodyExtraSmall
+                                  ?.copyWith(fontWeight: FontWeight.w600),
+                            ),
+                          ],
+                        ],
                       ),
-                    ),
+                    ],
                   ],
                 ),
               ),
@@ -213,6 +252,135 @@ class _WishlistButton extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+// ── Quick-add button ──────────────────────────────────────────────────────────
+
+class _QuickAddButton extends StatefulWidget {
+  const _QuickAddButton({required this.product});
+  final Product product;
+
+  @override
+  State<_QuickAddButton> createState() => _QuickAddButtonState();
+}
+
+class _QuickAddButtonState extends State<_QuickAddButton> {
+  bool _busy = false;
+
+  ProductVariant? get _autoVariant {
+    final opts = widget.product.options;
+    final variants = widget.product.variants;
+    if (opts == null || opts.isEmpty) return variants?.firstOrNull;
+    if (opts.length == 1 &&
+        (opts.first.values?.length ?? 0) == 1 &&
+        variants?.length == 1) return variants!.first;
+    return null;
+  }
+
+  void _onTap(BuildContext context) {
+    final variant = _autoVariant;
+    final purchasable = variant == null ? true : (variant.purchasable ?? false);
+
+    if (variant == null || !purchasable) {
+      context.router.push(ProductDetailsRoute(product: widget.product));
+      return;
+    }
+
+    final cartId = PreferenceRepository.instance.cartId;
+    if (cartId == null || variant.id == null) return;
+
+    setState(() => _busy = true);
+
+    // Optimistic banner — immediate feedback.
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(
+        content: Text(context.l10n.addedToCart),
+        duration: const Duration(seconds: 2),
+      ));
+
+    // Optimistic cart badge update — dashboard-level BlocListener guarantees
+    // the real server cart always overwrites this, even if this widget scrolls away.
+    final cartBloc = context.read<CartBloc>();
+    cartBloc.state.whenOrNull(loaded: (cart) {
+      final items = cart.items ?? <LineItem>[];
+      final List<LineItem> updated;
+      final existing = items.where((e) => e.variantId == variant.id);
+      if (existing.isNotEmpty) {
+        updated = items.map((item) {
+          if (item.variantId != variant.id) return item;
+          final qty = (item.quantity ?? 0) + 1;
+          final total = (item.unitPrice ?? 0) * qty;
+          return item.copyWith(quantity: qty, total: total, subtotal: total);
+        }).toList();
+      } else {
+        final locale = LocaleCubit.instance.state.languageCode;
+        final code = PreferenceRepository.currencyCode.toUpperCase();
+        final unitPrice = (variant.prices ?? [])
+            .where((p) => p.currencyCode?.toUpperCase() == code && p.amount != null)
+            .map((p) => p.amount!)
+            .fold<num>(0, (a, b) => a < b ? a : b)
+            .toInt();
+        updated = [
+          ...items,
+          LineItem(
+            id: 'temp_${DateTime.now().millisecondsSinceEpoch}',
+            variantId: variant.id,
+            title: widget.product.localizedTitle(locale),
+            unitPrice: unitPrice,
+            quantity: 1,
+            total: unitPrice,
+            subtotal: unitPrice,
+            thumbnail: widget.product.thumbnail,
+          ),
+        ];
+      }
+      cartBloc.add(CartEvent.refreshCart(cart.copyWith(items: updated).recalculate()));
+    });
+
+    context.read<LineItemBloc>().add(LineItemEvent.add(cartId, variant.id!, 1));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final variant = _autoVariant;
+    final purchasable = variant == null ? true : (variant.purchasable ?? false);
+
+    return BlocListener<LineItemBloc, LineItemState>(
+      listenWhen: (_, s) => s.maybeWhen(
+        success: (_) => true,
+        failure: (_, lineItemId) => lineItemId == variant?.id,
+        orElse: () => false,
+      ),
+      listener: (context, state) {
+        // Cart update is handled at dashboard level. Only manage local busy state here.
+        if (!mounted) return;
+        state.whenOrNull(
+          success: (_) => setState(() => _busy = false),
+          failure: (_, __) {
+            setState(() => _busy = false);
+            ScaffoldMessenger.of(context)
+              ..hideCurrentSnackBar()
+              ..showSnackBar(SnackBar(content: Text(context.l10n.errorAddingItem)));
+          },
+        );
+      },
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () { if (!_busy) _onTap(context); },
+        child: Container(
+          width: 28,
+          height: 28,
+          decoration: BoxDecoration(
+            color: ColorConstant.primary.withValues(alpha: purchasable ? 1.0 : 0.45),
+            shape: BoxShape.circle,
+          ),
+          alignment: Alignment.center,
+          child: const Icon(Icons.add_rounded, color: Colors.white, size: 16),
+        ),
+      ),
     );
   }
 }

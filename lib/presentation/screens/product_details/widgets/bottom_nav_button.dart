@@ -10,6 +10,7 @@ import 'package:minimumz/presentation/routes/app_router.dart';
 import 'package:minimumz/presentation/screens/cart/bloc/cart/cart_bloc.dart';
 import 'package:minimumz/presentation/screens/cart/bloc/line_item/line_item_bloc.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
+import 'package:minimumz/cubits/locale/locale_cubit.dart';
 import 'package:minimumz/data/data.dart';
 
 class ProductDetailsBottomNavButton extends StatefulWidget {
@@ -34,6 +35,7 @@ class _ProductDetailsBottomNavButtonState
   bool _optimisticInCart = false;
 
   void _optimisticUpdate(int newQty) {
+    final locale = context.read<LocaleCubit>().state.languageCode;
     final cartBloc = context.read<CartBloc>();
     final currentState = cartBloc.state;
 
@@ -61,7 +63,7 @@ class _ProductDetailsBottomNavButtonState
         final tempItem = LineItem(
           id: 'temp_${DateTime.now().millisecondsSinceEpoch}',
           variantId: widget.selectedVariant?.id,
-          title: widget.product.title,
+          title: widget.product.localizedTitle(locale),
           unitPrice: unitPrice,
           quantity: newQty,
           total: total,

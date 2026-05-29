@@ -113,8 +113,6 @@ class _LineItemCardState extends State<LineItemCard> {
 
   @override
   Widget build(BuildContext context) {
-    if (_hidden) return const SizedBox.shrink();
-
     final variant = widget.lineItem.variant;
     final invQuantity = variant?.inventoryQuantity;
     final manageInventory = variant?.manageInventory ?? true;
@@ -124,6 +122,12 @@ class _LineItemCardState extends State<LineItemCard> {
     final currencyCode = PreferenceRepository.currencyCode;
 
     return BlocListener<LineItemBloc, LineItemState>(
+      // Keep listening even when hidden so failures can revert the delete.
+      listenWhen: (_, s) => s.maybeWhen(
+        success: (_) => true,
+        failure: (_, lineItemId) => lineItemId == widget.lineItem.id,
+        orElse: () => false,
+      ),
       listener: (context, state) {
         state.whenOrNull(
           success: (cart) =>
@@ -136,7 +140,7 @@ class _LineItemCardState extends State<LineItemCard> {
           },
         );
       },
-      child: Container(
+      child: _hidden ? const SizedBox.shrink() : Container(
         height: 130,
         padding: const EdgeInsets.all(10.0),
         decoration: BoxDecoration(

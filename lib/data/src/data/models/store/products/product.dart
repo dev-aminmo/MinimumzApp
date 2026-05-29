@@ -106,6 +106,12 @@ class Product  {
   /// An optional key-value map with additional details
   final Map<String, dynamic>? metadata;
 
+  /// All locale translations: { 'en': { 'name': '...', 'description': '...' }, 'ar': { ... } }
+  final Map<String, dynamic>? translations;
+
+  /// Optional video URL (YouTube, Vimeo, or direct mp4)
+  final String? videoUrl;
+
   /// Average approved review rating (0.0 if none)
   final double avgRating;
 
@@ -152,7 +158,19 @@ class Product  {
     this.avgRating = 0.0,
     this.reviewsCount = 0,
     this.viewsCount = 0,
+    this.translations,
+    this.videoUrl,
   });
+
+  String? localizedTitle(String locale) {
+    final t = translations?[locale];
+    return (t is Map ? t['name'] as String? : null) ?? title;
+  }
+
+  String? localizedDescription(String locale) {
+    final t = translations?[locale];
+    return (t is Map ? t['description'] as String? : null) ?? description;
+  }
 
   factory Product.fromJson(Map<String, dynamic> json) {
     List<SalesChannel>? salesChannelsNew;
@@ -220,6 +238,8 @@ class Product  {
       avgRating: (json['avg_rating'] as num?)?.toDouble() ?? 0.0,
       reviewsCount: (json['reviews_count'] as num?)?.toInt() ?? 0,
       viewsCount: (json['views_count'] as num?)?.toInt() ?? 0,
+      translations: json['translations'] as Map<String, dynamic>?,
+      videoUrl: json['video_url'] as String?,
     );
   }
 
@@ -348,6 +368,13 @@ class Product  {
     if (metadata != null) {
       json['metadata'] = metadata;
     }
+    if (translations != null) {
+      json['translations'] = translations;
+    }
+    json['avg_rating'] = avgRating;
+    json['reviews_count'] = reviewsCount;
+    json['views_count'] = viewsCount;
+    if (videoUrl != null) json['video_url'] = videoUrl;
     return json;
   }
 }

@@ -10,6 +10,7 @@ import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
 import 'package:minimumz/common/extensions/extensions.dart';
 import 'package:minimumz/data/data.dart';
 import 'package:minimumz/di/di.dart';
+import 'package:minimumz/domain/repository/preference_repository.dart';
 import 'package:minimumz/presentation/screens/cart/bloc/cart/cart_bloc.dart';
 import 'package:minimumz/presentation/screens/home/widgets/index.dart';
 import 'package:skeletonizer/skeletonizer.dart';
@@ -19,6 +20,7 @@ import '../../../common/colors.dart';
 import '../../components/index.dart';
 import '../../routes/app_router.dart';
 import '../dashboard_screen.dart';
+import '../../../cubits/locale/locale_cubit.dart';
 import 'bloc/collections/collections_bloc.dart';
 import 'bloc/products/products_bloc.dart';
 
@@ -93,13 +95,198 @@ class HomeScreen extends StatelessWidget {
             ),
           ),
           const SliverGap(10),
+          const _SliderSection(),
+          const SliverGap(10),
           _CategoriesSection(),
+          const SliverGap(10),
+          const _BestSellersSection(),
           const SliverGap(10),
           const _BrandsSection(),
           const SliverGap(10),
           const NewArrival(),
         ],
       )),
+    );
+  }
+}
+
+// ── Slider / hero carousel ────────────────────────────────────────────────────
+
+class _SliderSection extends StatefulWidget {
+  const _SliderSection();
+
+  @override
+  State<_SliderSection> createState() => _SliderSectionState();
+}
+
+class _SliderSectionState extends State<_SliderSection> {
+  List<SliderSlide> _slides = [];
+  int _currentPage = 0;
+  final PageController _pageController = PageController();
+  Timer? _timer;
+
+  static const Duration _interval = Duration(seconds: 3);
+  static const Duration _animDuration = Duration(milliseconds: 500);
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCache();
+    _fetchFromNetwork();
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  void _loadCache() {
+    final cached = PreferenceRepository.instance.cachedSlider;
+    if (cached != null && cached.isNotEmpty) {
+      setState(() => _slides = cached);
+      WidgetsBinding.instance.addPostFrameCallback((_) => _startAutoPlay());
+    }
+  }
+
+  Future<void> _fetchFromNetwork() async {
+    try {
+      final slides = await getIt<DataStore>().slider.fetch();
+      if (!mounted) return;
+      PreferenceRepository.instance.setCachedSlider(slides);
+      setState(() => _slides = slides);
+      if (_timer == null || !_timer!.isActive) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => _startAutoPlay());
+      }
+    } catch (_) {}
+  }
+
+  void _startAutoPlay() {
+    if (_slides.length <= 1) return;
+    _timer?.cancel();
+    _timer = Timer.periodic(_interval, (_) {
+      if (!_pageController.hasClients) return;
+      final next = (_currentPage + 1) % _slides.length;
+      _pageController.animateToPage(next,
+          duration: _animDuration, curve: Curves.easeInOut);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_slides.isEmpty) return const SliverToBoxAdapter(child: SizedBox.shrink());
+
+    return SliverToBoxAdapter(
+      child: AspectRatio(
+        aspectRatio: 16 / 7,
+        child: Stack(
+          children: [
+            PageView.builder(
+              controller: _pageController,
+              itemCount: _slides.length,
+              onPageChanged: (i) => setState(() => _currentPage = i),
+              itemBuilder: (_, i) => _SliderTile(slide: _slides[i]),
+            ),
+            if (_slides.length > 1)
+              Positioned(
+                bottom: 10,
+                left: 0,
+                right: 0,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(_slides.length, (i) {
+                    final active = i == _currentPage;
+                    return AnimatedContainer(
+                      duration: const Duration(milliseconds: 250),
+                      margin: const EdgeInsets.symmetric(horizontal: 3),
+                      width: active ? 18 : 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: active
+                            ? Colors.white
+                            : Colors.white.withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                    );
+                  }),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SliderTile extends StatelessWidget {
+  const _SliderTile({required this.slide});
+  final SliderSlide slide;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            if (slide.image != null)
+              CachedNetworkImage(
+                cacheManager: DohCacheManager.instance,
+                imageUrl: slide.image!,
+                fit: BoxFit.cover,
+                errorWidget: (_, __, ___) => Container(
+                  color: ColorConstant.primary.withValues(alpha: 0.1),
+                ),
+              )
+            else
+              Container(color: ColorConstant.primary.withValues(alpha: 0.1)),
+            if (slide.caption1 != null || slide.caption2 != null)
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(14, 20, 14, 12),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        Colors.black.withValues(alpha: 0.55),
+                      ],
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (slide.caption1 != null)
+                        Text(
+                          slide.caption1!,
+                          style: context.bodySmallW500
+                              ?.copyWith(color: Colors.white),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      if (slide.caption2 != null)
+                        Text(
+                          slide.caption2!,
+                          style: context.bodyExtraSmall
+                              ?.copyWith(color: Colors.white70),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -333,6 +520,7 @@ class CategoryTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final locale = context.watch<LocaleCubit>().state.languageCode;
     return GestureDetector(
       onTap: onTap ?? () => context.router.push(CollectionRoute(collection: collection)),
       child: SizedBox(
@@ -374,7 +562,7 @@ class CategoryTile extends StatelessWidget {
             ),
             const Gap(6),
             Text(
-              collection.title ?? '',
+              collection.localizedTitle(locale),
               style: context.bodyExtraSmall?.copyWith(fontWeight: FontWeight.w500),
               maxLines: 2,
               textAlign: TextAlign.center,
@@ -406,6 +594,101 @@ class _CategorySkeletonTile extends StatelessWidget {
           ),
           const Gap(6),
           Container(height: 10, width: 50, color: ColorConstant.manatee.withValues(alpha: 0.1)),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Best sellers ──────────────────────────────────────────────────────────────
+
+class _BestSellersSection extends StatefulWidget {
+  const _BestSellersSection();
+
+  @override
+  State<_BestSellersSection> createState() => _BestSellersSectionState();
+}
+
+class _BestSellersSectionState extends State<_BestSellersSection> {
+  List<Product>? _products;
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCache();
+    _fetchFromNetwork();
+  }
+
+  void _loadCache() {
+    final cached = PreferenceRepository.instance.cachedBestSellers;
+    if (cached != null) setState(() { _products = cached; _loading = false; });
+  }
+
+  Future<void> _fetchFromNetwork() async {
+    final countryId = PreferenceRepository.instance.country?.id;
+    if (countryId == null) {
+      // Country not resolved yet — can't filter correctly, skip fetch.
+      if (mounted) setState(() => _loading = false);
+      return;
+    }
+    try {
+      final res = await getIt<DataStore>().products.list(queryParams: {
+        'sort': 'best_sellers',
+        'limit': 12,
+        'country_id': countryId,
+      });
+      final products = res?.products ?? [];
+      if (!mounted) return;
+      PreferenceRepository.instance.setCachedBestSellers(products);
+      setState(() { _products = products; _loading = false; });
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_loading && (_products?.isEmpty ?? true)) {
+      return const SliverToBoxAdapter(child: SizedBox.shrink());
+    }
+
+    return SliverToBoxAdapter(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Headline(headline: context.l10n.bestSellers, onViewAllTap: null),
+          const Gap(10),
+          SizedBox(
+            height: 275,
+            child: _loading
+                ? Skeletonizer(
+                    enabled: true,
+                    child: ListView.separated(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      scrollDirection: Axis.horizontal,
+                      separatorBuilder: (_, __) => const Gap(12),
+                      itemCount: 4,
+                      itemBuilder: (_, __) => const SizedBox(
+                        width: 160,
+                        child: ProductCard(
+                          product: Product(title: 'Best Seller'),
+                          shimmer: true,
+                        ),
+                      ),
+                    ),
+                  )
+                : ListView.separated(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    scrollDirection: Axis.horizontal,
+                    separatorBuilder: (_, __) => const Gap(12),
+                    itemCount: _products!.length,
+                    itemBuilder: (_, i) => SizedBox(
+                      width: 160,
+                      child: ProductCard(product: _products![i]),
+                    ),
+                  ),
+          ),
         ],
       ),
     );
@@ -631,7 +914,7 @@ class _NewArrivalState extends State<NewArrival> {
                 pagingController: _pagingController,
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
-                  mainAxisExtent: 280,
+                  mainAxisExtent: 295,
                   crossAxisSpacing: 12.0,
                   mainAxisSpacing: 12.0,
                 ),

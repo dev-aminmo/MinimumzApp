@@ -42,6 +42,9 @@ class ProductCollection {
   /// Optional banner URL (shown as full-width header in the collection screen).
   final String? banner;
 
+  /// All locale translations: { 'en': { 'name': '...' }, 'ar': { 'name': '...' } }
+  final Map<String, dynamic>? translations;
+
   ProductCollection({
     this.id,
     required this.title,
@@ -54,7 +57,13 @@ class ProductCollection {
     this.filterParam = 'category_id',
     this.logo,
     this.banner,
+    this.translations,
   });
+
+  String localizedTitle(String locale) {
+    final t = translations?[locale];
+    return (t is Map ? t['name'] as String? : null) ?? title ?? '';
+  }
 
   factory ProductCollection.fromJson(Map<String, dynamic> json) {
     List<Product>? products;
@@ -73,6 +82,8 @@ class ProductCollection {
       metadata: json['metadata'],
       logo: json['logo'],
       banner: json['banner'],
+      filterParam: json['filter_param'] as String? ?? 'category_id',
+      translations: json['translations'] as Map<String, dynamic>?,
     );
   }
 
@@ -82,10 +93,14 @@ class ProductCollection {
     json['title'] = title;
     json['handle'] = handle;
     json['products'] = products?.map((e) => e.toJson()).toList();
-    json['created_at'] = createdAt.toString();
-    json['updated_at'] = updatedAt.toString();
-    json['deleted_at'] = deletedAt.toString();
+    json['created_at'] = createdAt?.toIso8601String();
+    json['updated_at'] = updatedAt?.toIso8601String();
+    json['deleted_at'] = deletedAt?.toIso8601String();
     json['metadata'] = metadata;
+    json['logo'] = logo;
+    json['banner'] = banner;
+    json['filter_param'] = filterParam;
+    if (translations != null) json['translations'] = translations;
     return json;
   }
 

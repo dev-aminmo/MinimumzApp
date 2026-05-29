@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:gap/gap.dart';
 import 'package:intl/intl.dart';
+import 'package:minimumz/cubits/locale/locale_cubit.dart';
 import 'package:minimumz/cubits/wishlist/wishlist_cubit.dart';
 import 'package:minimumz/di/di.dart';
 import 'package:minimumz/domain/repository/preference_repository.dart';
@@ -17,6 +18,9 @@ import 'package:minimumz/presentation/components/index.dart';
 import 'package:minimumz/presentation/theme/theme.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:minimumz/data/data.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:video_player/video_player.dart';
+import 'package:chewie/chewie.dart';
 import 'widgets/bottom_nav_button.dart';
 import 'dart:math';
 
@@ -37,24 +41,85 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
   ReviewItem? _firstReview;
   int _reviewCount = 0;
   double _avgRating = 0.0;
-  int _viewsCount = 0;
+  late int _viewsCount;
   List<Product> _relatedProducts = [];
 
-  List<String> get _imageUrls {
-    final productUrls = (widget.product.images ?? [])
-        .where((img) => img.url != null)
-        .map((img) => img.url!)
-        .toList();
-    final variantThumb = selectedVariant?.thumbnail;
-    if (variantThumb != null && !productUrls.contains(variantThumb)) {
-      return [variantThumb, ...productUrls];
+  // Stable list of all unique image URLs (product gallery + variant thumbnails)
+  late List<String> _allImages;
+  late PageController _pageController;
+  int _mediaPage = 0;
+
+  String? get _videoUrl => widget.product.videoUrl;
+  bool get _hasVideo => _videoUrl != null && _videoUrl!.isNotEmpty;
+  bool get _videoSelected => _hasVideo && _mediaPage == 0;
+
+  int get _totalMediaCount => (_hasVideo ? 1 : 0) + _allImages.length;
+
+  List<String> _buildAllImages() {
+    final seen = <String>{};
+    final result = <String>[];
+    for (final img in widget.product.images ?? []) {
+      if (img.url != null && seen.add(img.url!)) result.add(img.url!);
     }
-    return productUrls;
+    for (final v in widget.product.variants ?? []) {
+      if (v.thumbnail != null && seen.add(v.thumbnail!)) result.add(v.thumbnail!);
+    }
+    if (result.isEmpty && widget.product.thumbnail != null) {
+      result.add(widget.product.thumbnail!);
+    }
+    return result;
+  }
+
+  void _onPageChanged(int page) {
+    setState(() {
+      _mediaPage = page;
+      if (!(_hasVideo && page == 0)) {
+        final imgIdx = _hasVideo ? page - 1 : page;
+        if (imgIdx >= 0 && imgIdx < _allImages.length) {
+          selectedImage = _allImages[imgIdx];
+          _trySelectVariantForImage(selectedImage!);
+        }
+      }
+    });
+  }
+
+  void _trySelectVariantForImage(String url) {
+    for (final v in widget.product.variants ?? []) {
+      if (v.thumbnail == url && v.id != selectedVariant?.id) {
+        selectedVariant = v;
+        _syncOptionsForVariant(v);
+        break;
+      }
+    }
+  }
+
+  void _syncOptionsForVariant(ProductVariant v) {
+    if (v.title == null || (widget.product.options?.isEmpty ?? true)) return;
+    final parts = v.title!.split('/').map((e) => e.trim()).toList();
+    final options = widget.product.options ?? [];
+    if (parts.length == options.length) {
+      for (int i = 0; i < options.length; i++) {
+        final opt = options[i];
+        if (opt.id != null && i < parts.length) {
+          optionsSelected[opt.id!] = parts[i];
+        }
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
   }
 
   @override
   void initState() {
-    selectedImage = widget.product.thumbnail;
+    _viewsCount = widget.product.viewsCount;
+    _allImages = _buildAllImages();
+    selectedImage = _allImages.isNotEmpty ? _allImages[0] : widget.product.thumbnail;
+    _mediaPage = 0;
+    _pageController = PageController(initialPage: 0);
     if (widget.product.options?.length == 1 &&
         widget.product.options?.first.values?.length == 1 &&
         widget.product.variants?.length == 1) {
@@ -110,8 +175,6 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
   Future<void> _recordView() async {
     final id = widget.product.id;
     if (id == null) return;
-    // Initialize from the product model first (instantly visible)
-    if (mounted) setState(() => _viewsCount = widget.product.viewsCount);
     try {
       final updated = await getIt<DataStore>().reviews.recordView(
             productId: id,
@@ -122,28 +185,34 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
   }
 
   void selectVariant() {
-    if (optionsSelected.length != (widget.product.options?.length ?? 0)) {
-      return;
-    }
+    if (optionsSelected.length != (widget.product.options?.length ?? 0)) return;
     final values = optionsSelected.values.toList();
-    widget.product.variants?.forEach((variant) {
-      List<String>? titleList = variant.title
-          ?.split('/')
-          .toList()
-          .map((e) => e.trim())
-          .toList();
+    for (final variant in widget.product.variants ?? []) {
+      final titleList = variant.title?.split('/').map((e) => e.trim()).toList();
       if (titleList != null && titleList.toSet().containsAll(values.toSet())) {
         setState(() {
           selectedVariant = variant;
           selectedImage = variant.thumbnail ?? widget.product.thumbnail;
         });
+        // Scroll PageView to this variant's image
+        if (variant.thumbnail != null) {
+          final idx = _allImages.indexOf(variant.thumbnail!);
+          if (idx >= 0) {
+            final page = _hasVideo ? idx + 1 : idx;
+            _pageController.animateToPage(page,
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOut);
+          }
+        }
+        break;
       }
-    });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final product = widget.product;
+    final locale = context.watch<LocaleCubit>().state.languageCode;
     final bottomPadding =
         context.bottomViewPadding == 0.0 ? 30.0 : context.bottomViewPadding;
     final currencyCode = PreferenceRepository.currencyCode;
@@ -239,37 +308,53 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
             surfaceTintColor: Colors.transparent,
             expandedHeight: 400,
             flexibleSpace: FlexibleSpaceBar(
-              background: selectedImage != null
-                  ? SafeArea(
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          CachedNetworkImage(
-          cacheManager: DohCacheManager.instance,
-                              imageUrl: selectedImage!, fit: BoxFit.fitHeight),
-                          // Gradient fade at bottom for smooth transition
-                          Positioned(
-                            bottom: 0,
-                            left: 0,
-                            right: 0,
-                            child: Container(
-                              height: 80,
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  begin: Alignment.bottomCenter,
-                                  end: Alignment.topCenter,
-                                  colors: [
-                                    ColorConstant.cream.withValues(alpha: 0.7),
-                                    Colors.transparent,
-                                  ],
-                                ),
-                              ),
-                            ),
+              background: SafeArea(
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    PageView.builder(
+                      controller: _pageController,
+                      onPageChanged: _onPageChanged,
+                      physics: const ClampingScrollPhysics(),
+                      itemCount: _totalMediaCount,
+                      itemBuilder: (context, index) {
+                        if (_hasVideo && index == 0) {
+                          return _ProductVideoPlayer(
+                            videoUrl: _videoUrl!,
+                            thumbnail: widget.product.thumbnail,
+                          );
+                        }
+                        final imgIdx = _hasVideo ? index - 1 : index;
+                        final url = _allImages[imgIdx];
+                        return CachedNetworkImage(
+                          cacheManager: DohCacheManager.instance,
+                          imageUrl: url,
+                          fit: BoxFit.fitHeight,
+                        );
+                      },
+                    ),
+                    // Gradient fade at bottom
+                    Positioned(
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      child: Container(
+                        height: 80,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.bottomCenter,
+                            end: Alignment.topCenter,
+                            colors: [
+                              ColorConstant.cream.withValues(alpha: 0.7),
+                              Colors.transparent,
+                            ],
                           ),
-                        ],
+                        ),
                       ),
-                    )
-                  : null,
+                    ),
+                  ],
+                ),
+              ),
             ),
             systemOverlayStyle:
                 context.theme.appBarTheme.systemOverlayStyle!.copyWith(
@@ -277,15 +362,15 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
               statusBarBrightness: Brightness.light,
             ),
           ),
-          // ── Image dot indicators ──────────────────────────────────
-          if (_imageUrls.length > 1)
+          // ── Media dot indicators ──────────────────────────────────
+          if (_totalMediaCount > 1)
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.only(top: 12, bottom: 4),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(_imageUrls.length, (i) {
-                    final active = selectedImage == _imageUrls[i];
+                  children: List.generate(_totalMediaCount, (i) {
+                    final active = i == _mediaPage;
                     return AnimatedContainer(
                       duration: const Duration(milliseconds: 250),
                       margin: const EdgeInsets.symmetric(horizontal: 3),
@@ -314,10 +399,10 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         if (product.collection?.title != null)
-                          Text(product.collection!.title!,
+                          Text(product.collection!.localizedTitle(locale),
                               style: context.bodySmall),
                         if (product.collection?.title != null) const Gap(5.0),
-                        Text(product.title ?? '', style: context.headlineSmall),
+                        Text(product.localizedTitle(locale) ?? '', style: context.headlineSmall),
                       ],
                     ),
                   ),
@@ -370,7 +455,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
             ),
           ),
           const SliverGap(6),
-          if (product.description != null)
+          if (product.localizedDescription(locale) != null)
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20.0),
@@ -378,7 +463,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Html(
-                      data: product.description!,
+                      data: product.localizedDescription(locale)!,
                       style: {
                         '*': Style(
                           fontSize: FontSize(
@@ -428,7 +513,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                 ),
               ),
             ),
-          if (_imageUrls.isNotEmpty)
+          if (_totalMediaCount > 0)
             SliverToBoxAdapter(
               child: SizedBox(
                 height: 90,
@@ -438,10 +523,55 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                     physics: const BouncingScrollPhysics(),
                     scrollDirection: Axis.horizontal,
                     itemBuilder: (context, index) {
-                      final url = _imageUrls[index];
-                      final isActive = selectedImage == url;
+                      // Video thumbnail is always first
+                      if (_hasVideo && index == 0) {
+                        final isActive = _videoSelected;
+                        return GestureDetector(
+                          onTap: () => _pageController.animateToPage(0,
+                              duration: const Duration(milliseconds: 280),
+                              curve: Curves.easeInOut),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            height: 80,
+                            width: 80,
+                            decoration: BoxDecoration(
+                              color: Colors.black87,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: isActive ? ColorConstant.primary : Colors.transparent,
+                                width: 2,
+                              ),
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(10),
+                              child: Stack(
+                                fit: StackFit.expand,
+                                children: [
+                                  if (widget.product.thumbnail != null)
+                                    CachedNetworkImage(
+                                      cacheManager: DohCacheManager.instance,
+                                      imageUrl: widget.product.thumbnail!,
+                                      fit: BoxFit.cover,
+                                      color: Colors.black45,
+                                      colorBlendMode: BlendMode.darken,
+                                    ),
+                                  const Center(
+                                    child: Icon(Icons.play_circle_fill_rounded,
+                                        color: Colors.white, size: 28),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      }
+                      final imgIndex = _hasVideo ? index - 1 : index;
+                      final url = _allImages[imgIndex];
+                      final isActive = !_videoSelected && selectedImage == url;
                       return GestureDetector(
-                        onTap: () => setState(() => selectedImage = url),
+                        onTap: () => _pageController.animateToPage(index,
+                            duration: const Duration(milliseconds: 280),
+                            curve: Curves.easeInOut),
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 200),
                           height: 80,
@@ -458,7 +588,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(10),
                             child: CachedNetworkImage(
-          cacheManager: DohCacheManager.instance,
+                              cacheManager: DohCacheManager.instance,
                               imageUrl: url,
                               fit: BoxFit.cover,
                               placeholder: (_, __) => Container(
@@ -479,7 +609,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                       );
                     },
                     separatorBuilder: (_, __) => const SizedBox(width: 10.0),
-                    itemCount: _imageUrls.length),
+                    itemCount: _totalMediaCount),
               ),
             ),
           const SliverGap(5),
@@ -592,7 +722,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                       TextButton(
                           onPressed: () => context.pushRoute(ReviewsRoute(
                                 productId: product.id ?? '',
-                                productTitle: product.title,
+                                productTitle: product.localizedTitle(locale),
                               )),
                           child: Text(context.l10n.viewAll)),
                     ],
@@ -724,6 +854,7 @@ class ProductDetailsRelatedCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final locale = context.watch<LocaleCubit>().state.languageCode;
     final currencyCode = PreferenceRepository.currencyCode.toUpperCase();
     final allPrices = (product.variants ?? [])
         .expand((v) => v.prices ?? <MoneyAmount>[])
@@ -780,7 +911,7 @@ class ProductDetailsRelatedCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    product.title ?? '',
+                    product.localizedTitle(locale) ?? '',
                     style: context.bodyExtraSmallW500,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -889,5 +1020,148 @@ class _ReviewCardItem extends StatelessWidget {
         Text(review.comment, style: context.bodyMedium),
       ],
     );
+  }
+}
+
+// ── Video player widget ───────────────────────────────────────────────────────
+
+class _ProductVideoPlayer extends StatefulWidget {
+  const _ProductVideoPlayer({required this.videoUrl, this.thumbnail});
+  final String videoUrl;
+  final String? thumbnail;
+
+  @override
+  State<_ProductVideoPlayer> createState() => _ProductVideoPlayerState();
+}
+
+class _ProductVideoPlayerState extends State<_ProductVideoPlayer> {
+  VideoPlayerController? _controller;
+  ChewieController? _chewieController;
+  bool _isExternal = false;
+  bool _initialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _isExternal = _isExternalUrl(widget.videoUrl);
+    if (!_isExternal) {
+      _initPlayer();
+    }
+  }
+
+  bool _isExternalUrl(String url) {
+    return url.contains('youtube.com') ||
+        url.contains('youtu.be') ||
+        url.contains('vimeo.com');
+  }
+
+  Future<void> _initPlayer() async {
+    try {
+      final file = await DohCacheManager.instance.getSingleFile(widget.videoUrl);
+      _controller = VideoPlayerController.file(file);
+      await _controller!.initialize();
+      _chewieController = ChewieController(
+        videoPlayerController: _controller!,
+        autoPlay: true,
+        looping: false,
+        aspectRatio: _controller!.value.aspectRatio,
+        allowFullScreen: true,
+        showControlsOnInitialize: false,
+      );
+      if (mounted) setState(() => _initialized = true);
+    } catch (_) {
+      if (mounted) setState(() => _isExternal = true);
+    }
+  }
+
+  @override
+  void dispose() {
+    _chewieController?.dispose();
+    _controller?.dispose();
+    super.dispose();
+  }
+
+  Future<void> _launchExternal() async {
+    try {
+      await launchUrl(Uri.parse(widget.videoUrl), mode: LaunchMode.externalApplication);
+    } catch (_) {}
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isExternal) {
+      return GestureDetector(
+        onTap: _launchExternal,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            if (widget.thumbnail != null)
+              CachedNetworkImage(
+                cacheManager: DohCacheManager.instance,
+                imageUrl: widget.thumbnail!,
+                fit: BoxFit.cover,
+                color: Colors.black38,
+                colorBlendMode: BlendMode.darken,
+              )
+            else
+              Container(color: Colors.black),
+            Center(
+              child: Container(
+                width: 72,
+                height: 72,
+                decoration: const BoxDecoration(
+                  color: Colors.black54,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.play_arrow_rounded,
+                    color: Colors.white, size: 42),
+              ),
+            ),
+            Positioned(
+              bottom: 90,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.black54,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Text(
+                    'Tap to open video',
+                    style: TextStyle(color: Colors.white, fontSize: 13),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (!_initialized) {
+      return Stack(
+        fit: StackFit.expand,
+        children: [
+          if (widget.thumbnail != null)
+            CachedNetworkImage(
+              cacheManager: DohCacheManager.instance,
+              imageUrl: widget.thumbnail!,
+              fit: BoxFit.cover,
+              color: Colors.black26,
+              colorBlendMode: BlendMode.darken,
+            )
+          else
+            Container(color: Colors.black),
+          Center(
+            child: LoadingAnimationWidget.threeArchedCircle(
+                color: Colors.white, size: 32),
+          ),
+        ],
+      );
+    }
+
+    return Chewie(controller: _chewieController!);
   }
 }

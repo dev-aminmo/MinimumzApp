@@ -4,7 +4,6 @@ import 'dart:developer';
 import 'package:injectable/injectable.dart';
 import 'package:minimumz/di/di.dart';
 import 'package:minimumz/data/data.dart';
-import 'package:minimumz/data/src/data/models/store/products/product.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 @singleton
@@ -148,6 +147,93 @@ class PreferenceRepository {
   }
 
   Future<void> clearCachedCart() async => _prefs.remove(_cachedCartKey);
+
+  // ── Best sellers cache ────────────────────────────────────────────────────────
+  static const String _cachedBestSellersKey = 'cached_best_sellers';
+
+  List<Product>? get cachedBestSellers {
+    final raw = _prefs.getString(_cachedBestSellersKey);
+    if (raw == null) return null;
+    try {
+      final list = jsonDecode(raw) as List;
+      return list.map((e) => Product.fromJson(e as Map<String, dynamic>)).toList();
+    } catch (e) {
+      log(e.toString());
+      return null;
+    }
+  }
+
+  Future<void> setCachedBestSellers(List<Product> products) async {
+    try {
+      await _prefs.setString(
+        _cachedBestSellersKey,
+        jsonEncode(products.map((p) => p.toJson()).toList()),
+      );
+    } catch (e) {
+      log(e.toString());
+    }
+  }
+
+  // ── Locale-sensitive cache clearing ──────────────────────────────────────────
+  Future<void> clearLocaleSensitiveCaches() async {
+    await Future.wait([
+      _prefs.remove(_cachedCollectionsKey),
+      _prefs.remove(_cachedBestSellersKey),
+      _prefs.remove(_cachedSliderKey),
+    ]);
+  }
+
+  // ── Collections cache ─────────────────────────────────────────────────────────
+  static const String _cachedCollectionsKey = 'cached_collections';
+
+  List<ProductCollection>? get cachedCollections {
+    final raw = _prefs.getString(_cachedCollectionsKey);
+    if (raw == null) return null;
+    try {
+      final list = jsonDecode(raw) as List;
+      return list.map((e) => ProductCollection.fromJson(e as Map<String, dynamic>)).toList();
+    } catch (e) {
+      log(e.toString());
+      return null;
+    }
+  }
+
+  Future<void> setCachedCollections(List<ProductCollection> collections) async {
+    try {
+      await _prefs.setString(
+        _cachedCollectionsKey,
+        jsonEncode(collections.map((c) => c.toJson()).toList()),
+      );
+    } catch (e) {
+      log(e.toString());
+    }
+  }
+
+  // ── Slider cache ─────────────────────────────────────────────────────────────
+  static const String _cachedSliderKey = 'cached_slider';
+
+  List<SliderSlide>? get cachedSlider {
+    final raw = _prefs.getString(_cachedSliderKey);
+    if (raw == null) return null;
+    try {
+      final list = jsonDecode(raw) as List;
+      return list.map((e) => SliderSlide.fromJson(e as Map<String, dynamic>)).toList();
+    } catch (e) {
+      log(e.toString());
+      return null;
+    }
+  }
+
+  Future<void> setCachedSlider(List<SliderSlide> slides) async {
+    try {
+      await _prefs.setString(
+        _cachedSliderKey,
+        jsonEncode(slides.map((s) => s.toJson()).toList()),
+      );
+    } catch (e) {
+      log(e.toString());
+    }
+  }
 
   bool get notificationsEnabled => _prefs.getBool(_notificationsKey) ?? true;
 

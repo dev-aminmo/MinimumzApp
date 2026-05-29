@@ -187,6 +187,7 @@ class ProductVariant {
       width: json['width'],
       options: options,
       thumbnail: json['thumbnail'],
+      purchasable: json['purchasable'] as bool?,
       metadata: json['metadata'],
     );
   }
@@ -219,6 +220,7 @@ class ProductVariant {
     if (options != null) {
       data['options'] = options!.map((v) => v.toJson()).toList();
     }
+    data['purchasable'] = purchasable;
     data['metadata'] = metadata;
     return data;
   }

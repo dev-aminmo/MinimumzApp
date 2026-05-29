@@ -13,6 +13,8 @@ class MoneyAmount {
   Currency? currency;
   /// The amount to charge for the Product Variant.
   int? amount;
+  /// The original (non-discounted) amount. Present only when a promo price applies.
+  int? compareAtAmount;
   /// The minimum quantity for which the price will be used.
   int? minQuantity;
   /// The maximum quantity for which the price will be used.
@@ -35,6 +37,7 @@ class MoneyAmount {
     this.currencyCode,
     this.currency,
     this.amount,
+    this.compareAtAmount,
     this.minQuantity,
     this.maxQuantity,
     this.priceListId,
@@ -54,6 +57,7 @@ class MoneyAmount {
     currencyCode = json['currency_code'];
     currency = json['currency'] != null ? Currency.fromJson(json['currency']) : null;
     amount = json['amount'];
+    compareAtAmount = json['compare_at_amount'];
     minQuantity = json['min_quantity'];
     maxQuantity = json['max_quantity'];
     priceListId = json['price_list_id'];
@@ -82,6 +86,9 @@ class MoneyAmount {
     }
     if (amount != null) {
       json['amount'] = amount;
+    }
+    if (compareAtAmount != null) {
+      json['compare_at_amount'] = compareAtAmount;
     }
     if (minQuantity != null) {
       json['min_quantity'] = minQuantity;

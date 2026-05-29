@@ -76,6 +76,10 @@ extension GetItInjectableX on _i174.GetIt {
         _i745.PreferenceRepository(gh<_i460.SharedPreferences>())..init());
     gh.factory<_i503.OrdersBloc>(
         () => _i503.OrdersBloc(gh<_i62.RetrieveOrdersUsecase>()));
+    gh.factory<_i583.CollectionsBloc>(() => _i583.CollectionsBloc(
+          gh<_i993.RetrieveCollectionsUsecase>(),
+          gh<_i745.PreferenceRepository>(),
+        ));
     gh.factory<_i705.ProductsBloc>(
         () => _i705.ProductsBloc(gh<_i463.GetHomeProductUsecase>()));
     gh.factory<_i869.CartBloc>(() => _i869.CartBloc(
@@ -89,8 +93,6 @@ extension GetItInjectableX on _i174.GetIt {
         () => _i975.RegionBloc(gh<_i386.RetrieveRegionsUsecase>()));
     gh.factory<_i137.LineItemBloc>(
         () => _i137.LineItemBloc(gh<_i479.LineItemUsecase>()));
-    gh.factory<_i583.CollectionsBloc>(
-        () => _i583.CollectionsBloc(gh<_i993.RetrieveCollectionsUsecase>()));
     return this;
   }
 }

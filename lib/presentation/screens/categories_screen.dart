@@ -10,6 +10,7 @@ import 'package:minimumz/data/data.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
 import '../routes/app_router.dart';
+import 'package:minimumz/cubits/locale/locale_cubit.dart';
 import 'home/bloc/collections/collections_bloc.dart';
 
 @RoutePage()
@@ -108,6 +109,7 @@ class _CategoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final locale = context.watch<LocaleCubit>().state.languageCode;
     return GestureDetector(
       onTap: () => context.router
           .push(CollectionRoute(collection: collection)),
@@ -155,7 +157,7 @@ class _CategoryCard extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 6),
               child: Text(
-                collection.title ?? '',
+                collection.localizedTitle(locale),
                 style: context.bodyExtraSmall
                     ?.copyWith(fontWeight: FontWeight.w500),
                 maxLines: 2,

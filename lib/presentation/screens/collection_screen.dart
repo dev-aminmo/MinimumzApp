@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:gap/gap.dart';
 import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
 import 'package:minimumz/common/extensions/extensions.dart';
+import 'package:minimumz/cubits/locale/locale_cubit.dart';
 import 'package:minimumz/di/di.dart';
 import 'package:minimumz/presentation/screens/home/bloc/products/products_bloc.dart';
 import 'package:minimumz/data/data.dart';
@@ -71,6 +72,7 @@ class _CollectionScreenState extends State<CollectionScreen> {
   }
 
   Widget _buildFlexibleSpace(BuildContext context) {
+    final locale = context.read<LocaleCubit>().state.languageCode;
     final canPop = context.router.canPop();
     return LayoutBuilder(
       builder: (ctx, constraints) {
@@ -149,7 +151,7 @@ class _CollectionScreenState extends State<CollectionScreen> {
                           const Gap(10),
                         ],
                         Text(
-                          widget.collection.title ?? '',
+                          widget.collection.localizedTitle(locale),
                           style: context.bodyMediumW500?.copyWith(
                             fontSize: 18,
                             color: _hasBanner ? Colors.white : null,
@@ -209,7 +211,7 @@ class _CollectionScreenState extends State<CollectionScreen> {
                           const SizedBox(width: 8),
                         ],
                         Text(
-                          widget.collection.title ?? '',
+                          widget.collection.localizedTitle(locale),
                           style: context.bodyMediumW500,
                         ),
                       ],
@@ -226,6 +228,7 @@ class _CollectionScreenState extends State<CollectionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LocaleCubit>(); // rebuild when locale changes so _buildFlexibleSpace re-reads
     final canPop = context.router.canPop();
     return BlocProvider.value(
       value: _bloc,

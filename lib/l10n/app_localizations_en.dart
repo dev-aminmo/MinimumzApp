@@ -102,6 +102,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get allBrands => 'All Brands';
 
   @override
+  String get bestSellers => 'Best Sellers';
+
+  @override
   String get newArrival => 'New Arrival';
 
   @override
@@ -304,6 +307,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get addToCart => 'Add to Cart';
+
+  @override
+  String get addedToCart => 'Added to cart';
 
   @override
   String get outOfStock => 'Out of Stock';

@@ -103,6 +103,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get allBrands => 'جميع العلامات';
 
   @override
+  String get bestSellers => 'الأكثر مبيعاً';
+
+  @override
   String get newArrival => 'وصل حديثاً';
 
   @override
@@ -305,6 +308,9 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get addToCart => 'إضافة إلى السلة';
+
+  @override
+  String get addedToCart => 'تمت الإضافة إلى السلة';
 
   @override
   String get outOfStock => 'غير متوفر';
