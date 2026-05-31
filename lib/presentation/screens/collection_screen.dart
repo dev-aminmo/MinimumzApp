@@ -8,6 +8,7 @@ import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
 import 'package:minimumz/common/extensions/extensions.dart';
 import 'package:minimumz/cubits/locale/locale_cubit.dart';
 import 'package:minimumz/di/di.dart';
+import 'package:minimumz/domain/model/product_filter.dart';
 import 'package:minimumz/presentation/screens/home/bloc/products/products_bloc.dart';
 import 'package:minimumz/data/data.dart';
 import '../components/index.dart';
@@ -31,6 +32,7 @@ class _CollectionScreenState extends State<CollectionScreen> {
       PagingController(firstPageKey: 0);
   late final ProductsBloc _bloc;
   int _loadedCount = 0;
+  ProductFilter _filter = ProductFilter.empty;
 
   bool get _hasBanner => widget.collection.banner != null;
   bool get _hasLogo => widget.collection.logo != null;
@@ -46,13 +48,16 @@ class _CollectionScreenState extends State<CollectionScreen> {
   void initState() {
     super.initState();
     _bloc = getIt<ProductsBloc>();
-    _pagingController.addPageRequestListener((pageKey) {
-      _bloc.add(ProductsEvent.loadProducts(queryParameters: {
-        widget.collection.filterParam: widget.collection.id,
-        'offset': pageKey,
-        'limit': _pageSize,
-      }));
-    });
+    _pagingController.addPageRequestListener(_requestPage);
+  }
+
+  void _requestPage(int pageKey) {
+    _bloc.add(ProductsEvent.loadProducts(queryParameters: {
+      widget.collection.filterParam: widget.collection.id,
+      'offset': pageKey,
+      'limit': _pageSize,
+      ..._filter.toQueryParams(),
+    }));
   }
 
   void _onLoaded(List<Product> products, int? limit, int? count, int? offset) {
@@ -270,8 +275,99 @@ class _CollectionScreenState extends State<CollectionScreen> {
                       : null,
                   actions: [
                     Padding(
+                      padding: const EdgeInsets.only(top: 6, bottom: 6, left: 4),
+                      child: InkWell(
+                        borderRadius:
+                            const BorderRadius.all(Radius.circular(50)),
+                        onTap: () async {
+                          final result = await ProductSortSheet.show(context, _filter.sortBy);
+                          if (result != null && mounted) {
+                            setState(() {
+                              _filter = _filter.copyWith(sortBy: result.isEmpty ? null : result);
+                              _loadedCount = 0;
+                            });
+                            _pagingController.refresh();
+                          }
+                        },
+                        child: Ink(
+                          width: 40,
+                          height: 40,
+                          decoration: ShapeDecoration(
+                            color: context.theme.cardColor,
+                            shape: const CircleBorder(),
+                          ),
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              Icon(Icons.sort_rounded,
+                                  color: _filter.sortBy != null
+                                      ? Theme.of(context).colorScheme.primary
+                                      : null),
+                              if (_filter.sortBy != null)
+                                Positioned(
+                                  top: 6,
+                                  right: 6,
+                                  child: Container(
+                                    width: 8,
+                                    height: 8,
+                                    decoration: const BoxDecoration(
+                                      color: Colors.red,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 6, bottom: 6, left: 4),
+                      child: InkWell(
+                        borderRadius:
+                            const BorderRadius.all(Radius.circular(50)),
+                        onTap: () async {
+                          final result = await ProductFilterSheet.show(context, _filter);
+                          if (result != null && mounted) {
+                            setState(() {
+                              _filter = result;
+                              _loadedCount = 0;
+                            });
+                            _pagingController.refresh();
+                          }
+                        },
+                        child: Ink(
+                          width: 40,
+                          height: 40,
+                          decoration: ShapeDecoration(
+                            color: context.theme.cardColor,
+                            shape: const CircleBorder(),
+                          ),
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              const Icon(Icons.tune_outlined),
+                              if (_filter.activeCount > 0)
+                                Positioned(
+                                  top: 6,
+                                  right: 6,
+                                  child: Container(
+                                    width: 8,
+                                    height: 8,
+                                    decoration: const BoxDecoration(
+                                      color: Colors.red,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    Padding(
                       padding: const EdgeInsets.only(
-                          right: 8, top: 6, bottom: 6, left: 8),
+                          right: 8, top: 6, bottom: 6, left: 4),
                       child: InkWell(
                         borderRadius:
                             const BorderRadius.all(Radius.circular(50)),
@@ -298,7 +394,7 @@ class _CollectionScreenState extends State<CollectionScreen> {
                     gridDelegate:
                         const SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 2,
-                      mainAxisExtent: 280,
+                      mainAxisExtent: 295,
                       crossAxisSpacing: 12,
                       mainAxisSpacing: 12,
                     ),

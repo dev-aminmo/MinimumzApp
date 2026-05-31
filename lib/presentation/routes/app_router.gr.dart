@@ -121,6 +121,12 @@ abstract class _$AppRouter extends RootStackRouter {
         ),
       );
     },
+    RecentlyViewedRoute.name: (routeData) {
+      return AutoRoutePage<dynamic>(
+        routeData: routeData,
+        child: const RecentlyViewedScreen(),
+      );
+    },
     ReviewsRoute.name: (routeData) {
       final args = routeData.argsAs<ReviewsRouteArgs>();
       return AutoRoutePage<dynamic>(
@@ -506,6 +512,20 @@ class ProductDetailsRouteArgs {
   String toString() {
     return 'ProductDetailsRouteArgs{key: $key, product: $product}';
   }
+}
+
+/// generated route for
+/// [RecentlyViewedScreen]
+class RecentlyViewedRoute extends PageRouteInfo<void> {
+  const RecentlyViewedRoute({List<PageRouteInfo>? children})
+      : super(
+          RecentlyViewedRoute.name,
+          initialChildren: children,
+        );
+
+  static const String name = 'RecentlyViewedRoute';
+
+  static const PageInfo<void> page = PageInfo<void>(name);
 }
 
 /// generated route for

@@ -168,6 +168,8 @@
   "searchThroughStore": "Search through the store",
   "noResultsFound": "No results found",
   "searchFailed": "Search failed",
+  "recentSearches": "Recent searches",
+  "recentlyViewed": "Recently viewed",
 
   "clearWishlist": "Clear Wishlist",
   "removeAllFromWishlist": "Remove all items from wishlist?",
@@ -223,5 +225,85 @@
   "mustPurchaseToReview": "Only buyers can leave a review for this product.",
   "loginToReview": "Please sign in to submit a review.",
   "viewsCount": "views",
-  "itemsRemovedUnavailable": "items removed from your cart as they're not available in your country"
+  "itemsRemovedUnavailable": "items removed from your cart as they're not available in your country",
+
+  "filters": "Filters",
+  "filterAndSort": "Filter & Sort",
+  "sortBy": "Sort By",
+  "defaultSort": "Default",
+  "newestFirst": "Newest First",
+  "priceAscLabel": "Price: Low to High",
+  "priceDescLabel": "Price: High to Low",
+  "topRated": "Top Rated",
+  "bestSellers": "Best Sellers",
+  "priceRange": "Price Range",
+  "gender": "Gender",
+  "male": "Male",
+  "female": "Female",
+  "unisex": "Unisex",
+  "kids": "Kids",
+  "brand": "Brand",
+  "color": "Color",
+  "ageRange": "Age Range",
+  "minAge": "Min Age",
+  "maxAge": "Max Age",
+  "minPrice": "Min",
+  "maxPrice": "Max",
+  "applyFilters": "Apply",
+  "clearFilters": "Clear All",
+  "activeFilters": "{count} active",
+  "@activeFilters": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+
+  "specifications": "Specifications",
+  "specWeight": "Weight",
+  "specDimensions": "Dimensions",
+  "specAgeRange": "Age Range",
+  "specUpTo": "Up to {age}",
+  "@specUpTo": {
+    "placeholders": {
+      "age": { "type": "String" }
+    }
+  },
+  "specAgeFrom": "{min}+",
+  "@specAgeFrom": {
+    "placeholders": {
+      "min": { "type": "String" }
+    }
+  },
+  "specAgeBetween": "{min} – {max}",
+  "@specAgeBetween": {
+    "placeholders": {
+      "min": { "type": "String" },
+      "max": { "type": "String" }
+    }
+  },
+  "ageYears": "{n}y",
+  "@ageYears": {
+    "placeholders": {
+      "n": { "type": "int" }
+    }
+  },
+  "ageMonths": "{n}m",
+  "@ageMonths": {
+    "placeholders": {
+      "n": { "type": "int" }
+    }
+  },
+  "ageYearsMonths": "{y}y {m}m",
+  "@ageYearsMonths": {
+    "placeholders": {
+      "y": { "type": "int" },
+      "m": { "type": "int" }
+    }
+  },
+  "tapToOpenVideo": "Tap to open video",
+  "kgUnit": "kg",
+  "cmUnit": "cm",
+  "dimHeight": "H",
+  "dimWidth": "W",
+  "dimLength": "L"
 }

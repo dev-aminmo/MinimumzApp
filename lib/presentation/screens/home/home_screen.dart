@@ -11,6 +11,7 @@ import 'package:minimumz/common/extensions/extensions.dart';
 import 'package:minimumz/data/data.dart';
 import 'package:minimumz/di/di.dart';
 import 'package:minimumz/domain/repository/preference_repository.dart';
+import 'package:minimumz/domain/model/product_filter.dart';
 import 'package:minimumz/presentation/screens/cart/bloc/cart/cart_bloc.dart';
 import 'package:minimumz/presentation/screens/home/widgets/index.dart';
 import 'package:skeletonizer/skeletonizer.dart';
@@ -461,7 +462,7 @@ class _CategoriesSectionState extends State<_CategoriesSection> {
                   Headline(headline: context.l10n.categories, onViewAllTap: null),
                   const Gap(10),
                   SizedBox(
-                    height: 90,
+                    height: 100,
                     child: ListView.separated(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
                       scrollDirection: Axis.horizontal,
@@ -492,7 +493,7 @@ class _CategoriesSectionState extends State<_CategoriesSection> {
                   ),
                   const Gap(10),
                   SizedBox(
-                    height: 90,
+                    height: 100,
                     child: ListView.separated(
                       controller: _scrollController,
                       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -530,14 +531,6 @@ class CategoryTile extends StatelessWidget {
             Container(
               width: 60,
               height: 60,
-              decoration: BoxDecoration(
-                color: ColorConstant.primary.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: ColorConstant.primary.withValues(alpha: 0.15),
-                  width: 1,
-                ),
-              ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(15),
                 child: collection.logo != null
@@ -612,6 +605,13 @@ class _BestSellersSection extends StatefulWidget {
 class _BestSellersSectionState extends State<_BestSellersSection> {
   List<Product>? _products;
   bool _loading = true;
+  final ScrollController _scrollController = ScrollController();
+  Timer? _timer;
+
+  // card width 160 + separator 12
+  static const double _itemStride = 172.0;
+  static const Duration _interval = Duration(seconds: 3);
+  static const Duration _animDuration = Duration(milliseconds: 500);
 
   @override
   void initState() {
@@ -620,15 +620,39 @@ class _BestSellersSectionState extends State<_BestSellersSection> {
     _fetchFromNetwork();
   }
 
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _startAutoPlay() {
+    _timer?.cancel();
+    if ((_products?.length ?? 0) <= 1) return;
+    _timer = Timer.periodic(_interval, (_) {
+      if (!_scrollController.hasClients) return;
+      final max = _scrollController.position.maxScrollExtent;
+      final next = _scrollController.offset + _itemStride;
+      _scrollController.animateTo(
+        next >= max ? 0 : next,
+        duration: _animDuration,
+        curve: Curves.easeInOut,
+      );
+    });
+  }
+
   void _loadCache() {
     final cached = PreferenceRepository.instance.cachedBestSellers;
-    if (cached != null) setState(() { _products = cached; _loading = false; });
+    if (cached != null) {
+      setState(() { _products = cached; _loading = false; });
+      WidgetsBinding.instance.addPostFrameCallback((_) => _startAutoPlay());
+    }
   }
 
   Future<void> _fetchFromNetwork() async {
     final countryId = PreferenceRepository.instance.country?.id;
     if (countryId == null) {
-      // Country not resolved yet — can't filter correctly, skip fetch.
       if (mounted) setState(() => _loading = false);
       return;
     }
@@ -642,6 +666,9 @@ class _BestSellersSectionState extends State<_BestSellersSection> {
       if (!mounted) return;
       PreferenceRepository.instance.setCachedBestSellers(products);
       setState(() { _products = products; _loading = false; });
+      if (_timer == null || !_timer!.isActive) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => _startAutoPlay());
+      }
     } catch (_) {
       if (mounted) setState(() => _loading = false);
     }
@@ -679,6 +706,7 @@ class _BestSellersSectionState extends State<_BestSellersSection> {
                     ),
                   )
                 : ListView.separated(
+                    controller: _scrollController,
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     scrollDirection: Axis.horizontal,
                     separatorBuilder: (_, __) => const Gap(12),
@@ -864,17 +892,21 @@ class _NewArrivalState extends State<NewArrival> {
       PagingController(firstPageKey: 0);
   late ProductsBloc productsBloc;
   int loadedProductsCount = 0;
+  ProductFilter _filter = ProductFilter.empty;
 
   @override
   void initState() {
     productsBloc = context.read<ProductsBloc>();
-    _pagingController.addPageRequestListener((pageKey) {
-      productsBloc.add(ProductsEvent.loadProducts(queryParameters: {
-        'offset': pageKey,
-        'limit': _pageSize,
-      }));
-    });
+    _pagingController.addPageRequestListener(_requestPage);
     super.initState();
+  }
+
+  void _requestPage(int pageKey) {
+    productsBloc.add(ProductsEvent.loadProducts(queryParameters: {
+      'offset': pageKey,
+      'limit': _pageSize,
+      ..._filter.toQueryParams(),
+    }));
   }
 
   void _loaded(List<Product> products, int? limit, int? count, int? offset) {
@@ -907,7 +939,84 @@ class _NewArrivalState extends State<NewArrival> {
         return MultiSliver(
           children: [
             SliverToBoxAdapter(
-                child: Headline(headline: label, onViewAllTap: null)),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(child: Headline(headline: label, onViewAllTap: null)),
+                  GestureDetector(
+                    onTap: () async {
+                      final result = await ProductSortSheet.show(context, _filter.sortBy);
+                      if (result != null && mounted) {
+                        setState(() {
+                          _filter = _filter.copyWith(sortBy: result.isEmpty ? null : result);
+                          loadedProductsCount = 0;
+                        });
+                        _pagingController.refresh();
+                      }
+                    },
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Icon(Icons.sort_rounded,
+                            color: _filter.sortBy != null
+                                ? Theme.of(context).colorScheme.primary
+                                : null),
+                        if (_filter.sortBy != null)
+                          Positioned(
+                            top: 0,
+                            right: 0,
+                            child: Container(
+                              width: 8,
+                              height: 8,
+                              decoration: const BoxDecoration(
+                                color: Colors.red,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(right: 16, left: 8),
+                    child: GestureDetector(
+                      onTap: () async {
+                        final result = await ProductFilterSheet.show(context, _filter);
+                        if (result != null && mounted) {
+                          setState(() {
+                            _filter = result;
+                            loadedProductsCount = 0;
+                          });
+                          _pagingController.refresh();
+                        }
+                      },
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Icon(Icons.tune_outlined,
+                              color: _filter.activeCount > 0
+                                  ? Theme.of(context).colorScheme.primary
+                                  : null),
+                          if (_filter.activeCount > 0)
+                            Positioned(
+                              top: 0,
+                              right: 0,
+                              child: Container(
+                                width: 8,
+                                height: 8,
+                                decoration: const BoxDecoration(
+                                  color: Colors.red,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
             SliverPadding(
               padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10),
               sliver: PagedSliverGrid(

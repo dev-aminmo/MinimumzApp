@@ -22,6 +22,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
 import 'widgets/bottom_nav_button.dart';
+import 'dart:async';
 import 'dart:math';
 
 @RoutePage()
@@ -48,6 +49,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
   late List<String> _allImages;
   late PageController _pageController;
   int _mediaPage = 0;
+  Timer? _autoSlideTimer;
 
   String? get _videoUrl => widget.product.videoUrl;
   bool get _hasVideo => _videoUrl != null && _videoUrl!.isNotEmpty;
@@ -70,7 +72,38 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
     return result;
   }
 
+  // Page indices that belong to main product images only (no variant thumbnails, no video).
+  List<int> get _autoSlidePages {
+    final variantThumbs = (widget.product.variants ?? [])
+        .where((v) => v.thumbnail != null)
+        .map((v) => v.thumbnail!)
+        .toSet();
+    final pages = <int>[];
+    for (int i = 0; i < _allImages.length; i++) {
+      if (!variantThumbs.contains(_allImages[i])) {
+        pages.add(_hasVideo ? i + 1 : i);
+      }
+    }
+    return pages;
+  }
+
+  void _startAutoSlide() {
+    _autoSlideTimer?.cancel();
+    final pages = _autoSlidePages;
+    if (pages.length < 2) return;
+
+    _autoSlideTimer = Timer.periodic(const Duration(seconds: 3), (_) {
+      if (!mounted || !_pageController.hasClients) return;
+      final currentIdx = pages.indexOf(_mediaPage);
+      final nextIdx = (currentIdx < 0 ? 0 : (currentIdx + 1)) % pages.length;
+      _pageController.animateToPage(pages[nextIdx],
+          duration: const Duration(milliseconds: 400), curve: Curves.easeInOut);
+    });
+  }
+
   void _onPageChanged(int page) {
+    // Restart timer so a manual swipe gets a full 3 s before next auto-advance
+    _startAutoSlide();
     setState(() {
       _mediaPage = page;
       if (!(_hasVideo && page == 0)) {
@@ -109,6 +142,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
 
   @override
   void dispose() {
+    _autoSlideTimer?.cancel();
     _pageController.dispose();
     super.dispose();
   }
@@ -133,6 +167,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
     }
 
     super.initState();
+    _startAutoSlide();
     _loadReviews();
     _loadRelated();
     _recordView();
@@ -175,6 +210,11 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
   Future<void> _recordView() async {
     final id = widget.product.id;
     if (id == null) return;
+    PreferenceRepository.instance.addRecentlyViewed(
+      id: id,
+      title: widget.product.title ?? '',
+      thumbnail: widget.product.thumbnail,
+    );
     try {
       final updated = await getIt<DataStore>().reviews.recordView(
             productId: id,
@@ -477,6 +517,14 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                     const Gap(16),
                   ],
                 ),
+              ),
+            ),
+          // ── Physical specs (weight, dimensions, age range) ───────
+          if (_hasSpecs(product))
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                child: _SpecsCard(product: product),
               ),
             ),
           // ── Brand + Tags ─────────────────────────────────────────
@@ -793,6 +841,139 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
       ),
     );
   }
+}
+
+bool _hasSpecs(Product p) =>
+    p.weight != null ||
+    p.height != null ||
+    p.width != null ||
+    p.length != null ||
+    p.ageMin != null ||
+    p.ageMax != null;
+
+class _SpecsCard extends StatelessWidget {
+  const _SpecsCard({required this.product});
+  final Product product;
+
+  String _fmtAge(BuildContext context, int months) {
+    if (months < 12) return context.l10n.ageMonths(months);
+    final y = months ~/ 12;
+    final m = months % 12;
+    return m == 0 ? context.l10n.ageYears(y) : context.l10n.ageYearsMonths(y, m);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final specs = <_SpecRow>[];
+
+    if (product.weight != null) {
+      specs.add(_SpecRow(
+        icon: Icons.scale_outlined,
+        label: context.l10n.specWeight,
+        value: '${product.weight} ${context.l10n.kgUnit}',
+      ));
+    }
+    if (product.height != null || product.width != null || product.length != null) {
+      final parts = <String>[];
+      if (product.height != null) parts.add('${context.l10n.dimHeight} ${product.height}');
+      if (product.width != null)  parts.add('${context.l10n.dimWidth} ${product.width}');
+      if (product.length != null) parts.add('${context.l10n.dimLength} ${product.length}');
+      specs.add(_SpecRow(
+        icon: Icons.straighten_outlined,
+        label: context.l10n.specDimensions,
+        value: '${parts.join(' × ')} ${context.l10n.cmUnit}',
+      ));
+    }
+    if (product.ageMin != null || product.ageMax != null) {
+      final String ageText;
+      if (product.ageMin != null && product.ageMax != null) {
+        ageText = context.l10n.specAgeBetween(
+          _fmtAge(context, product.ageMin!),
+          _fmtAge(context, product.ageMax!),
+        );
+      } else if (product.ageMin != null) {
+        ageText = context.l10n.specAgeFrom(_fmtAge(context, product.ageMin!));
+      } else {
+        ageText = context.l10n.specUpTo(_fmtAge(context, product.ageMax!));
+      }
+      specs.add(_SpecRow(
+        icon: Icons.child_care_outlined,
+        label: context.l10n.specAgeRange,
+        value: ageText,
+      ));
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              width: 3,
+              height: 18,
+              decoration: BoxDecoration(
+                color: ColorConstant.primary,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const Gap(8),
+            Text(context.l10n.specifications, style: context.bodyLargeW600),
+          ],
+        ),
+        const Gap(12),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: specs.map((s) => _SpecChip(spec: s)).toList(),
+        ),
+      ],
+    );
+  }
+}
+
+class _SpecChip extends StatelessWidget {
+  const _SpecChip({required this.spec});
+  final _SpecRow spec;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: ColorConstant.primary.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(50),
+        border: Border.all(color: ColorConstant.primary.withValues(alpha: 0.18)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(spec.icon, size: 15, color: ColorConstant.primary),
+          const Gap(6),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                spec.label,
+                style: context.bodyExtraSmall?.copyWith(color: ColorConstant.primary.withValues(alpha: 0.7)),
+              ),
+              Text(
+                spec.value,
+                style: context.bodySmallW500,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SpecRow {
+  const _SpecRow({required this.icon, required this.label, required this.value});
+  final IconData icon;
+  final String label;
+  final String value;
 }
 
 class _InfoChip extends StatelessWidget {
@@ -1128,9 +1309,9 @@ class _ProductVideoPlayerState extends State<_ProductVideoPlayer> {
                     color: Colors.black54,
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: const Text(
-                    'Tap to open video',
-                    style: TextStyle(color: Colors.white, fontSize: 13),
+                  child: Text(
+                    context.l10n.tapToOpenVideo,
+                    style: const TextStyle(color: Colors.white, fontSize: 13),
                   ),
                 ),
               ),

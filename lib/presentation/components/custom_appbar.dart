@@ -33,7 +33,18 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                 ),
               ),
             if (!canPop && actions != null) const SizedBox(height: 45, width: 45),
-            if (title != null) Text(title!, style: context.bodyLargeW500),
+            if (title != null)
+              Flexible(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Text(
+                    title!,
+                    style: context.bodyLargeW500,
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
+                ),
+              ),
             if (canPop && actions == null) const SizedBox(height: 45, width: 45),
             if (actions != null)
               Column(

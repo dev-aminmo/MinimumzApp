@@ -1,12 +1,15 @@
 import 'dart:async';
 
 import 'package:auto_route/auto_route.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:minimumz/common/doh_cache_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:gap/gap.dart';
 import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
 import 'package:minimumz/common/colors.dart';
 import 'package:minimumz/domain/repository/preference_repository.dart';
+import 'package:minimumz/domain/model/product_filter.dart';
 import 'package:minimumz/common/extensions/extensions.dart';
 import 'package:minimumz/data/data.dart';
 import 'package:minimumz/di/di.dart';
@@ -14,6 +17,14 @@ import 'package:minimumz/presentation/routes/app_router.dart';
 import 'package:minimumz/presentation/screens/home/widgets/product_card.dart';
 
 import '../components/index.dart';
+
+class _SuggestionItem {
+  final String name;
+  final String? imageUrl;
+  const _SuggestionItem({required this.name, this.imageUrl});
+}
+
+// ── Screen ────────────────────────────────────────────────────────────────────
 
 @RoutePage()
 class SearchScreen extends StatefulWidget {
@@ -27,21 +38,41 @@ class _SearchScreenState extends State<SearchScreen> {
   static const _pageSize = 20;
 
   final _controller = TextEditingController();
+  final _focusNode  = FocusNode();
   Timer? _debounce;
   String _currentQuery = '';
+
+  List<_SuggestionItem> _suggestionItems = [];
+  bool _loadingSuggestions = false;
+  bool _showSuggestions    = false;
+  bool _fieldFocused       = false;
+  List<String> _history    = [];
+  ProductFilter _filter    = ProductFilter.empty;
 
   final PagingController<int, Product> _pagingController =
       PagingController(firstPageKey: 0);
 
+  bool get _showOverlay =>
+      _showSuggestions ||
+      (_fieldFocused && _currentQuery.isEmpty && _history.isNotEmpty);
+
   @override
   void initState() {
     super.initState();
+    _history = PreferenceRepository.instance.searchHistory;
     _pagingController.addPageRequestListener(_fetchPage);
+    _focusNode.addListener(() {
+      setState(() {
+        _fieldFocused = _focusNode.hasFocus;
+        if (!_focusNode.hasFocus) _showSuggestions = false;
+      });
+    });
   }
 
   @override
   void dispose() {
     _controller.dispose();
+    _focusNode.dispose();
     _debounce?.cancel();
     _pagingController.dispose();
     super.dispose();
@@ -51,13 +82,71 @@ class _SearchScreenState extends State<SearchScreen> {
     _debounce?.cancel();
     final trimmed = query.trim();
     if (trimmed.isEmpty) {
-      setState(() => _currentQuery = '');
+      setState(() {
+        _currentQuery      = '';
+        _showSuggestions   = false;
+        _suggestionItems   = [];
+      });
       return;
     }
-    _debounce = Timer(const Duration(milliseconds: 400), () {
-      _currentQuery = trimmed;
-      // refresh resets to firstPageKey and triggers _fetchPage(0)
-      _pagingController.refresh();
+    setState(() { _showSuggestions = true; _loadingSuggestions = true; });
+    _debounce = Timer(const Duration(milliseconds: 400), () => _fetchSuggestions(trimmed));
+  }
+
+  List<String> get _viewedIds   => PreferenceRepository.instance.recentlyViewedIds;
+  List<String> get _wishlistIds => PreferenceRepository.instance.wishlistProducts
+      .map((p) => p.id).whereType<String>().toList();
+
+  Future<void> _fetchSuggestions(String query) async {
+    try {
+      final data = await getIt<DataStore>().products.suggestions(
+        query,
+        viewedIds:   _viewedIds,
+        wishlistIds: _wishlistIds,
+      );
+      if (!mounted) return;
+      final raw = (data?['products'] as List? ?? []);
+      final products = raw.map((e) {
+        final m = e as Map<String, dynamic>;
+        final img = (m['base_image'] as Map<String, dynamic>?)?['path'] as String?;
+        return _SuggestionItem(
+          name: (m['name'] as String? ?? '').replaceAll(RegExp(r'<[^>]*>'), ''),
+          imageUrl: img,
+        );
+      }).toList();
+      setState(() {
+        _suggestionItems    = products;
+        _loadingSuggestions = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _loadingSuggestions = false);
+    }
+  }
+
+  void _commitQuery(String query) {
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) return;
+    _controller.text = trimmed;
+    _focusNode.unfocus();
+    setState(() {
+      _currentQuery    = trimmed;
+      _showSuggestions = false;
+    });
+    _pagingController.refresh();
+    PreferenceRepository.instance.addSearchHistory(trimmed).then((_) {
+      if (mounted) setState(() => _history = PreferenceRepository.instance.searchHistory);
+    });
+  }
+
+  void _removeHistory(String query) {
+    PreferenceRepository.instance.removeSearchHistory(query).then((_) {
+      if (mounted) setState(() => _history = PreferenceRepository.instance.searchHistory);
+    });
+  }
+
+  void _clearHistory() {
+    PreferenceRepository.instance.clearSearchHistory().then((_) {
+      if (mounted) setState(() => _history = []);
     });
   }
 
@@ -65,16 +154,21 @@ class _SearchScreenState extends State<SearchScreen> {
     if (_currentQuery.isEmpty) return;
     try {
       final countryId = PreferenceRepository.instance.country?.id;
+      final viewed   = _viewedIds;
+      final wishlist = _wishlistIds;
       final res = await getIt<DataStore>().products.list(
         queryParams: {
-          'title': _currentQuery,
+          'title':  _currentQuery,
           'offset': pageKey,
-          'limit': _pageSize,
-          if (countryId != null) 'country_id': countryId,
+          'limit':  _pageSize,
+          if (countryId != null)    'country_id':   countryId,
+          if (viewed.isNotEmpty)    'viewed_ids':   viewed.join(','),
+          if (wishlist.isNotEmpty)  'wishlist_ids': wishlist.join(','),
+          ..._filter.toQueryParams(),
         },
       );
       if (!mounted) return;
-      final products = res?.products ?? [];
+      final products   = res?.products ?? [];
       final isLastPage = products.length < _pageSize;
       if (isLastPage) {
         _pagingController.appendLastPage(products);
@@ -94,14 +188,24 @@ class _SearchScreenState extends State<SearchScreen> {
     return Scaffold(
       resizeToAvoidBottomInset: false,
       appBar: SearchAppBar(
-        controller: _controller,
-        onChanged: _onChanged,
+        controller:  _controller,
+        focusNode:   _focusNode,
+        onChanged:   _onChanged,
+        onSubmitted: _commitQuery,
       ),
-      body: SafeArea(child: _buildBody(context, bottomPadding)),
+      body: SafeArea(
+        child: Stack(
+          children: [
+            _buildResults(context, bottomPadding),
+            if (_showOverlay)
+              Positioned.fill(child: _buildOverlayPanel(context)),
+          ],
+        ),
+      ),
     );
   }
 
-  Widget _buildBody(BuildContext context, double bottomPadding) {
+  Widget _buildResults(BuildContext context, double bottomPadding) {
     if (_currentQuery.isEmpty) {
       return Center(
         child: Text(
@@ -111,14 +215,61 @@ class _SearchScreenState extends State<SearchScreen> {
       );
     }
 
-    return PagedGridView<int, Product>(
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              TextButton.icon(
+                onPressed: () async {
+                  final result = await ProductSortSheet.show(context, _filter.sortBy);
+                  if (result != null && mounted) {
+                    setState(() => _filter = _filter.copyWith(sortBy: result.isEmpty ? null : result));
+                    _pagingController.refresh();
+                  }
+                },
+                icon: Icon(Icons.sort_rounded, size: 18,
+                    color: _filter.sortBy != null ? ColorConstant.primary : null),
+                label: Text(
+                  context.l10n.sortBy,
+                  style: TextStyle(
+                    color: _filter.sortBy != null ? ColorConstant.primary : null,
+                  ),
+                ),
+              ),
+              TextButton.icon(
+                onPressed: () async {
+                  final result = await ProductFilterSheet.show(context, _filter);
+                  if (result != null && mounted) {
+                    setState(() => _filter = result);
+                    _pagingController.refresh();
+                  }
+                },
+                icon: Icon(Icons.tune_outlined, size: 18,
+                    color: _filter.activeCount > 0 ? ColorConstant.primary : null),
+                label: Text(
+                  _filter.activeCount > 0
+                      ? context.l10n.activeFilters(_filter.activeCount)
+                      : context.l10n.filters,
+                  style: TextStyle(
+                    color: _filter.activeCount > 0 ? ColorConstant.primary : null,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: PagedGridView<int, Product>(
       pagingController: _pagingController,
       padding: EdgeInsets.fromLTRB(20, 20, 20, bottomPadding),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
-        mainAxisExtent: 280,
+        mainAxisExtent: 295,
       ),
       builderDelegate: PagedChildBuilderDelegate<Product>(
         itemBuilder: (_, product, __) => ProductCard(product: product),
@@ -151,19 +302,141 @@ class _SearchScreenState extends State<SearchScreen> {
           ),
         ),
       ),
+          ),
+        ),
+      ],
     );
   }
+
+  Widget _buildOverlayPanel(BuildContext context) {
+    return Material(
+      elevation: 4,
+      color: context.theme.scaffoldBackgroundColor,
+      child: _showSuggestions
+          ? _buildSuggestionsList(context)
+          : _buildHistoryList(context),
+    );
+  }
+
+  Widget _buildHistoryList(BuildContext context) {
+    return ListView(
+      padding: EdgeInsets.zero,
+      shrinkWrap: true,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(context.l10n.recentSearches,
+                  style: context.bodySmallW500
+                      ?.copyWith(color: ColorConstant.manatee)),
+              GestureDetector(
+                onTap: _clearHistory,
+                child: Text(context.l10n.clearAll,
+                    style: context.bodySmall
+                        ?.copyWith(color: ColorConstant.primary)),
+              ),
+            ],
+          ),
+        ),
+        ..._history.map((q) => ListTile(
+              leading: Icon(Icons.history,
+                  color: ColorConstant.manatee, size: 20),
+              title: Text(q, style: context.bodyMedium),
+              trailing: IconButton(
+                icon: Icon(Icons.close,
+                    size: 16, color: ColorConstant.manatee),
+                onPressed: () => _removeHistory(q),
+              ),
+              dense: true,
+              onTap: () => _commitQuery(q),
+            )),
+        const Gap(8),
+      ],
+    );
+  }
+
+  Widget _buildSuggestionsList(BuildContext context) {
+    final bool empty = _suggestionItems.isEmpty;
+    if (_loadingSuggestions && empty) {
+      return const Padding(
+        padding: EdgeInsets.all(24),
+        child: Center(child: CircularProgressIndicator.adaptive()),
+      );
+    }
+    if (empty) {
+      return Padding(
+        padding: const EdgeInsets.all(24),
+        child: Text(context.l10n.noResultsFound,
+            style: context.bodyMedium?.copyWith(color: ColorConstant.manatee)),
+      );
+    }
+    return ListView(
+      padding: EdgeInsets.zero,
+      shrinkWrap: true,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+          child: Text(context.l10n.products,
+              style: context.bodySmallW500
+                  ?.copyWith(color: ColorConstant.manatee)),
+        ),
+        ..._suggestionItems.map((p) {
+          final imageUrl = p.imageUrl;
+          final name = p.name;
+          return ListTile(
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            leading: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: imageUrl != null
+                  ? CachedNetworkImage(
+                      cacheManager: DohCacheManager.instance,
+                      imageUrl: imageUrl,
+                      width: 48,
+                      height: 48,
+                      fit: BoxFit.cover,
+                      errorWidget: (_, __, ___) => _imageFallback(),
+                    )
+                  : _imageFallback(),
+            ),
+            title: Text(name,
+                style: context.bodyMedium,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis),
+            onTap: () => _commitQuery(name),
+          );
+        }),
+        const Gap(8),
+      ],
+    );
+  }
+
+  Widget _imageFallback() => Container(
+        width: 48,
+        height: 48,
+        color: ColorConstant.beige,
+        child: const Icon(Icons.image_not_supported_outlined,
+            size: 20, color: Colors.grey),
+      );
 }
+
+// ── App bar ───────────────────────────────────────────────────────────────────
 
 class SearchAppBar extends StatelessWidget implements PreferredSizeWidget {
   const SearchAppBar({
     super.key,
     required this.controller,
+    required this.focusNode,
     required this.onChanged,
+    required this.onSubmitted,
   });
 
   final TextEditingController controller;
+  final FocusNode focusNode;
   final ValueChanged<String> onChanged;
+  final ValueChanged<String> onSubmitted;
 
   bool get canPop => getIt<AppRouter>().canPop();
 
@@ -207,22 +480,23 @@ class SearchAppBar extends StatelessWidget implements PreferredSizeWidget {
                 child: Material(
                   color: Colors.transparent,
                   child: TextField(
-                    controller: controller,
-                    onChanged: onChanged,
-                    autofocus: true,
+                    controller:      controller,
+                    focusNode:       focusNode,
+                    onChanged:       onChanged,
+                    onSubmitted:     onSubmitted,
+                    autofocus:       true,
+                    textInputAction: TextInputAction.search,
                     decoration: InputDecoration(
                       filled: true,
                       hintText: context.l10n.searchHint,
                       contentPadding: EdgeInsets.zero,
-                      border: inputBorder,
+                      border:        inputBorder,
                       enabledBorder: inputBorder,
                       focusedBorder: inputBorder,
-                      hintStyle: TextStyle(color: ColorConstant.manatee),
-                      fillColor: context.theme.cardColor,
-                      prefixIcon: Icon(
-                        minimumzIcons.search,
-                        color: ColorConstant.manatee,
-                      ),
+                      hintStyle:  TextStyle(color: ColorConstant.manatee),
+                      fillColor:  context.theme.cardColor,
+                      prefixIcon: Icon(minimumzIcons.search,
+                          color: ColorConstant.manatee),
                     ),
                   ),
                 ),

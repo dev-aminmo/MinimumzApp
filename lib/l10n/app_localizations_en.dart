@@ -458,6 +458,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get searchFailed => 'Search failed';
 
   @override
+  String get recentSearches => 'Recent searches';
+
+  @override
+  String get recentlyViewed => 'Recently viewed';
+
+  @override
   String get clearWishlist => 'Clear Wishlist';
 
   @override
@@ -605,4 +611,138 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get itemsRemovedUnavailable =>
       'items removed from your cart as they\'re not available in your country';
+
+  @override
+  String get filters => 'Filters';
+
+  @override
+  String get filterAndSort => 'Filter & Sort';
+
+  @override
+  String get sortBy => 'Sort By';
+
+  @override
+  String get defaultSort => 'Default';
+
+  @override
+  String get newestFirst => 'Newest First';
+
+  @override
+  String get priceAscLabel => 'Price: Low to High';
+
+  @override
+  String get priceDescLabel => 'Price: High to Low';
+
+  @override
+  String get topRated => 'Top Rated';
+
+  @override
+  String get priceRange => 'Price Range';
+
+  @override
+  String get gender => 'Gender';
+
+  @override
+  String get male => 'Male';
+
+  @override
+  String get female => 'Female';
+
+  @override
+  String get unisex => 'Unisex';
+
+  @override
+  String get kids => 'Kids';
+
+  @override
+  String get brand => 'Brand';
+
+  @override
+  String get color => 'Color';
+
+  @override
+  String get ageRange => 'Age Range';
+
+  @override
+  String get minAge => 'Min Age';
+
+  @override
+  String get maxAge => 'Max Age';
+
+  @override
+  String get minPrice => 'Min';
+
+  @override
+  String get maxPrice => 'Max';
+
+  @override
+  String get applyFilters => 'Apply';
+
+  @override
+  String get clearFilters => 'Clear All';
+
+  @override
+  String activeFilters(int count) {
+    return '$count active';
+  }
+
+  @override
+  String get specifications => 'Specifications';
+
+  @override
+  String get specWeight => 'Weight';
+
+  @override
+  String get specDimensions => 'Dimensions';
+
+  @override
+  String get specAgeRange => 'Age Range';
+
+  @override
+  String specUpTo(String age) {
+    return 'Up to $age';
+  }
+
+  @override
+  String specAgeFrom(String min) {
+    return '$min+';
+  }
+
+  @override
+  String specAgeBetween(String min, String max) {
+    return '$min – $max';
+  }
+
+  @override
+  String ageYears(int n) {
+    return '${n}y';
+  }
+
+  @override
+  String ageMonths(int n) {
+    return '${n}m';
+  }
+
+  @override
+  String ageYearsMonths(int y, int m) {
+    return '${y}y ${m}m';
+  }
+
+  @override
+  String get tapToOpenVideo => 'Tap to open video';
+
+  @override
+  String get kgUnit => 'kg';
+
+  @override
+  String get cmUnit => 'cm';
+
+  @override
+  String get dimHeight => 'H';
+
+  @override
+  String get dimWidth => 'W';
+
+  @override
+  String get dimLength => 'L';
 }

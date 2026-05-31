@@ -168,6 +168,8 @@
   "searchThroughStore": "ابحث في المتجر",
   "noResultsFound": "لا توجد نتائج",
   "searchFailed": "فشل البحث",
+  "recentSearches": "عمليات البحث الأخيرة",
+  "recentlyViewed": "شوهدت مؤخراً",
 
   "clearWishlist": "مسح المفضلة",
   "removeAllFromWishlist": "هل تريد إزالة جميع العناصر من المفضلة؟",
@@ -223,5 +225,85 @@
   "mustPurchaseToReview": "فقط المشترون يمكنهم تقييم هذا المنتج.",
   "loginToReview": "يرجى تسجيل الدخول لإرسال تقييم.",
   "viewsCount": "مشاهدة",
-  "itemsRemovedUnavailable": "منتجات تمت إزالتها من سلتك لأنها غير متاحة في بلدك"
+  "itemsRemovedUnavailable": "منتجات تمت إزالتها من سلتك لأنها غير متاحة في بلدك",
+
+  "filters": "تصفية",
+  "filterAndSort": "تصفية وترتيب",
+  "sortBy": "ترتيب حسب",
+  "defaultSort": "الافتراضي",
+  "newestFirst": "الأحدث أولاً",
+  "priceAscLabel": "السعر: من الأقل للأعلى",
+  "priceDescLabel": "السعر: من الأعلى للأقل",
+  "topRated": "الأعلى تقييماً",
+  "bestSellers": "الأكثر مبيعاً",
+  "priceRange": "نطاق السعر",
+  "gender": "الجنس",
+  "male": "ذكر",
+  "female": "أنثى",
+  "unisex": "للجميع",
+  "kids": "أطفال",
+  "brand": "العلامة التجارية",
+  "color": "اللون",
+  "ageRange": "الفئة العمرية",
+  "minAge": "العمر الأدنى",
+  "maxAge": "العمر الأقصى",
+  "minPrice": "الأدنى",
+  "maxPrice": "الأقصى",
+  "applyFilters": "تطبيق",
+  "clearFilters": "مسح الكل",
+  "activeFilters": "{count} نشط",
+  "@activeFilters": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+
+  "specifications": "المواصفات",
+  "specWeight": "الوزن",
+  "specDimensions": "الأبعاد",
+  "specAgeRange": "الفئة العمرية",
+  "specUpTo": "حتى {age}",
+  "@specUpTo": {
+    "placeholders": {
+      "age": { "type": "String" }
+    }
+  },
+  "specAgeFrom": "{min}+",
+  "@specAgeFrom": {
+    "placeholders": {
+      "min": { "type": "String" }
+    }
+  },
+  "specAgeBetween": "{min} – {max}",
+  "@specAgeBetween": {
+    "placeholders": {
+      "min": { "type": "String" },
+      "max": { "type": "String" }
+    }
+  },
+  "ageYears": "{n}س",
+  "@ageYears": {
+    "placeholders": {
+      "n": { "type": "int" }
+    }
+  },
+  "ageMonths": "{n}ش",
+  "@ageMonths": {
+    "placeholders": {
+      "n": { "type": "int" }
+    }
+  },
+  "ageYearsMonths": "{y}س {m}ش",
+  "@ageYearsMonths": {
+    "placeholders": {
+      "y": { "type": "int" },
+      "m": { "type": "int" }
+    }
+  },
+  "tapToOpenVideo": "اضغط لفتح الفيديو",
+  "kgUnit": "كغ",
+  "cmUnit": "سم",
+  "dimHeight": "ع",
+  "dimWidth": "ط",
+  "dimLength": "ط"
 }

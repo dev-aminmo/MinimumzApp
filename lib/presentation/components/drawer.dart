@@ -50,7 +50,9 @@ class _DrawerWidgetState extends State<DrawerWidget> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Column(
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Padding(
@@ -197,10 +199,20 @@ class _DrawerWidgetState extends State<DrawerWidget> {
                       onTap: () {
                         Scaffold.of(context).closeDrawer();
                         AutoTabsRouter.of(dashboardScaffoldKey.currentContext!)
-                            .setActiveIndex(1);
+                            .setActiveIndex(2);
                       },
                       contentPadding: contentPadding,
                       title: Text(context.l10n.wishlist),
+                      horizontalTitleGap: 10.0,
+                    ),
+                    ListTile(
+                      leading: const Icon(minimumzIcons.clock),
+                      onTap: () {
+                        Scaffold.of(context).closeDrawer();
+                        context.pushRoute(const RecentlyViewedRoute());
+                      },
+                      contentPadding: contentPadding,
+                      title: Text(context.l10n.recentlyViewed),
                       horizontalTitleGap: 10.0,
                     ),
                     ListTile(
@@ -211,6 +223,8 @@ class _DrawerWidgetState extends State<DrawerWidget> {
                       horizontalTitleGap: 10.0,
                     ),
                   ],
+                ),
+                  ),
                 ),
                 Column(
                   children: [

@@ -459,6 +459,12 @@ class AppLocalizationsAr extends AppLocalizations {
   String get searchFailed => 'فشل البحث';
 
   @override
+  String get recentSearches => 'عمليات البحث الأخيرة';
+
+  @override
+  String get recentlyViewed => 'شوهدت مؤخراً';
+
+  @override
   String get clearWishlist => 'مسح المفضلة';
 
   @override
@@ -603,4 +609,138 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get itemsRemovedUnavailable =>
       'منتجات تمت إزالتها من سلتك لأنها غير متاحة في بلدك';
+
+  @override
+  String get filters => 'تصفية';
+
+  @override
+  String get filterAndSort => 'تصفية وترتيب';
+
+  @override
+  String get sortBy => 'ترتيب حسب';
+
+  @override
+  String get defaultSort => 'الافتراضي';
+
+  @override
+  String get newestFirst => 'الأحدث أولاً';
+
+  @override
+  String get priceAscLabel => 'السعر: من الأقل للأعلى';
+
+  @override
+  String get priceDescLabel => 'السعر: من الأعلى للأقل';
+
+  @override
+  String get topRated => 'الأعلى تقييماً';
+
+  @override
+  String get priceRange => 'نطاق السعر';
+
+  @override
+  String get gender => 'الجنس';
+
+  @override
+  String get male => 'ذكر';
+
+  @override
+  String get female => 'أنثى';
+
+  @override
+  String get unisex => 'للجميع';
+
+  @override
+  String get kids => 'أطفال';
+
+  @override
+  String get brand => 'العلامة التجارية';
+
+  @override
+  String get color => 'اللون';
+
+  @override
+  String get ageRange => 'الفئة العمرية';
+
+  @override
+  String get minAge => 'العمر الأدنى';
+
+  @override
+  String get maxAge => 'العمر الأقصى';
+
+  @override
+  String get minPrice => 'الأدنى';
+
+  @override
+  String get maxPrice => 'الأقصى';
+
+  @override
+  String get applyFilters => 'تطبيق';
+
+  @override
+  String get clearFilters => 'مسح الكل';
+
+  @override
+  String activeFilters(int count) {
+    return '$count نشط';
+  }
+
+  @override
+  String get specifications => 'المواصفات';
+
+  @override
+  String get specWeight => 'الوزن';
+
+  @override
+  String get specDimensions => 'الأبعاد';
+
+  @override
+  String get specAgeRange => 'الفئة العمرية';
+
+  @override
+  String specUpTo(String age) {
+    return 'حتى $age';
+  }
+
+  @override
+  String specAgeFrom(String min) {
+    return '$min+';
+  }
+
+  @override
+  String specAgeBetween(String min, String max) {
+    return '$min – $max';
+  }
+
+  @override
+  String ageYears(int n) {
+    return '$nس';
+  }
+
+  @override
+  String ageMonths(int n) {
+    return '$nش';
+  }
+
+  @override
+  String ageYearsMonths(int y, int m) {
+    return '$yس $mش';
+  }
+
+  @override
+  String get tapToOpenVideo => 'اضغط لفتح الفيديو';
+
+  @override
+  String get kgUnit => 'كغ';
+
+  @override
+  String get cmUnit => 'سم';
+
+  @override
+  String get dimHeight => 'ع';
+
+  @override
+  String get dimWidth => 'ط';
+
+  @override
+  String get dimLength => 'ط';
 }

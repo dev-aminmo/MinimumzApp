@@ -7,6 +7,8 @@ import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
 import 'package:minimumz/common/extensions/extensions.dart';
 import 'package:minimumz/cubits/wishlist/wishlist_cubit.dart';
 import 'package:minimumz/data/data.dart';
+import 'package:minimumz/di/di.dart';
+import 'package:minimumz/domain/repository/preference_repository.dart';
 
 import '../../common/colors.dart';
 import '../components/index.dart';
@@ -35,6 +37,27 @@ class _WishlistScreenState extends State<WishlistScreen> {
     super.initState();
     _allProducts = List<Product>.from(context.read<WishlistCubit>().state);
     _pagingController.addPageRequestListener(_loadPage);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _refreshPrices());
+  }
+
+  Future<void> _refreshPrices() async {
+    final ids = context.read<WishlistCubit>().state
+        .map((p) => p.id)
+        .whereType<String>()
+        .toList();
+    if (ids.isEmpty) return;
+    final countryId = PreferenceRepository.instance.country?.id;
+    try {
+      final result = await getIt<DataStore>().products.list(queryParams: {
+        'id[]': ids,
+        'limit': ids.length,
+        if (countryId != null) 'country_id': countryId,
+      });
+      final refreshed = result?.products ?? [];
+      if (refreshed.isNotEmpty && mounted) {
+        context.read<WishlistCubit>().refreshPrices(refreshed);
+      }
+    } catch (_) {}
   }
 
   void _loadPage(int pageKey) {
@@ -166,7 +189,7 @@ class _WishlistScreenState extends State<WishlistScreen> {
                         gridDelegate:
                             const SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: 2,
-                          mainAxisExtent: 280,
+                          mainAxisExtent: 295,
                           crossAxisSpacing: 12,
                           mainAxisSpacing: 12,
                         ),

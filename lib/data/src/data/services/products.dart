@@ -1,5 +1,7 @@
 import 'dart:developer';
 
+import 'package:minimumz/data/src/data/models/store/products/product.dart';
+
 import '../models/request/index.dart';
 import '../models/response/index.dart';
 import 'base.dart';
@@ -38,13 +40,15 @@ class ProductsResource extends BaseResource {
   /// @param customHeaders
   /// @return {ResponsePromise<StoreProductsRes>}
   Future<StoreProductsRes?> retrieve(String id,
-      {Map<String, dynamic>? customHeaders}) async {
+      {Map<String, dynamic>? queryParams,
+      Map<String, dynamic>? customHeaders}) async {
     try {
       if (customHeaders != null) {
         client.options.headers.addAll(customHeaders);
       }
       final response = await client.get(
         '/store/products/$id',
+        queryParameters: queryParams,
       );
       if (response.statusCode == 200) {
         return StoreProductsRes.fromJson(response.data);
@@ -55,6 +59,52 @@ class ProductsResource extends BaseResource {
       log(error.toString(),stackTrace:stackTrace);
       rethrow;
     }
+  }
+
+  /// @description Fetches recently viewed products for the logged-in user (server-side)
+  Future<List<Product>> fetchRecentlyViewed({int? countryId}) async {
+    try {
+      final response = await client.get(
+        '/store/recently-viewed',
+        queryParameters: {
+          if (countryId != null) 'country_id': countryId,
+        },
+      );
+      if (response.statusCode == 200) {
+        final list = response.data['products'] as List? ?? [];
+        return list.map((e) => Product.fromJson(e as Map<String, dynamic>)).toList();
+      }
+    } catch (_) {}
+    return [];
+  }
+
+  /// @description Fetches search suggestions (products + categories)
+  Future<Map<String, dynamic>?> suggestions(
+    String query, {
+    List<String> viewedIds = const [],
+    List<String> wishlistIds = const [],
+  }) async {
+    try {
+      final response = await client.get(
+        '/suggestions',
+        queryParameters: {
+          'query': query,
+          if (viewedIds.isNotEmpty)   'viewed_ids':   viewedIds.join(','),
+          if (wishlistIds.isNotEmpty) 'wishlist_ids': wishlistIds.join(','),
+        },
+      );
+      if (response.statusCode == 200) return response.data as Map<String, dynamic>;
+    } catch (_) {}
+    return null;
+  }
+
+  /// @description Fetches available filter options (brands, colors, genders, price range)
+  Future<Map<String, dynamic>?> fetchFilters() async {
+    try {
+      final response = await client.get('/store/filters');
+      if (response.statusCode == 200) return response.data as Map<String, dynamic>;
+    } catch (_) {}
+    return null;
   }
 
   /// @description Searches for products

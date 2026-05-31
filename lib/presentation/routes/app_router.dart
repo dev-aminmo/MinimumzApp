@@ -36,6 +36,7 @@ class AppRouter extends _$AppRouter {
         AutoRoute(page: AddressBookRoute.page),
         AutoRoute(page: SettingsRoute.page),
         AutoRoute(page: NotificationsRoute.page),
+        AutoRoute(page: RecentlyViewedRoute.page),
         AutoRoute(
           page: DashboardRoute.page,
           children: [

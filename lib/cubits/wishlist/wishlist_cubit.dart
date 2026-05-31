@@ -19,4 +19,14 @@ class WishlistCubit extends Cubit<List<Product>> {
     await PreferenceRepository.instance.setWishlistProducts(updated);
     emit(List.unmodifiable(updated));
   }
+
+  /// Replaces stored products with freshly fetched ones (updated prices).
+  /// Products missing from [refreshed] keep their existing data.
+  Future<void> refreshPrices(List<Product> refreshed) async {
+    if (refreshed.isEmpty) return;
+    final byId = {for (final p in refreshed) p.id: p};
+    final updated = state.map((p) => byId[p.id] ?? p).toList();
+    await PreferenceRepository.instance.setWishlistProducts(updated);
+    emit(List.unmodifiable(updated));
+  }
 }

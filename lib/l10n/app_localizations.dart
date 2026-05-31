@@ -986,6 +986,18 @@ abstract class AppLocalizations {
   /// **'Search failed'**
   String get searchFailed;
 
+  /// No description provided for @recentSearches.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent searches'**
+  String get recentSearches;
+
+  /// No description provided for @recentlyViewed.
+  ///
+  /// In en, this message translates to:
+  /// **'Recently viewed'**
+  String get recentlyViewed;
+
   /// No description provided for @clearWishlist.
   ///
   /// In en, this message translates to:
@@ -1273,6 +1285,246 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'items removed from your cart as they\'re not available in your country'**
   String get itemsRemovedUnavailable;
+
+  /// No description provided for @filters.
+  ///
+  /// In en, this message translates to:
+  /// **'Filters'**
+  String get filters;
+
+  /// No description provided for @filterAndSort.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter & Sort'**
+  String get filterAndSort;
+
+  /// No description provided for @sortBy.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort By'**
+  String get sortBy;
+
+  /// No description provided for @defaultSort.
+  ///
+  /// In en, this message translates to:
+  /// **'Default'**
+  String get defaultSort;
+
+  /// No description provided for @newestFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Newest First'**
+  String get newestFirst;
+
+  /// No description provided for @priceAscLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Price: Low to High'**
+  String get priceAscLabel;
+
+  /// No description provided for @priceDescLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Price: High to Low'**
+  String get priceDescLabel;
+
+  /// No description provided for @topRated.
+  ///
+  /// In en, this message translates to:
+  /// **'Top Rated'**
+  String get topRated;
+
+  /// No description provided for @priceRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Price Range'**
+  String get priceRange;
+
+  /// No description provided for @gender.
+  ///
+  /// In en, this message translates to:
+  /// **'Gender'**
+  String get gender;
+
+  /// No description provided for @male.
+  ///
+  /// In en, this message translates to:
+  /// **'Male'**
+  String get male;
+
+  /// No description provided for @female.
+  ///
+  /// In en, this message translates to:
+  /// **'Female'**
+  String get female;
+
+  /// No description provided for @unisex.
+  ///
+  /// In en, this message translates to:
+  /// **'Unisex'**
+  String get unisex;
+
+  /// No description provided for @kids.
+  ///
+  /// In en, this message translates to:
+  /// **'Kids'**
+  String get kids;
+
+  /// No description provided for @brand.
+  ///
+  /// In en, this message translates to:
+  /// **'Brand'**
+  String get brand;
+
+  /// No description provided for @color.
+  ///
+  /// In en, this message translates to:
+  /// **'Color'**
+  String get color;
+
+  /// No description provided for @ageRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Age Range'**
+  String get ageRange;
+
+  /// No description provided for @minAge.
+  ///
+  /// In en, this message translates to:
+  /// **'Min Age'**
+  String get minAge;
+
+  /// No description provided for @maxAge.
+  ///
+  /// In en, this message translates to:
+  /// **'Max Age'**
+  String get maxAge;
+
+  /// No description provided for @minPrice.
+  ///
+  /// In en, this message translates to:
+  /// **'Min'**
+  String get minPrice;
+
+  /// No description provided for @maxPrice.
+  ///
+  /// In en, this message translates to:
+  /// **'Max'**
+  String get maxPrice;
+
+  /// No description provided for @applyFilters.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply'**
+  String get applyFilters;
+
+  /// No description provided for @clearFilters.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear All'**
+  String get clearFilters;
+
+  /// No description provided for @activeFilters.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} active'**
+  String activeFilters(int count);
+
+  /// No description provided for @specifications.
+  ///
+  /// In en, this message translates to:
+  /// **'Specifications'**
+  String get specifications;
+
+  /// No description provided for @specWeight.
+  ///
+  /// In en, this message translates to:
+  /// **'Weight'**
+  String get specWeight;
+
+  /// No description provided for @specDimensions.
+  ///
+  /// In en, this message translates to:
+  /// **'Dimensions'**
+  String get specDimensions;
+
+  /// No description provided for @specAgeRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Age Range'**
+  String get specAgeRange;
+
+  /// No description provided for @specUpTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Up to {age}'**
+  String specUpTo(String age);
+
+  /// No description provided for @specAgeFrom.
+  ///
+  /// In en, this message translates to:
+  /// **'{min}+'**
+  String specAgeFrom(String min);
+
+  /// No description provided for @specAgeBetween.
+  ///
+  /// In en, this message translates to:
+  /// **'{min} – {max}'**
+  String specAgeBetween(String min, String max);
+
+  /// No description provided for @ageYears.
+  ///
+  /// In en, this message translates to:
+  /// **'{n}y'**
+  String ageYears(int n);
+
+  /// No description provided for @ageMonths.
+  ///
+  /// In en, this message translates to:
+  /// **'{n}m'**
+  String ageMonths(int n);
+
+  /// No description provided for @ageYearsMonths.
+  ///
+  /// In en, this message translates to:
+  /// **'{y}y {m}m'**
+  String ageYearsMonths(int y, int m);
+
+  /// No description provided for @tapToOpenVideo.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to open video'**
+  String get tapToOpenVideo;
+
+  /// No description provided for @kgUnit.
+  ///
+  /// In en, this message translates to:
+  /// **'kg'**
+  String get kgUnit;
+
+  /// No description provided for @cmUnit.
+  ///
+  /// In en, this message translates to:
+  /// **'cm'**
+  String get cmUnit;
+
+  /// No description provided for @dimHeight.
+  ///
+  /// In en, this message translates to:
+  /// **'H'**
+  String get dimHeight;
+
+  /// No description provided for @dimWidth.
+  ///
+  /// In en, this message translates to:
+  /// **'W'**
+  String get dimWidth;
+
+  /// No description provided for @dimLength.
+  ///
+  /// In en, this message translates to:
+  /// **'L'**
+  String get dimLength;
 }
 
 class _AppLocalizationsDelegate

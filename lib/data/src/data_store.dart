@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
 import 'package:minimumz/common/doh_client.dart';
+import 'package:sentry_dio/sentry_dio.dart';
 import 'data/services/index.dart';
 
 class DataStore {
@@ -55,6 +56,8 @@ class DataStore {
     interceptors?.forEach((element) {
       dio.interceptors.add(element);
     });
+
+    dio.addSentry();
 
     return DataStore._(
       baseUrl: baseUrl,

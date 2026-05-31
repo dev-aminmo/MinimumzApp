@@ -240,6 +240,70 @@ class PreferenceRepository {
   Future<void> setNotificationsEnabled(bool value) async =>
       await _prefs.setBool(_notificationsKey, value);
 
+  // ── Recently viewed ──────────────────────────────────────────────────────────
+  static const String _recentlyViewedKey = 'recently_viewed';
+  static const int _maxRecentlyViewed = 20;
+
+  List<Map<String, dynamic>> get recentlyViewed {
+    try {
+      final list = _prefs.getStringList(_recentlyViewedKey) ?? [];
+      return list.map((s) => jsonDecode(s) as Map<String, dynamic>).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  List<String> get recentlyViewedIds =>
+      recentlyViewed.map((m) => m['id'] as String? ?? '').where((id) => id.isNotEmpty).toList();
+
+  Future<void> addRecentlyViewed({
+    required String id,
+    required String title,
+    String? thumbnail,
+  }) async {
+    final current = recentlyViewed.where((m) => m['id'] != id).toList();
+    current.insert(0, {
+      'id': id,
+      'title': title,
+      if (thumbnail != null) 'thumbnail': thumbnail,
+    });
+    await _prefs.setStringList(
+      _recentlyViewedKey,
+      current.take(_maxRecentlyViewed).map((m) => jsonEncode(m)).toList(),
+    );
+  }
+
+  // ── Search history ────────────────────────────────────────────────────────────
+  static const String _searchHistoryKey = 'search_history';
+  static const int _maxHistoryItems = 10;
+
+  List<String> get searchHistory {
+    try {
+      return _prefs.getStringList(_searchHistoryKey) ?? [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<void> addSearchHistory(String query) async {
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) return;
+    final history = searchHistory.where((q) => q != trimmed).toList();
+    history.insert(0, trimmed);
+    await _prefs.setStringList(
+      _searchHistoryKey,
+      history.take(_maxHistoryItems).toList(),
+    );
+  }
+
+  Future<void> removeSearchHistory(String query) async {
+    final history = searchHistory.where((q) => q != query).toList();
+    await _prefs.setStringList(_searchHistoryKey, history);
+  }
+
+  Future<void> clearSearchHistory() async =>
+      await _prefs.remove(_searchHistoryKey);
+
   Future<void> setWishlistProducts(List<Product> products) async {
     await _prefs.setString(
       _wishlistKey,

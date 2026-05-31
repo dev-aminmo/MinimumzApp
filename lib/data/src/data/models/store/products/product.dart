@@ -121,6 +121,12 @@ class Product  {
   /// Number of unique session views
   final int viewsCount;
 
+  /// Minimum age in months (null = no restriction)
+  final int? ageMin;
+
+  /// Maximum age in months (null = no restriction)
+  final int? ageMax;
+
   const Product({
     this.id,
     this.title,
@@ -160,6 +166,8 @@ class Product  {
     this.viewsCount = 0,
     this.translations,
     this.videoUrl,
+    this.ageMin,
+    this.ageMax,
   });
 
   String? localizedTitle(String locale) {
@@ -240,6 +248,8 @@ class Product  {
       viewsCount: (json['views_count'] as num?)?.toInt() ?? 0,
       translations: json['translations'] as Map<String, dynamic>?,
       videoUrl: json['video_url'] as String?,
+      ageMin: (json['age_min'] as num?)?.toInt(),
+      ageMax: (json['age_max'] as num?)?.toInt(),
     );
   }
 
@@ -375,6 +385,8 @@ class Product  {
     json['reviews_count'] = reviewsCount;
     json['views_count'] = viewsCount;
     if (videoUrl != null) json['video_url'] = videoUrl;
+    if (ageMin != null) json['age_min'] = ageMin;
+    if (ageMax != null) json['age_max'] = ageMax;
     return json;
   }
 }

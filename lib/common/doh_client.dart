@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:sentry_flutter/sentry_flutter.dart';
+
 bool _isIpV4(String s) {
   final parts = s.split('.');
   if (parts.length != 4) return false;
@@ -83,14 +85,33 @@ Future<String> dohResolve(String hostname) async {
   final cached = _ipCache[hostname];
   if (cached != null && now.isBefore(cached.expiry)) return cached.ip;
   try {
+    Sentry.addBreadcrumb(Breadcrumb(
+      message: 'DoH resolve: $hostname',
+      category: 'doh',
+      level: SentryLevel.info,
+      timestamp: now,
+    ));
     final ip = await Future.any([
       _fetchDoh('https://cloudflare-dns.com/dns-query', hostname, connectIp: '1.1.1.1'),
       _fetchDoh('https://dns.alidns.com/resolve', hostname, connectIp: '223.5.5.5'),
       _fetchDoh('https://dns.google/resolve', hostname, connectIp: '8.8.8.8'),
     ]).timeout(const Duration(seconds: 8));
     _ipCache[hostname] = (ip: ip, expiry: now.add(const Duration(minutes: 5)));
+    Sentry.addBreadcrumb(Breadcrumb(
+      message: 'DoH resolved $hostname → $ip',
+      category: 'doh',
+      level: SentryLevel.info,
+      data: {'hostname': hostname, 'ip': ip},
+    ));
     return ip;
-  } catch (_) {
+  } catch (e, s) {
+    Sentry.addBreadcrumb(Breadcrumb(
+      message: 'DoH failed for $hostname: $e',
+      category: 'doh',
+      level: SentryLevel.warning,
+      data: {'hostname': hostname, 'error': e.toString()},
+    ));
+    await Sentry.captureException(e, stackTrace: s);
     return hostname;
   }
 }

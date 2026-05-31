@@ -31,10 +31,17 @@ class ProductCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final locale = context.watch<LocaleCubit>().state.languageCode;
     final currencyCode = PreferenceRepository.currencyCode.toUpperCase();
-    final allPrices = (product.variants ?? [])
+    final allMoneyAmounts = (product.variants ?? [])
         .expand((v) => v.prices ?? <MoneyAmount>[])
-        .where((p) => p.currencyCode?.toUpperCase() == currencyCode && p.amount != null)
+        .where((p) => p.amount != null)
         .toList();
+
+    // Prefer user's currency; fall back to any available price so product never shows blank
+    final currencyMatches = allMoneyAmounts.where((p) => p.currencyCode?.toUpperCase() == currencyCode).toList();
+    final allPrices       = currencyMatches.isNotEmpty ? currencyMatches : allMoneyAmounts;
+    final effectiveCurrency = currencyMatches.isNotEmpty
+        ? currencyCode
+        : (allMoneyAmounts.firstOrNull?.currencyCode?.toUpperCase() ?? currencyCode);
 
     final price = allPrices.isEmpty
         ? null
@@ -111,7 +118,7 @@ class ProductCard extends StatelessWidget {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
-                                price.formatAsPrice(currencyCode),
+                                price.formatAsPrice(effectiveCurrency),
                                 style: context.bodySmallW500?.copyWith(
                                   color: ColorConstant.brownDark,
                                 ),
@@ -120,7 +127,7 @@ class ProductCard extends StatelessWidget {
                               ),
                               if (compareAt != null)
                                 Text(
-                                  compareAt.formatAsPrice(currencyCode),
+                                  compareAt.formatAsPrice(effectiveCurrency),
                                   style: context.bodyExtraSmall?.copyWith(
                                     color: ColorConstant.manatee,
                                     decoration: TextDecoration.lineThrough,

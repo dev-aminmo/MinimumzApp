@@ -1,0 +1,21 @@
+default_platform(:android)
+
+platform :android do
+  desc "Build release APK and distribute via Firebase App Distribution"
+  lane :distribute do |options|
+    number_file = File.expand_path("build_number.txt", __dir__)
+    build_number = File.read(number_file).strip.to_i + 1
+    File.write(number_file, build_number.to_s)
+
+    sh("flutter build apk --release --build-number=#{build_number}", chdir: "..")
+
+    notes = options[:notes] || `git log -1 --format=%s`.strip
+
+    firebase_app_distribution(
+      app:           "1:731924447077:android:512896cc80a44691666b8c",
+      apk_path:      "build/app/outputs/flutter-apk/app-release.apk",
+      groups:        "minitest",
+      release_notes: notes
+    )
+  end
+end

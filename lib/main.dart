@@ -1,5 +1,7 @@
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:minimumz/services/notification_service.dart';
@@ -31,26 +33,38 @@ Future<bool> ping(String host) async {
     print('Status: ${response.statusCode}');
     client.close(force: true);
     return response.statusCode > 0;
-  } catch (e) {
-    print('error ping $e');
+  } catch (e, s) {
+    await Sentry.captureException(e, stackTrace: s);
     return false;
   }
 }
 var host='https://darkorchid-mouse-412686.hostingersite.com';
 Future<void> main() async {
-  final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
-  // Keep splash visible while DI and auth state load
-  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
-  ping(host);
-  Bloc.observer = MyBlocObserver();
-  await Firebase.initializeApp();
-  await NotificationService.instance.init();
-  await configureInjection();
+  await SentryFlutter.init(
+    (options) {
+      if(!kDebugMode) {
+        options.dsn =
+        'https://5815bdbfe2036e14560c72f3c20a4c52@o4511479315890176.ingest.de.sentry.io/4511479317266512';
+      }else{
+        options.dsn="";
 
-  // Splash is dismissed as soon as Flutter draws its first frame
-  FlutterNativeSplash.remove();
-
-  runApp(const minimumzApp());
+      }
+      options.tracesSampleRate = 1.0;
+      options.environment = 'production';
+      options.enableLogs = true;
+    },
+    appRunner: () async {
+      final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+      FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+      ping(host);
+      Bloc.observer = MyBlocObserver();
+      await Firebase.initializeApp();
+      await NotificationService.instance.init();
+      await configureInjection();
+      FlutterNativeSplash.remove();
+      runApp(const minimumzApp());
+    },
+  );
 }
 
 class minimumzApp extends StatelessWidget {
@@ -75,8 +89,7 @@ class minimumzApp extends StatelessWidget {
         ),
         BlocProvider<CollectionsBloc>(
           create: (_) => CollectionsBloc.instance
-            ..add(const CollectionsEvent.retrieveCollections(
-                queryParameters: {'limit': 4})),
+            ..add(const CollectionsEvent.retrieveCollections()),
         ),
         BlocProvider<RegionBloc>(
           create: (_) =>

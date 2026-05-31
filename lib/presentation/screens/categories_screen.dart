@@ -126,16 +126,15 @@ class _CategoryCard extends StatelessWidget {
               height: 50,
               decoration: BoxDecoration(
                 color: ColorConstant.primary.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(12),
+                shape: BoxShape.circle,
                 border: Border.all(
                   color: ColorConstant.primary.withValues(alpha: 0.15),
                 ),
               ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(11),
+              child: ClipOval(
                 child: collection.logo != null
                     ? CachedNetworkImage(
-          cacheManager: DohCacheManager.instance,
+                        cacheManager: DohCacheManager.instance,
                         imageUrl: collection.logo!,
                         width: 50,
                         height: 50,
