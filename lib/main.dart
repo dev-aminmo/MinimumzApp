@@ -20,25 +20,9 @@ import 'package:minimumz/presentation/routes/app_router.dart';
 import 'package:minimumz/presentation/screens/home/bloc/collections/collections_bloc.dart';
 import 'package:minimumz/presentation/screens/home/bloc/products/products_bloc.dart';
 import 'package:minimumz/presentation/theme/theme.dart';
-import 'package:minimumz/common/doh_client.dart';
 import 'di/di.dart';
 import 'observer.dart';
 
-Future<bool> ping(String host) async {
-  try {
-    final client = makeDohHttpClient();
-    final request = await client.getUrl(Uri.parse(host));
-    request.headers.set('User-Agent', 'Mozilla/5.0');
-    final response = await request.close();
-    print('Status: ${response.statusCode}');
-    client.close(force: true);
-    return response.statusCode > 0;
-  } catch (e, s) {
-    await Sentry.captureException(e, stackTrace: s);
-    return false;
-  }
-}
-var host='https://darkorchid-mouse-412686.hostingersite.com';
 Future<void> main() async {
   await SentryFlutter.init(
     (options) {
@@ -56,7 +40,6 @@ Future<void> main() async {
     appRunner: () async {
       final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
       FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
-      ping(host);
       Bloc.observer = MyBlocObserver();
       await Firebase.initializeApp();
       await NotificationService.instance.init();

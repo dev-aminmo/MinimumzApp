@@ -57,6 +57,13 @@ class _CartScreenState extends State<CartScreen> {
     final cartId = cart.id;
     if (cartId == null) return;
 
+    // Guest users must log in before checking out
+    if (getIt<PreferenceRepository>().isGuest) {
+      await context.router.push(const SignInRoute());
+      // After returning, the auth bloc will reload the cart if login succeeded
+      return;
+    }
+
     if (cart.shippingAddress == null) {
       _showAddressSheet(context, cart);
       return;

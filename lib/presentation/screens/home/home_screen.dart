@@ -910,53 +910,52 @@ class _NewArrivalState extends State<NewArrival> {
 
   final PagingController<int, Product> _pagingController =
       PagingController(firstPageKey: 0);
-  late ProductsBloc productsBloc;
-  int loadedProductsCount = 0;
+  int _loadedCount = 0;
   ProductFilter _filter = ProductFilter.empty;
 
   @override
   void initState() {
-    productsBloc = context.read<ProductsBloc>();
-    _pagingController.addPageRequestListener(_requestPage);
     super.initState();
+    _pagingController.addPageRequestListener(_fetchPage);
   }
 
-  void _requestPage(int pageKey) {
-    productsBloc.add(ProductsEvent.loadProducts(queryParameters: {
-      'offset': pageKey,
-      'limit': _pageSize,
-      ..._filter.toQueryParams(),
-    }));
+  @override
+  void dispose() {
+    _pagingController.dispose();
+    super.dispose();
   }
 
-  void _loaded(List<Product> products, int? limit, int? count, int? offset) {
-    loadedProductsCount += products.length;
-    final isLastPage = products.length < _pageSize;
-    if (isLastPage) {
-      _pagingController.appendLastPage(products);
-    } else {
-      _pagingController.appendPage(products, loadedProductsCount);
+  Future<void> _fetchPage(int offset) async {
+    final countryId = PreferenceRepository.instance.country?.id;
+    try {
+      final res = await getIt<DataStore>().products.list(queryParams: {
+        'offset': offset,
+        'limit': _pageSize,
+        'sort': 'created_at',
+        if (countryId != null) 'country_id': countryId,
+        ..._filter.toQueryParams(),
+      });
+      final products = res?.products ?? [];
+      if (!mounted) return;
+      _loadedCount += products.length;
+      final isLast = products.length < _pageSize;
+      if (isLast) {
+        _pagingController.appendLastPage(products);
+      } else {
+        _pagingController.appendPage(products, _loadedCount);
+      }
+      if (mounted) setState(() {});
+    } catch (e) {
+      _pagingController.error = e.toString();
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return BlocConsumer<ProductsBloc, ProductsState>(
-      listener: (context, state) {
-        state.whenOrNull(
-          loading: () {
-            loadedProductsCount = 0;
-            _pagingController.refresh();
-          },
-          loaded: _loaded,
-          error: (error) => _pagingController.error = error,
-        );
-      },
-      builder: (context, state) {
-        final label = loadedProductsCount != 0
-            ? '${context.l10n.newArrival} ($loadedProductsCount)'
-            : context.l10n.newArrival;
-        return MultiSliver(
+    final label = _loadedCount != 0
+        ? '${context.l10n.newArrival} ($_loadedCount)'
+        : context.l10n.newArrival;
+    return MultiSliver(
           children: [
             SliverToBoxAdapter(
               child: Row(
@@ -969,7 +968,7 @@ class _NewArrivalState extends State<NewArrival> {
                       if (result != null && mounted) {
                         setState(() {
                           _filter = _filter.copyWith(sortBy: result.isEmpty ? null : result);
-                          loadedProductsCount = 0;
+                          _loadedCount = 0;
                         });
                         _pagingController.refresh();
                       }
@@ -1005,7 +1004,7 @@ class _NewArrivalState extends State<NewArrival> {
                         if (result != null && mounted) {
                           setState(() {
                             _filter = result;
-                            loadedProductsCount = 0;
+                            _loadedCount = 0;
                           });
                           _pagingController.refresh();
                         }
@@ -1069,8 +1068,6 @@ class _NewArrivalState extends State<NewArrival> {
               ),
             ),
           ],
-        );
-      },
     );
   }
 }
@@ -1183,6 +1180,27 @@ class _ApiPingBannerState extends State<_ApiPingBanner> {
     });
   }
 
+  Future<void> _copyError() async {
+    final buf = StringBuffer();
+    buf.writeln('API Health Check — FAIL');
+    buf.writeln('Status : ${_statusCode ?? '—'}');
+    if (_errorMessage != null) buf.writeln('Error  : $_errorMessage');
+    if (_trace.isNotEmpty) {
+      buf.writeln('Trace  :');
+      for (final line in _trace) buf.writeln('  $line');
+    }
+    if (_body != null) {
+      buf.writeln('Body   :');
+      buf.writeln(const JsonEncoder.withIndent('  ').convert(_body));
+    }
+    await Clipboard.setData(ClipboardData(text: buf.toString().trim()));
+    if (!mounted) return;
+    setState(() => _copied = true);
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) setState(() => _copied = false);
+    });
+  }
+
   Widget _buildBodyBox({
     required Color color,
     required Color bgColor,
@@ -1280,6 +1298,18 @@ class _ApiPingBannerState extends State<_ApiPingBanner> {
                       Text(
                         '$_durationMs ms',
                         style: TextStyle(fontSize: 11, color: color.withValues(alpha: 0.7)),
+                      ),
+                      const Gap(8),
+                    ],
+                    if (_status == _PingStatus.fail) ...[
+                      GestureDetector(
+                        onTap: _copyError,
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 200),
+                          child: _copied
+                              ? Icon(Icons.check_rounded, key: const ValueKey('ok'), size: 18, color: color)
+                              : Icon(Icons.copy_rounded, key: const ValueKey('copy'), size: 18, color: color.withValues(alpha: 0.6)),
+                        ),
                       ),
                       const Gap(8),
                     ],

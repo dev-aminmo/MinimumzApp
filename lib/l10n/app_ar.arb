@@ -305,5 +305,9 @@
   "cmUnit": "سم",
   "dimHeight": "ع",
   "dimWidth": "ط",
-  "dimLength": "ط"
+  "dimLength": "ط",
+  "photos": "الصور",
+  "addPhoto": "إضافة صورة",
+  "gallery": "المعرض",
+  "camera": "الكاميرا"
 }

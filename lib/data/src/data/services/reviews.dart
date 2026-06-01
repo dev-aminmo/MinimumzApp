@@ -1,4 +1,5 @@
 import 'dart:developer';
+import 'package:dio/dio.dart';
 import 'base.dart';
 
 class ReviewItem {
@@ -7,6 +8,7 @@ class ReviewItem {
   final double rating;
   final String comment;
   final String? createdAt;
+  final List<String> images;
 
   const ReviewItem({
     required this.id,
@@ -14,6 +16,7 @@ class ReviewItem {
     required this.rating,
     required this.comment,
     this.createdAt,
+    this.images = const [],
   });
 
   factory ReviewItem.fromJson(Map<String, dynamic> json) => ReviewItem(
@@ -22,6 +25,7 @@ class ReviewItem {
         rating: (json['rating'] as num).toDouble(),
         comment: (json['comment'] as String?) ?? '',
         createdAt: json['created_at'] as String?,
+        images: (json['images'] as List?)?.map((e) => e.toString()).toList() ?? [],
       );
 }
 
@@ -73,15 +77,22 @@ class ReviewsResource extends BaseResource {
     required String reviewerName,
     required String comment,
     required int rating,
+    List<String> imagePaths = const [],
   }) async {
     try {
+      final formData = FormData();
+      formData.fields.add(MapEntry('reviewer_name', reviewerName));
+      formData.fields.add(MapEntry('comment', comment));
+      formData.fields.add(MapEntry('rating', rating.toString()));
+      for (final path in imagePaths) {
+        formData.files.add(MapEntry(
+          'images[]',
+          await MultipartFile.fromFile(path),
+        ));
+      }
       final response = await client.post(
         '/store/products/$productId/reviews',
-        data: {
-          'reviewer_name': reviewerName,
-          'comment': comment,
-          'rating': rating,
-        },
+        data: formData,
       );
       if (response.statusCode != 200) throw response;
     } catch (e, stack) {

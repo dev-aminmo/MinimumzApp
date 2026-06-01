@@ -5,6 +5,7 @@ import 'package:injectable/injectable.dart';
 import 'package:minimumz/di/di.dart';
 import 'package:minimumz/data/data.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:minimumz/domain/services/server_push.dart';
 
 @singleton
 class PreferenceRepository {
@@ -286,6 +287,17 @@ class PreferenceRepository {
   }
 
   Future<void> addSearchHistory(String query) async {
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) return;
+    final history = searchHistory.where((q) => q != trimmed).toList();
+    history.insert(0, trimmed);
+    final updated = history.take(_maxHistoryItems).toList();
+    await _prefs.setStringList(_searchHistoryKey, updated);
+    pushSearchHistoryToServer(updated);
+  }
+
+  /// Like [addSearchHistory] but skips the server push (used during sync restore).
+  Future<void> addSearchHistoryLocal(String query) async {
     final trimmed = query.trim();
     if (trimmed.isEmpty) return;
     final history = searchHistory.where((q) => q != trimmed).toList();

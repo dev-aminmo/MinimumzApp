@@ -25,6 +25,7 @@ class DataStore {
     required this.reviews,
     required this.brands,
     required this.slider,
+    required this.userData,
   });
 
   factory DataStore.initialize({
@@ -42,8 +43,8 @@ class DataStore {
 
     dio.options = BaseOptions(
       baseUrl: baseURL,
-      connectTimeout: const Duration(seconds: 15),
-      receiveTimeout: const Duration(seconds: 30),
+      connectTimeout: const Duration(seconds: 12),
+      receiveTimeout: const Duration(seconds: 12),
       headers: {
         "Accept": "application/json",
         "Content-Type": "application/json",
@@ -81,6 +82,7 @@ class DataStore {
       reviews: ReviewsResource(dio),
       brands: BrandsResource(dio),
       slider: SliderResource(dio),
+      userData: UserDataResource(dio),
     );
   }
 
@@ -90,11 +92,12 @@ class DataStore {
     final url = '$base/api/store/products?limit=1';
 
     final pingDio = Dio(BaseOptions(
-      connectTimeout: const Duration(seconds: 10),
-      receiveTimeout: const Duration(seconds: 15),
+      connectTimeout: const Duration(seconds: 12),
+      receiveTimeout: const Duration(seconds: 12),
       headers: {
-        'Accept': 'application/json',
-        'User-Agent': 'MiniMumz/1.0 (Mobile)',
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "User-Agent": "MiniMumz/1.0 (Mobile)",
       },
     ));
     (pingDio.httpClientAdapter as IOHttpClientAdapter).createHttpClient =
@@ -158,6 +161,7 @@ class DataStore {
   final ReviewsResource reviews;
   final BrandsResource brands;
   final SliderResource slider;
+  final UserDataResource userData;
 }
 
 class PingResult {
@@ -180,20 +184,29 @@ class PingResult {
   final List<String> trace;
 }
 
-// Retries once after 1 s on 403 or 5xx — covers transient edge-proxy blocks.
+// Retries on transient failures: 403/5xx (edge-proxy blocks) and connection
+// timeouts (server blip). Uses exponential back-off: 1 s, 3 s.
 class _RetryInterceptor extends Interceptor {
   _RetryInterceptor(this._dio);
   final Dio _dio;
-  static const _maxRetries = 1;
+  static const _maxRetries = 2;
+  static const _delays = [Duration(seconds: 1), Duration(seconds: 3)];
+
+  static bool _shouldRetry(DioException err) {
+    final status = err.response?.statusCode;
+    if (status == 403 || (status != null && status >= 500)) return true;
+    return err.type == DioExceptionType.connectionTimeout ||
+        err.type == DioExceptionType.receiveTimeout ||
+        err.type == DioExceptionType.connectionError;
+  }
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) async {
-    final status = err.response?.statusCode;
     final extra = err.requestOptions.extra;
     final retries = (extra['_retries'] as int?) ?? 0;
 
-    if (retries < _maxRetries && (status == 403 || (status != null && status >= 500))) {
-      await Future.delayed(const Duration(seconds: 1));
+    if (retries < _maxRetries && _shouldRetry(err)) {
+      await Future.delayed(_delays[retries]);
       try {
         final opts = err.requestOptions;
         opts.extra['_retries'] = retries + 1;

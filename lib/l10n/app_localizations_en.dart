@@ -745,4 +745,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dimLength => 'L';
+
+  @override
+  String get photos => 'Photos';
+
+  @override
+  String get addPhoto => 'Add photo';
+
+  @override
+  String get gallery => 'Gallery';
+
+  @override
+  String get camera => 'Camera';
 }

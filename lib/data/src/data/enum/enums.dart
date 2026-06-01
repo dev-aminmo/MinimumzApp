@@ -228,9 +228,11 @@ enum CartType {
 
 enum OrderStatus {
   pending('pending'),
+  processing('processing'),
   completed('completed'),
   archived('archived'),
   canceled('canceled'),
+  refunded('refunded'),
   requiresAction('requires_action');
 
   final String value;

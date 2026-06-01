@@ -7,8 +7,11 @@ import 'package:gap/gap.dart';
 import 'package:minimumz/blocs/auth/authentication_bloc.dart';
 import 'package:minimumz/common/colors.dart';
 import 'package:minimumz/common/extensions/extensions.dart';
+import 'package:minimumz/cubits/wishlist/wishlist_cubit.dart';
+import 'package:minimumz/data/data.dart';
 import '../../di/di.dart';
 import '../../domain/repository/preference_repository.dart';
+import 'package:minimumz/domain/services/user_data_sync_service.dart';
 import '../components/index.dart';
 import '../routes/app_router.dart';
 
@@ -50,10 +53,19 @@ class _SignUpScreenState extends State<SignUpScreen> {
       listener: (context, state) {
         state.maybeMap(
           loading: (_) => EasyLoading.show(maskType: EasyLoadingMaskType.black),
-          loggedIn: (_) {
+          loggedIn: (_) async {
             getIt<PreferenceRepository>().setGuest(value: false);
+            final cartId = getIt<PreferenceRepository>().cartId;
+            if (cartId != null) {
+              try {
+                await getIt<DataStore>().carts.transferToCustomer(cartId: cartId);
+              } catch (_) {}
+            }
+            if (context.mounted) {
+              await syncUserDataOnLogin(context.read<WishlistCubit>());
+            }
             EasyLoading.dismiss();
-            context.router.replaceAll([const DashboardRoute()]);
+            if (context.mounted) context.router.replaceAll([const DashboardRoute()]);
           },
           orElse: () => EasyLoading.dismiss(),
         );

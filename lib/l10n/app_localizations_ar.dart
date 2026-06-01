@@ -743,4 +743,16 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get dimLength => 'ط';
+
+  @override
+  String get photos => 'الصور';
+
+  @override
+  String get addPhoto => 'إضافة صورة';
+
+  @override
+  String get gallery => 'المعرض';
+
+  @override
+  String get camera => 'الكاميرا';
 }

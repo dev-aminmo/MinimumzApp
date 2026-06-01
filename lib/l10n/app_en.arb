@@ -305,5 +305,9 @@
   "cmUnit": "cm",
   "dimHeight": "H",
   "dimWidth": "W",
-  "dimLength": "L"
+  "dimLength": "L",
+  "photos": "Photos",
+  "addPhoto": "Add photo",
+  "gallery": "Gallery",
+  "camera": "Camera"
 }

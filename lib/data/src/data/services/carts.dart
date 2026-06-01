@@ -355,4 +355,20 @@ class CartsResource extends BaseResource {
       rethrow;
     }
   }
+
+  /// Links the cart to the currently authenticated customer.
+  /// Called after login/register so the guest cart is transferred to the account.
+  Future<StoreCartsRes?> transferToCustomer({required String cartId}) async {
+    try {
+      final response = await client.post('/store/carts/$cartId/customer');
+      if (response.statusCode == 200) {
+        return StoreCartsRes.fromJson(response.data);
+      } else {
+        throw response;
+      }
+    } catch (error, stackTrace) {
+      log(error.toString(), stackTrace: stackTrace);
+      rethrow;
+    }
+  }
 }

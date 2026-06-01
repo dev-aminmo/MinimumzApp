@@ -47,5 +47,11 @@
 		<true/>
 		<key>UIStatusBarHidden</key>
 		<false/>
+		<key>NSPhotoLibraryUsageDescription</key>
+		<string>Used to attach photos to your review</string>
+		<key>NSCameraUsageDescription</key>
+		<string>Used to take photos for your review</string>
+		<key>NSPhotoLibraryAddUsageDescription</key>
+		<string>Used to save photos to your library</string>
 	</dict>
 </plist>

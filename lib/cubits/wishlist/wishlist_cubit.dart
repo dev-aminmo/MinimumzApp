@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:minimumz/data/src/data/models/store/products/product.dart';
 import 'package:minimumz/domain/repository/preference_repository.dart';
+import 'package:minimumz/domain/services/server_push.dart';
 
 class WishlistCubit extends Cubit<List<Product>> {
   WishlistCubit() : super(PreferenceRepository.instance.wishlistProducts);
@@ -18,6 +19,12 @@ class WishlistCubit extends Cubit<List<Product>> {
     }
     await PreferenceRepository.instance.setWishlistProducts(updated);
     emit(List.unmodifiable(updated));
+    pushWishlistToServer(updated);
+  }
+
+  /// Reloads state from local storage (e.g. after server sync updates local prefs).
+  void reload() {
+    emit(List.unmodifiable(PreferenceRepository.instance.wishlistProducts));
   }
 
   /// Replaces stored products with freshly fetched ones (updated prices).

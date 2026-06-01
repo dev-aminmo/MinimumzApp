@@ -133,7 +133,7 @@ class _OrderTile extends StatelessWidget {
       ),
       title: Text('${context.l10n.order} #${order.displayId ?? order.id ?? ''}'),
       subtitle: Text('${context.l10n.placedOn} ${order.createdAt?.formatDate() ?? ''}'),
-      trailing: _StatusChip(order.status.name),
+      trailing: _StatusChip(order.status.value),
     );
   }
 }
@@ -141,25 +141,34 @@ class _OrderTile extends StatelessWidget {
 // ── Status chip ──────────────────────────────────────────────────────────────
 
 class _StatusChip extends StatelessWidget {
-  const _StatusChip(this.label);
-  final String label;
+  const _StatusChip(this.value);
+  final String value;
 
-  Color _color() {
-    switch (label.toLowerCase()) {
-      case 'completed':
-        return Colors.green;
-      case 'canceled':
-        return Colors.red;
-      case 'pending':
-        return Colors.orange;
-      default:
-        return Colors.blueGrey;
-    }
+  static const _colors = {
+    'completed':       Colors.green,
+    'fulfilled':       Colors.green,
+    'captured':        Colors.green,
+    'shipped':         Colors.green,
+    'processing':      Color(0xFF1976D2), // blue
+    'awaiting':        Color(0xFF1976D2),
+    'pending':         Colors.orange,
+    'not_fulfilled':   Colors.orange,
+    'not_paid':        Colors.orange,
+    'partially_fulfilled': Colors.orange,
+    'canceled':        Colors.red,
+    'refunded':        Color(0xFF7B1FA2), // purple
+    'partially_refunded': Color(0xFF7B1FA2),
+    'returned':        Color(0xFF7B1FA2),
+  };
+
+  String _label() {
+    // "not_fulfilled" → "Not Fulfilled"
+    return value.split('_').map((w) => w.isEmpty ? '' : '${w[0].toUpperCase()}${w.substring(1)}').join(' ');
   }
 
   @override
   Widget build(BuildContext context) {
-    final color = _color();
+    final color = _colors[value.toLowerCase()] ?? Colors.blueGrey;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
@@ -167,7 +176,7 @@ class _StatusChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
-        label[0].toUpperCase() + label.substring(1),
+        _label(),
         style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.w600),
       ),
     );
@@ -222,7 +231,7 @@ class _OrderDetailSheet extends StatelessWidget {
             children: [
               Text('${context.l10n.order} #${order.displayId ?? order.id ?? ''}',
                   style: context.bodyLargeW600),
-              _StatusChip(order.status.name),
+              _StatusChip(order.status.value),
             ],
           ),
           const Gap(4),
@@ -252,12 +261,12 @@ class _OrderDetailSheet extends StatelessWidget {
           const Gap(16),
           Row(children: [
             Text('${context.l10n.fulfillment}: ', style: context.bodySmall),
-            _StatusChip(order.fulfillmentStatus.name),
+            _StatusChip(order.fulfillmentStatus.value),
           ]),
           const Gap(6),
           Row(children: [
             Text('${context.l10n.payment}: ', style: context.bodySmall),
-            _StatusChip(order.paymentStatus.name),
+            _StatusChip(order.paymentStatus.value),
           ]),
         ],
       ),
