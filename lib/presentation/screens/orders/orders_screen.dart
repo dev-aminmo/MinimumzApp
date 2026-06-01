@@ -8,6 +8,7 @@ import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
 import 'package:intl/intl.dart';
 import 'package:minimumz/common/colors.dart';
 import 'package:minimumz/common/extensions/extensions.dart';
+import 'package:minimumz/cubits/locale/locale_cubit.dart';
 import 'package:minimumz/di/di.dart';
 import 'package:minimumz/domain/repository/preference_repository.dart';
 import 'package:minimumz/presentation/components/index.dart';
@@ -184,13 +185,14 @@ class _OrderDetailSheet extends StatelessWidget {
     return DateFormat('d MMM yyyy, HH:mm').format(dt.toLocal());
   }
 
-  String _formatPrice(num? amount, String? code) =>
-      amount.formatAsPrice(code);
+  String _formatPrice(num? amount, String? code, String locale) =>
+      amount.formatAsPrice(code, locale: locale);
 
   @override
   Widget build(BuildContext context) {
     final currencyCode = order.currencyCode?.toUpperCase() ??
         PreferenceRepository.currencyCode;
+    final locale = context.read<LocaleCubit>().state.languageCode;
     final bottomPadding = MediaQuery.of(context).viewPadding.bottom == 0
         ? 24.0
         : MediaQuery.of(context).viewPadding.bottom;
@@ -233,20 +235,20 @@ class _OrderDetailSheet extends StatelessWidget {
             Text(context.l10n.items, style: context.bodyMediumW500),
             const Gap(10),
             ...order.items!
-                .map((item) => _LineItemRow(item: item, currencyCode: currencyCode)),
+                .map((item) => _LineItemRow(item: item, currencyCode: currencyCode, locale: locale)),
             const Gap(16),
             const Divider(height: 0),
             const Gap(16),
           ],
-          _totalRow(context.l10n.subtotal, _formatPrice(order.subTotal, currencyCode), context),
+          _totalRow(context.l10n.subtotal, _formatPrice(order.subTotal, currencyCode, locale), context),
           if ((order.shippingTotal ?? 0) > 0)
-            _totalRow(context.l10n.shipping, _formatPrice(order.shippingTotal, currencyCode), context),
+            _totalRow(context.l10n.shipping, _formatPrice(order.shippingTotal, currencyCode, locale), context),
           if ((order.taxTotal ?? 0) > 0)
-            _totalRow(context.l10n.tax, _formatPrice(order.taxTotal, currencyCode), context),
+            _totalRow(context.l10n.tax, _formatPrice(order.taxTotal, currencyCode, locale), context),
           if ((order.discountTotal ?? 0) > 0)
-            _totalRow(context.l10n.discount, '− ${_formatPrice(order.discountTotal, currencyCode)}', context),
+            _totalRow(context.l10n.discount, '− ${_formatPrice(order.discountTotal, currencyCode, locale)}', context),
           const Divider(height: 16),
-          _totalRow(context.l10n.total, _formatPrice(order.total, currencyCode), context, bold: true),
+          _totalRow(context.l10n.total, _formatPrice(order.total, currencyCode, locale), context, bold: true),
           const Gap(16),
           Row(children: [
             Text('${context.l10n.fulfillment}: ', style: context.bodySmall),
@@ -281,9 +283,10 @@ class _OrderDetailSheet extends StatelessWidget {
 // ── Line item row ────────────────────────────────────────────────────────────
 
 class _LineItemRow extends StatelessWidget {
-  const _LineItemRow({required this.item, required this.currencyCode});
+  const _LineItemRow({required this.item, required this.currencyCode, required this.locale});
   final LineItem item;
   final String currencyCode;
+  final String locale;
 
   @override
   Widget build(BuildContext context) {
@@ -340,7 +343,7 @@ class _LineItemRow extends StatelessWidget {
             ),
           ),
           Text(
-            item.total.formatAsPrice(currencyCode),
+            item.total.formatAsPrice(currencyCode, locale: locale),
             style: context.bodySmallW500,
           ),
         ],

@@ -1,4 +1,7 @@
 import 'dart:async';
+import 'dart:convert';
+
+import 'package:flutter/services.dart';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -59,7 +62,7 @@ class HomeScreen extends StatelessWidget {
                         enabledBorder: inputBorder,
                         focusedBorder: inputBorder,
                         hintStyle: TextStyle(color: ColorConstant.manatee),
-                        fillColor: context.theme.cardColor,
+                        fillColor:  context.theme.cardColor.withAlpha(50),
                         prefixIcon: Icon(minimumzIcons.search,
                             color: ColorConstant.manatee)),
                   ),
@@ -95,6 +98,8 @@ class HomeScreen extends StatelessWidget {
               ],
             ),
           ),
+          const SliverGap(10),
+          const _ApiPingBanner(),
           const SliverGap(10),
           const _SliderSection(),
           const SliverGap(10),
@@ -226,10 +231,8 @@ class _SliderTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
+    return ClipRRect(
+        borderRadius: BorderRadius.zero,
         child: Stack(
           fit: StackFit.expand,
           children: [
@@ -287,7 +290,6 @@ class _SliderTile extends StatelessWidget {
               ),
           ],
         ),
-      ),
     );
   }
 }
@@ -420,8 +422,8 @@ class _CategoriesSectionState extends State<_CategoriesSection> {
   Timer? _timer;
   bool _autoPlayStarted = false;
 
-  // Each CategoryTile is width 72 + separator gap 12 = 84 logical pixels.
-  static const double _itemStride = 84.0;
+  // Each CategoryTile is width 80 + separator gap 12 = 92 logical pixels.
+  static const double _itemStride = 92.0;
   static const Duration _interval = Duration(seconds: 3);
   static const Duration _animDuration = Duration(milliseconds: 500);
 
@@ -462,7 +464,7 @@ class _CategoriesSectionState extends State<_CategoriesSection> {
                   Headline(headline: context.l10n.categories, onViewAllTap: null),
                   const Gap(10),
                   SizedBox(
-                    height: 100,
+                    height: 108,
                     child: ListView.separated(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
                       scrollDirection: Axis.horizontal,
@@ -493,7 +495,7 @@ class _CategoriesSectionState extends State<_CategoriesSection> {
                   ),
                   const Gap(10),
                   SizedBox(
-                    height: 100,
+                    height: 108,
                     child: ListView.separated(
                       controller: _scrollController,
                       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -525,39 +527,39 @@ class CategoryTile extends StatelessWidget {
     return GestureDetector(
       onTap: onTap ?? () => context.router.push(CollectionRoute(collection: collection)),
       child: SizedBox(
-        width: 72,
+        width: 80,
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              width: 60,
-              height: 60,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(15),
-                child: collection.logo != null
-                    ? CachedNetworkImage(
-          cacheManager: DohCacheManager.instance,
-                        imageUrl: collection.logo!,
-                        width: 60,
-                        height: 60,
-                        fit: BoxFit.cover,
-                        errorWidget: (_, __, ___) => Icon(
-                          Icons.category_outlined,
-                          color: ColorConstant.primary,
-                          size: 26,
-                        ),
-                      )
-                    : Icon(
+              width: 82,
+              height: 82,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(25)
+              ),
+              child: collection.logo != null
+                  ? CachedNetworkImage(
+                      cacheManager: DohCacheManager.instance,
+                      imageUrl: collection.logo!,
+                      fit: BoxFit.contain,
+
+                      errorWidget: (_, __, ___) => Icon(
                         Icons.category_outlined,
                         color: ColorConstant.primary,
-                        size: 26,
+                        size: 28,
                       ),
-              ),
+                    )
+                  : Icon(
+                      Icons.category_outlined,
+                      color: ColorConstant.primary,
+                      size: 28,
+                    ),
             ),
             const Gap(6),
             Text(
               collection.localizedTitle(locale),
               style: context.bodyExtraSmall?.copyWith(fontWeight: FontWeight.w500),
-              maxLines: 2,
+              maxLines: 1,
               textAlign: TextAlign.center,
               overflow: TextOverflow.ellipsis,
             ),
@@ -656,6 +658,7 @@ class _BestSellersSectionState extends State<_BestSellersSection> {
       if (mounted) setState(() => _loading = false);
       return;
     }
+    setState(() => _loading = true);
     try {
       final res = await getIt<DataStore>().products.list(queryParams: {
         'sort': 'best_sellers',
@@ -665,8 +668,9 @@ class _BestSellersSectionState extends State<_BestSellersSection> {
       final products = res?.products ?? [];
       if (!mounted) return;
       PreferenceRepository.instance.setCachedBestSellers(products);
+      _timer?.cancel();
       setState(() { _products = products; _loading = false; });
-      if (_timer == null || !_timer!.isActive) {
+      if (products.isNotEmpty) {
         WidgetsBinding.instance.addPostFrameCallback((_) => _startAutoPlay());
       }
     } catch (_) {
@@ -680,14 +684,17 @@ class _BestSellersSectionState extends State<_BestSellersSection> {
       return const SliverToBoxAdapter(child: SizedBox.shrink());
     }
 
-    return SliverToBoxAdapter(
+    return BlocListener<ProductsBloc, ProductsState>(
+      listenWhen: (_, s) => s.maybeWhen(loading: () => true, orElse: () => false),
+      listener: (_, __) => _fetchFromNetwork(),
+      child: SliverToBoxAdapter(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Headline(headline: context.l10n.bestSellers, onViewAllTap: null),
           const Gap(10),
           SizedBox(
-            height: 275,
+            height: 281,
             child: _loading
                 ? Skeletonizer(
                     enabled: true,
@@ -719,6 +726,7 @@ class _BestSellersSectionState extends State<_BestSellersSection> {
           ),
         ],
       ),
+    ),
     );
   }
 }
@@ -801,14 +809,14 @@ class _BrandsSectionState extends State<_BrandsSection> {
           ),
           const Gap(10),
           SizedBox(
-            height: 44,
+            height: 108,
             child: _loading
                 ? Skeletonizer(
                     enabled: true,
                     child: ListView.separated(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
                       scrollDirection: Axis.horizontal,
-                      separatorBuilder: (_, __) => const Gap(8),
+                      separatorBuilder: (_, __) => const Gap(12),
                       itemCount: 5,
                       itemBuilder: (_, __) => _BrandChip(brand: BrandItem(name: 'Loading')),
                     ),
@@ -817,7 +825,7 @@ class _BrandsSectionState extends State<_BrandsSection> {
                     controller: _scrollController,
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     scrollDirection: Axis.horizontal,
-                    separatorBuilder: (_, __) => const Gap(8),
+                    separatorBuilder: (_, __) => const Gap(12),
                     itemCount: _brands!.length,
                     itemBuilder: (_, i) => _BrandChip(brand: _brands![i]),
                   ),
@@ -841,34 +849,46 @@ class _BrandChip extends StatelessWidget {
           collection: ProductCollection(id: brand.id, title: brand.name, filterParam: 'type_id', logo: brand.logo, banner: brand.banner),
         ));
       },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: context.theme.cardColor,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: ColorConstant.primary.withValues(alpha: 0.18),
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
+      child: SizedBox(
+        width: 80,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            if (brand.logo != null) ...[
-              ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: CachedNetworkImage(
-          cacheManager: DohCacheManager.instance,
-                  imageUrl: brand.logo!,
-                  width: 22,
-                  height: 22,
-                  fit: BoxFit.contain,
-                  errorWidget: (_, __, ___) =>
-                      const Icon(Icons.storefront_outlined, size: 16),
-                ),
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                color: context.theme.cardColor,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.07),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
-              const Gap(6),
-            ],
-            Text(brand.name ?? '', style: context.bodySmallW500),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: brand.logo != null
+                    ? CachedNetworkImage(
+                        cacheManager: DohCacheManager.instance,
+                        imageUrl: brand.logo!,
+                        fit: BoxFit.contain,
+                        errorWidget: (_, __, ___) =>
+                            Icon(Icons.storefront_outlined, size: 28, color: ColorConstant.primary),
+                      )
+                    : Icon(Icons.storefront_outlined, size: 28, color: ColorConstant.primary),
+              ),
+            ),
+            const Gap(6),
+            Text(
+              brand.name ?? '',
+              style: context.bodyExtraSmall?.copyWith(fontWeight: FontWeight.w600),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+            ),
           ],
         ),
       ),
@@ -1023,7 +1043,7 @@ class _NewArrivalState extends State<NewArrival> {
                 pagingController: _pagingController,
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
-                  mainAxisExtent: 295,
+                  mainAxisExtent: 301,
                   crossAxisSpacing: 12.0,
                   mainAxisSpacing: 12.0,
                 ),
@@ -1105,4 +1125,281 @@ class CollectionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => CategoryTile(collection: collection, onTap: onTap);
+}
+
+// ── API Ping Banner ───────────────────────────────────────────────────────────
+
+enum _PingStatus { loading, success, fail }
+
+class _ApiPingBanner extends StatefulWidget {
+  const _ApiPingBanner();
+
+  @override
+  State<_ApiPingBanner> createState() => _ApiPingBannerState();
+}
+
+class _ApiPingBannerState extends State<_ApiPingBanner> {
+  _PingStatus _status = _PingStatus.loading;
+  int? _statusCode;
+  Map<String, dynamic>? _body;
+  String? _errorMessage;
+  List<String> _trace = [];
+  int _durationMs = 0;
+  bool _copied = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _ping();
+  }
+
+  Future<void> _ping() async {
+    setState(() {
+      _status = _PingStatus.loading;
+      _body = null;
+      _errorMessage = null;
+      _trace = [];
+    });
+
+    final result = await getIt<DataStore>().ping();
+    if (!mounted) return;
+    setState(() {
+      _status = result.success ? _PingStatus.success : _PingStatus.fail;
+      _statusCode = result.statusCode;
+      _body = result.body;
+      _errorMessage = result.error;
+      _trace = result.trace.toList();
+      _durationMs = result.durationMs;
+    });
+  }
+
+  Future<void> _copy(Color color) async {
+    final text = const JsonEncoder.withIndent('  ').convert(_body);
+    await Clipboard.setData(ClipboardData(text: text));
+    if (!mounted) return;
+    setState(() => _copied = true);
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) setState(() => _copied = false);
+    });
+  }
+
+  Widget _buildBodyBox({
+    required Color color,
+    required Color bgColor,
+    required double maxHeight,
+    required EdgeInsets margin,
+    required TextStyle textStyle,
+  }) {
+    final text = const JsonEncoder.withIndent('  ').convert(_body);
+    return Stack(
+      children: [
+        Container(
+          width: double.infinity,
+          constraints: BoxConstraints(maxHeight: maxHeight),
+          margin: margin,
+          padding: const EdgeInsets.fromLTRB(10, 10, 36, 10),
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: SingleChildScrollView(
+            child: Text(text, style: textStyle),
+          ),
+        ),
+        Positioned(
+          top: margin.top + 4,
+          right: margin.right + 4,
+          child: GestureDetector(
+            onTap: () => _copy(color),
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 200),
+              child: _copied
+                  ? Icon(Icons.check_rounded, key: const ValueKey('ok'), size: 16, color: color)
+                  : Icon(Icons.copy_rounded, key: const ValueKey('copy'), size: 16, color: color.withValues(alpha: 0.5)),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isSuccess = _status == _PingStatus.success;
+    final isLoading = _status == _PingStatus.loading;
+
+    final color = isLoading
+        ? Colors.grey
+        : isSuccess
+            ? const Color(0xFF2E7D32)
+            : const Color(0xFFC62828);
+    final bgColor = isLoading
+        ? Colors.grey.withValues(alpha: 0.08)
+        : isSuccess
+            ? const Color(0xFFE8F5E9)
+            : const Color(0xFFFFEBEE);
+
+    return SliverToBoxAdapter(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: Container(
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: color.withValues(alpha: 0.3)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              Padding(
+                padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
+                child: Row(
+                  children: [
+                    Icon(
+                      isLoading
+                          ? Icons.circle_outlined
+                          : isSuccess
+                              ? Icons.check_circle_rounded
+                              : Icons.error_rounded,
+                      color: color,
+                      size: 18,
+                    ),
+                    const Gap(8),
+                    Expanded(
+                      child: Text(
+                        'API Health Check',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: color,
+                        ),
+                      ),
+                    ),
+                    if (!isLoading) ...[
+                      Text(
+                        '$_durationMs ms',
+                        style: TextStyle(fontSize: 11, color: color.withValues(alpha: 0.7)),
+                      ),
+                      const Gap(8),
+                    ],
+                    GestureDetector(
+                      onTap: isLoading ? null : _ping,
+                      child: Icon(
+                        isLoading ? Icons.hourglass_empty_rounded : Icons.refresh_rounded,
+                        color: color.withValues(alpha: 0.7),
+                        size: 20,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              if (isLoading)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.grey.shade500),
+                      ),
+                      const Gap(10),
+                      Text('Pinging API…', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                    ],
+                  ),
+                ),
+
+              if (_status == _PingStatus.success) ...[
+                Container(height: 1, color: color.withValues(alpha: 0.15)),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 10, 14, 4),
+                  child: Row(
+                    children: [
+                      Text(
+                        '$_statusCode',
+                        style: TextStyle(fontSize: 32, fontWeight: FontWeight.w800, color: color),
+                      ),
+                      const Gap(12),
+                      Text('OK — API is reachable', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: color)),
+                    ],
+                  ),
+                ),
+                if (_body != null)
+                  _buildBodyBox(
+                    color: color,
+                    bgColor: Colors.white.withValues(alpha: 0.6),
+                    maxHeight: 220,
+                    margin: const EdgeInsets.fromLTRB(14, 6, 14, 14),
+                    textStyle: const TextStyle(fontFamily: 'monospace', fontSize: 11, height: 1.5),
+                  ),
+              ],
+
+              if (_status == _PingStatus.fail) ...[
+                Container(height: 1, color: color.withValues(alpha: 0.15)),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 10, 14, 4),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${_statusCode ?? '—'}',
+                        style: TextStyle(fontSize: 32, fontWeight: FontWeight.w800, color: color),
+                      ),
+                      const Gap(12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Gap(6),
+                            Text(
+                              _errorMessage ?? 'Unknown error',
+                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: color),
+                            ),
+                            if ((_statusCode ?? 0) > 0)
+                              Text(
+                                'HTTP $_statusCode',
+                                style: TextStyle(fontSize: 11, color: color.withValues(alpha: 0.7)),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (_trace.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 4, 14, 0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'STACK TRACE',
+                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: color.withValues(alpha: 0.7), letterSpacing: 0.5),
+                        ),
+                        const Gap(4),
+                        ...List.generate(_trace.length, (i) => Text(
+                          '${i + 1}. ${_trace[i]}',
+                          style: TextStyle(fontFamily: 'monospace', fontSize: 10, color: color.withValues(alpha: 0.85), height: 1.6),
+                        )),
+                      ],
+                    ),
+                  ),
+                if (_body != null)
+                  _buildBodyBox(
+                    color: color,
+                    bgColor: Colors.white.withValues(alpha: 0.5),
+                    maxHeight: 160,
+                    margin: const EdgeInsets.fromLTRB(14, 8, 14, 0),
+                    textStyle: TextStyle(fontFamily: 'monospace', fontSize: 11, height: 1.5, color: color.withValues(alpha: 0.9)),
+                  ),
+                const Gap(14),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }

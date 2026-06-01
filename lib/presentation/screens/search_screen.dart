@@ -269,7 +269,7 @@ class _SearchScreenState extends State<SearchScreen> {
         crossAxisCount: 2,
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
-        mainAxisExtent: 295,
+        mainAxisExtent: 301,
       ),
       builderDelegate: PagedChildBuilderDelegate<Product>(
         itemBuilder: (_, product, __) => ProductCard(product: product),
@@ -494,7 +494,7 @@ class SearchAppBar extends StatelessWidget implements PreferredSizeWidget {
                       enabledBorder: inputBorder,
                       focusedBorder: inputBorder,
                       hintStyle:  TextStyle(color: ColorConstant.manatee),
-                      fillColor:  context.theme.cardColor,
+                      fillColor:  context.theme.cardColor.withAlpha(50),
                       prefixIcon: Icon(minimumzIcons.search,
                           color: ColorConstant.manatee),
                     ),

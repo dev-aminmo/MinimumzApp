@@ -13,6 +13,7 @@ export 'sign_up_screen.dart';
 export 'splash_screen.dart';
 export 'wishlist_screen.dart';
 export 'recently_viewed_screen.dart';
+export 'tab_shells.dart';
 export 'reset_password/forgot_password_screen.dart';
 export 'reset_password/new_password_screen.dart';
 export 'reset_password/verification_code_screen.dart';

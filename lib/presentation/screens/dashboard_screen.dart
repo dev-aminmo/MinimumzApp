@@ -49,10 +49,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
         },
         child: AutoTabsRouter(
           routes: const [
-            HomeRoute(),
-            CategoriesRoute(),
-            WishlistRoute(),
-            CartRoute(),
+            HomeTabRoute(),
+            CategoriesTabRoute(),
+            WishlistTabRoute(),
+            CartTabRoute(),
           ],
           builder: (context, child) {
             final tabsRouter = AutoTabsRouter.of(context);
@@ -114,7 +114,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           surfaceTintColor: Colors.transparent,
                           shadowColor: Colors.transparent,
                           selectedIndex: activeIndex,
-                          onDestinationSelected: tabsRouter.setActiveIndex,
+                          onDestinationSelected: (index) {
+                            if (index == tabsRouter.activeIndex) {
+                              // Re-tapping active tab pops it to its root
+                              tabsRouter
+                                  .innerRouterOf<StackRouter>(
+                                    [HomeTabRoute.name, CategoriesTabRoute.name, WishlistTabRoute.name, CartTabRoute.name][index],
+                                  )
+                                  ?.popUntilRoot();
+                            } else {
+                              tabsRouter.setActiveIndex(index);
+                            }
+                          },
                           indicatorColor:
                               ColorConstant.primary.withValues(alpha: 0.12),
                           labelBehavior:

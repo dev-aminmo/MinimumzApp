@@ -86,7 +86,7 @@ class _RecentlyViewedScreenState extends State<RecentlyViewedScreen> {
                       gridDelegate:
                           const SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: 2,
-                        mainAxisExtent: 295,
+                        mainAxisExtent: 301,
                         crossAxisSpacing: 12,
                         mainAxisSpacing: 12,
                       ),

@@ -6,7 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 @singleton
 class LocaleCubit extends Cubit<Locale> {
-  LocaleCubit(this._prefs) : super(const Locale('en')) {
+  LocaleCubit(this._prefs) : super(const Locale('ar')) {
     _load();
   }
 

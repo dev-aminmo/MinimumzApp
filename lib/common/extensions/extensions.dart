@@ -70,11 +70,26 @@ int currencyDecimals(String code) {
   }
 }
 
+/// Returns the display symbol for a currency, optionally localised.
+/// Falls back to the ISO code if no override is defined.
+String currencySymbol(String code, {String? locale}) {
+  final upper = code.toUpperCase();
+  final lang  = (locale ?? '').split('_').first.toLowerCase();
+  if (lang == 'ar') {
+    switch (upper) {
+      case 'SAR': return '﷼';
+      case 'BHD': return 'د.ب';
+    }
+  }
+  return upper;
+}
+
 extension FormatPrice on num? {
   String formatAsPrice(String? currencyCode,
       {bool includeSymbol = true,
       bool space = true,
-      bool symbolAtEnd = false}) {
+      bool symbolAtEnd = false,
+      String? locale}) {
     if (this == null || currencyCode == null) return this?.toString() ?? '';
     final code     = currencyCode.toUpperCase();
     final decimals = currencyDecimals(code);
@@ -85,11 +100,12 @@ extension FormatPrice on num? {
             .format(value)
             .trim();
     if (!includeSymbol) return formatted;
-    return (!symbolAtEnd ? code : '') +
+    final symbol = currencySymbol(code, locale: locale);
+    return (!symbolAtEnd ? symbol : '') +
         (space && !symbolAtEnd ? ' ' : '') +
         formatted +
         (space && symbolAtEnd ? ' ' : '') +
-        (symbolAtEnd ? code : '');
+        (symbolAtEnd ? symbol : '');
   }
 
   num formatAsPriceNum(String? currencyCode) {

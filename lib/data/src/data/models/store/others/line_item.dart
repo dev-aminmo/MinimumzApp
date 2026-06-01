@@ -83,6 +83,8 @@ class LineItem {
   /// Example: "variant_01G1G5V2MRX2V3PVSR2WXYPFB6"
   final String? variantId;
 
+  final String? productId;
+
   /// The details of the product variant that this item was created from.
   final ProductVariant? variant;
 
@@ -171,6 +173,7 @@ class LineItem {
     this.hasShipping,
     required this.unitPrice,
     this.variantId,
+    this.productId,
     this.variant,
     required this.quantity,
     this.fulfilledQuantity,
@@ -226,6 +229,7 @@ class LineItem {
       hasShipping: json['has_shipping'],
       unitPrice: json['unit_price'],
       variantId: json['variant_id'],
+      productId: json['product_id']?.toString(),
       adjustments: adjustments,
       taxLines: taxLines,
       variant: json['variant'] != null ? ProductVariant.fromJson(json['variant']) : null,
@@ -280,6 +284,7 @@ class LineItem {
       hasShipping: hasShipping,
       unitPrice: unitPrice ?? this.unitPrice,
       variantId: variantId,
+      productId: productId,
       variant: variant,
       quantity: quantity ?? this.quantity,
       fulfilledQuantity: fulfilledQuantity,
@@ -326,6 +331,7 @@ class LineItem {
     json['has_shipping'] = hasShipping;
     json['unit_price'] = unitPrice;
     json['variant_id'] = variantId;
+    json['product_id'] = productId;
     json['variant'] = variant?.toJson();
     json['quantity'] = quantity;
     json['fulfilled_quantity'] = fulfilledQuantity;

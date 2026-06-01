@@ -43,10 +43,22 @@ abstract class _$AppRouter extends RootStackRouter {
         child: const CartScreen(),
       );
     },
+    CartTabRoute.name: (routeData) {
+      return AutoRoutePage<dynamic>(
+        routeData: routeData,
+        child: const CartTabScreen(),
+      );
+    },
     CategoriesRoute.name: (routeData) {
       return AutoRoutePage<dynamic>(
         routeData: routeData,
         child: const CategoriesScreen(),
+      );
+    },
+    CategoriesTabRoute.name: (routeData) {
+      return AutoRoutePage<dynamic>(
+        routeData: routeData,
+        child: const CategoriesTabScreen(),
       );
     },
     CollectionRoute.name: (routeData) {
@@ -75,6 +87,12 @@ abstract class _$AppRouter extends RootStackRouter {
       return AutoRoutePage<dynamic>(
         routeData: routeData,
         child: const HomeScreen(),
+      );
+    },
+    HomeTabRoute.name: (routeData) {
+      return AutoRoutePage<dynamic>(
+        routeData: routeData,
+        child: const HomeTabScreen(),
       );
     },
     NewPasswordRoute.name: (routeData) {
@@ -190,6 +208,12 @@ abstract class _$AppRouter extends RootStackRouter {
         child: const WishlistScreen(),
       );
     },
+    WishlistTabRoute.name: (routeData) {
+      return AutoRoutePage<dynamic>(
+        routeData: routeData,
+        child: const WishlistTabScreen(),
+      );
+    },
   };
 }
 
@@ -274,6 +298,20 @@ class CartRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
+/// [CartTabScreen]
+class CartTabRoute extends PageRouteInfo<void> {
+  const CartTabRoute({List<PageRouteInfo>? children})
+      : super(
+          CartTabRoute.name,
+          initialChildren: children,
+        );
+
+  static const String name = 'CartTabRoute';
+
+  static const PageInfo<void> page = PageInfo<void>(name);
+}
+
+/// generated route for
 /// [CategoriesScreen]
 class CategoriesRoute extends PageRouteInfo<void> {
   const CategoriesRoute({List<PageRouteInfo>? children})
@@ -283,6 +321,20 @@ class CategoriesRoute extends PageRouteInfo<void> {
         );
 
   static const String name = 'CategoriesRoute';
+
+  static const PageInfo<void> page = PageInfo<void>(name);
+}
+
+/// generated route for
+/// [CategoriesTabScreen]
+class CategoriesTabRoute extends PageRouteInfo<void> {
+  const CategoriesTabRoute({List<PageRouteInfo>? children})
+      : super(
+          CategoriesTabRoute.name,
+          initialChildren: children,
+        );
+
+  static const String name = 'CategoriesTabRoute';
 
   static const PageInfo<void> page = PageInfo<void>(name);
 }
@@ -363,6 +415,20 @@ class HomeRoute extends PageRouteInfo<void> {
         );
 
   static const String name = 'HomeRoute';
+
+  static const PageInfo<void> page = PageInfo<void>(name);
+}
+
+/// generated route for
+/// [HomeTabScreen]
+class HomeTabRoute extends PageRouteInfo<void> {
+  const HomeTabRoute({List<PageRouteInfo>? children})
+      : super(
+          HomeTabRoute.name,
+          initialChildren: children,
+        );
+
+  static const String name = 'HomeTabRoute';
 
   static const PageInfo<void> page = PageInfo<void>(name);
 }
@@ -703,6 +769,20 @@ class WishlistRoute extends PageRouteInfo<void> {
         );
 
   static const String name = 'WishlistRoute';
+
+  static const PageInfo<void> page = PageInfo<void>(name);
+}
+
+/// generated route for
+/// [WishlistTabScreen]
+class WishlistTabRoute extends PageRouteInfo<void> {
+  const WishlistTabRoute({List<PageRouteInfo>? children})
+      : super(
+          WishlistTabRoute.name,
+          initialChildren: children,
+        );
+
+  static const String name = 'WishlistTabRoute';
 
   static const PageInfo<void> page = PageInfo<void>(name);
 }

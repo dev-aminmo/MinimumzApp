@@ -11,6 +11,7 @@ import 'package:minimumz/domain/repository/preference_repository.dart';
 import 'package:minimumz/presentation/components/index.dart';
 import 'package:minimumz/presentation/screens/cart/widgets/line_item_card.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
+import 'package:minimumz/cubits/locale/locale_cubit.dart';
 import 'package:minimumz/data/data.dart';
 import 'bloc/cart/cart_bloc.dart';
 import '../../routes/app_router.dart';
@@ -248,6 +249,7 @@ class _CartBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final currencyCode = PreferenceRepository.currencyCode;
+    final locale = context.read<LocaleCubit>().state.languageCode;
 
     return CustomScrollView(
       slivers: [
@@ -306,7 +308,7 @@ class _CartBody extends StatelessWidget {
                         children: shippingOptions.map((opt) {
                           final selected = selectedShipping?.id == opt.id;
                           final price = opt.amount != null
-                              ? opt.amount!.formatAsPrice(currencyCode)
+                              ? opt.amount!.formatAsPrice(currencyCode, locale: locale)
                               : context.l10n.free;
                           return _ShippingOptionTile(
                             option: opt,
@@ -334,19 +336,19 @@ class _CartBody extends StatelessWidget {
             child: Column(
               children: [
                 _SummaryRow(context.l10n.subtotal,
-                    cart.subTotal.formatAsPrice(currencyCode), context),
+                    cart.subTotal.formatAsPrice(currencyCode, locale: locale), context),
                 const Gap(8),
                 _SummaryRow(context.l10n.shipping,
-                    cart.shippingTotal.formatAsPrice(currencyCode), context),
+                    cart.shippingTotal.formatAsPrice(currencyCode, locale: locale), context),
                 if ((cart.taxTotal ?? 0) > 0) ...[
                   const Gap(8),
                   _SummaryRow(
-                      context.l10n.tax, cart.taxTotal.formatAsPrice(currencyCode), context),
+                      context.l10n.tax, cart.taxTotal.formatAsPrice(currencyCode, locale: locale), context),
                 ],
                 if ((cart.discountTotal ?? 0) > 0) ...[
                   const Gap(8),
                   _SummaryRow(context.l10n.discount,
-                      '- ${cart.discountTotal.formatAsPrice(currencyCode)}', context,
+                      '- ${cart.discountTotal.formatAsPrice(currencyCode, locale: locale)}', context,
                       color: Colors.green),
                 ],
                 const Padding(
@@ -357,7 +359,7 @@ class _CartBody extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(context.l10n.total, style: context.bodyMediumW500),
-                    Text(cart.total.formatAsPrice(currencyCode),
+                    Text(cart.total.formatAsPrice(currencyCode, locale: locale),
                         style: context.bodyLargeW600
                             ?.copyWith(color: ColorConstant.brownDark)),
                   ],
@@ -376,11 +378,10 @@ class _CartBody extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: context.bodySmall?.copyWith(color: ColorConstant.manatee)),
+        Text(label, style: context.bodyMedium?.copyWith(color: ColorConstant.manatee)),
         Text(value,
-            style: context.bodySmall?.copyWith(
-              color: color ?? context.theme.textTheme.bodySmall?.color,
-              fontWeight: FontWeight.w500,
+            style: context.bodyMediumW500?.copyWith(
+              color: color ?? context.theme.textTheme.bodyMedium?.color,
             )),
       ],
     );

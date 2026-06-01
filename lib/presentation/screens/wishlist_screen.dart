@@ -29,6 +29,13 @@ class _WishlistScreenState extends State<WishlistScreen> {
   // Source of truth — kept in sync with the cubit
   List<Product> _allProducts = [];
 
+  // IDs returned by the country-filtered API refresh; null = no filter applied yet
+  Set<String>? _availableIds;
+
+  List<Product> get _visibleProducts => _availableIds != null
+      ? _allProducts.where((p) => _availableIds!.contains(p.id)).toList()
+      : _allProducts;
+
   final PagingController<int, Product> _pagingController =
       PagingController(firstPageKey: 0);
 
@@ -54,15 +61,24 @@ class _WishlistScreenState extends State<WishlistScreen> {
         if (countryId != null) 'country_id': countryId,
       });
       final refreshed = result?.products ?? [];
-      if (refreshed.isNotEmpty && mounted) {
+      if (!mounted) return;
+      if (refreshed.isNotEmpty) {
         context.read<WishlistCubit>().refreshPrices(refreshed);
+      }
+      // If a country is selected, only show products the API returned for it
+      if (countryId != null) {
+        setState(() {
+          _availableIds = refreshed.map((p) => p.id).whereType<String>().toSet();
+        });
+        _pagingController.refresh();
       }
     } catch (_) {}
   }
 
   void _loadPage(int pageKey) {
-    final page = _allProducts.skip(pageKey).take(_pageSize).toList();
-    final isLastPage = pageKey + page.length >= _allProducts.length;
+    final source = _visibleProducts;
+    final page = source.skip(pageKey).take(_pageSize).toList();
+    final isLastPage = pageKey + page.length >= source.length;
     if (isLastPage) {
       _pagingController.appendLastPage(page);
     } else {
@@ -118,6 +134,7 @@ class _WishlistScreenState extends State<WishlistScreen> {
           child: BlocConsumer<WishlistCubit, List<Product>>(
             listener: (context, products) => _onWishlistChanged(products),
             builder: (context, products) {
+              final visible = _visibleProducts;
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -130,7 +147,7 @@ class _WishlistScreenState extends State<WishlistScreen> {
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('${products.length} ${context.l10n.items}',
+                            Text('${visible.length} ${context.l10n.items}',
                                 style: context.bodyLargeW500),
                             const SizedBox(height: 3),
                             Text(context.l10n.inWishlist,
@@ -138,7 +155,7 @@ class _WishlistScreenState extends State<WishlistScreen> {
                                     ?.copyWith(color: ColorConstant.manatee)),
                           ],
                         ),
-                        if (products.isNotEmpty)
+                        if (visible.isNotEmpty)
                           InkWell(
                             onTap: _clearAll,
                             borderRadius:
@@ -166,7 +183,7 @@ class _WishlistScreenState extends State<WishlistScreen> {
                   ),
                   const Gap(12),
                   // ── Grid ───────────────────────────────────────────
-                  if (products.isEmpty)
+                  if (visible.isEmpty)
                     Expanded(
                       child: Center(
                         child: Column(
@@ -189,7 +206,7 @@ class _WishlistScreenState extends State<WishlistScreen> {
                         gridDelegate:
                             const SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: 2,
-                          mainAxisExtent: 295,
+                          mainAxisExtent: 301,
                           crossAxisSpacing: 12,
                           mainAxisSpacing: 12,
                         ),

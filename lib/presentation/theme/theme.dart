@@ -12,7 +12,7 @@ class AppTheme {
     colorScheme: ColorScheme.fromSeed(seedColor: ColorConstant.primary, surfaceTint: ColorConstant.cream),
     useMaterial3: true,
     scaffoldBackgroundColor: ColorConstant.cream,
-    textTheme: GoogleFonts.interTextTheme().copyWith(
+    textTheme: GoogleFonts.quicksandTextTheme().copyWith(
       headlineLarge: headlineLarge,
       headlineMedium: headlineMedium,
       headlineSmall: headlineSmall,
@@ -48,7 +48,7 @@ class AppTheme {
     colorScheme: ColorScheme.fromSeed(seedColor: ColorConstant.primary, brightness: Brightness.dark),
     useMaterial3: true,
     scaffoldBackgroundColor: ColorConstant.scaffoldDark,
-    textTheme: GoogleFonts.interTextTheme().copyWith(
+    textTheme: GoogleFonts.quicksandTextTheme().copyWith(
       headlineLarge: headlineLarge.dark(),
       headlineMedium: headlineMedium.dark(),
       headlineSmall: headlineSmall.dark(),

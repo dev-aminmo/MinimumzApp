@@ -258,7 +258,7 @@ class _CollectionScreenState extends State<CollectionScreen> {
                       : context.theme.scaffoldBackgroundColor,
                   leading: canPop
                       ? Padding(
-                          padding: const EdgeInsets.all(6),
+                          padding: const EdgeInsets.all(8),
                           child: InkWell(
                             borderRadius:
                                 const BorderRadius.all(Radius.circular(50)),
@@ -275,7 +275,7 @@ class _CollectionScreenState extends State<CollectionScreen> {
                       : null,
                   actions: [
                     Padding(
-                      padding: const EdgeInsets.only(top: 6, bottom: 6, left: 4),
+                      padding: const EdgeInsets.only(top: 6, bottom: 6, left: 8,right: 8),
                       child: InkWell(
                         borderRadius:
                             const BorderRadius.all(Radius.circular(50)),
@@ -367,7 +367,7 @@ class _CollectionScreenState extends State<CollectionScreen> {
                     ),
                     Padding(
                       padding: const EdgeInsets.only(
-                          right: 8, top: 6, bottom: 6, left: 4),
+                          right: 8, top: 6, bottom: 6, left: 8),
                       child: InkWell(
                         borderRadius:
                             const BorderRadius.all(Radius.circular(50)),
@@ -394,7 +394,7 @@ class _CollectionScreenState extends State<CollectionScreen> {
                     gridDelegate:
                         const SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 2,
-                      mainAxisExtent: 295,
+                      mainAxisExtent: 301,
                       crossAxisSpacing: 12,
                       mainAxisSpacing: 12,
                     ),

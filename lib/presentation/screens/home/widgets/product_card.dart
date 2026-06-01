@@ -83,6 +83,26 @@ class ProductCard extends StatelessWidget {
                   fit: StackFit.expand,
                   children: [
                     _ProductImage(product: product, shimmer: shimmer),
+                    if (!shimmer && compareAt != null && price != null && compareAt > price)
+                      Positioned(
+                        top: 8,
+                        left: 8,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: Colors.red.shade600,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            '-${(((compareAt - price) / compareAt) * 100).round()}%',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ),
                     if (!shimmer)
                       Positioned(
                         top: 8,
@@ -118,16 +138,17 @@ class ProductCard extends StatelessWidget {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
-                                price.formatAsPrice(effectiveCurrency),
+                                price.formatAsPrice(effectiveCurrency, locale: locale),
                                 style: context.bodySmallW500?.copyWith(
-                                  color: ColorConstant.brownDark,
+                                  color: Colors.black,
+                                  fontSize: 15,
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
                               if (compareAt != null)
                                 Text(
-                                  compareAt.formatAsPrice(effectiveCurrency),
+                                  compareAt.formatAsPrice(effectiveCurrency, locale: locale),
                                   style: context.bodyExtraSmall?.copyWith(
                                     color: ColorConstant.manatee,
                                     decoration: TextDecoration.lineThrough,

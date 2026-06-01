@@ -41,9 +41,9 @@ class CategoriesScreen extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 3,
-          mainAxisExtent: 100,
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
+          mainAxisExtent: 108,
+          crossAxisSpacing: 8,
+          mainAxisSpacing: 8,
         ),
         itemCount: 9,
         itemBuilder: (_, __) => _CategoryCard(
@@ -74,7 +74,7 @@ class CategoriesScreen extends StatelessWidget {
             ),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 3,
-              mainAxisExtent: 100,
+              mainAxisExtent: 125,
               crossAxisSpacing: 12,
               mainAxisSpacing: 12,
             ),
@@ -113,17 +113,12 @@ class _CategoryCard extends StatelessWidget {
     return GestureDetector(
       onTap: () => context.router
           .push(CollectionRoute(collection: collection)),
-      child: Container(
-        decoration: BoxDecoration(
-          color: context.theme.cardColor,
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
             Container(
-              width: 50,
-              height: 50,
+              width: 74,
+              height: 74,
               decoration: BoxDecoration(
                 color: ColorConstant.primary.withValues(alpha: 0.08),
                 shape: BoxShape.circle,
@@ -136,29 +131,28 @@ class _CategoryCard extends StatelessWidget {
                     ? CachedNetworkImage(
                         cacheManager: DohCacheManager.instance,
                         imageUrl: collection.logo!,
-                        width: 50,
-                        height: 50,
+                        width: 74,
+                        height: 74,
                         fit: BoxFit.cover,
                         errorWidget: (_, __, ___) => Icon(
                           Icons.category_outlined,
                           color: ColorConstant.primary,
-                          size: 24,
+                          size: 32,
                         ),
                       )
                     : Icon(
                         Icons.category_outlined,
                         color: ColorConstant.primary,
-                        size: 24,
+                        size: 32,
                       ),
               ),
             ),
-            const Gap(8),
+            const Gap(6),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 4),
               child: Text(
                 collection.localizedTitle(locale),
-                style: context.bodyExtraSmall
-                    ?.copyWith(fontWeight: FontWeight.w500),
+                style: context.bodySmallW500,
                 maxLines: 2,
                 textAlign: TextAlign.center,
                 overflow: TextOverflow.ellipsis,
@@ -166,7 +160,6 @@ class _CategoryCard extends StatelessWidget {
             ),
           ],
         ),
-      ),
     );
   }
 }

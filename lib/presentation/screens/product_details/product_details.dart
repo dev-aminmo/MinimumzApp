@@ -266,16 +266,41 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
             .map((p) => p.amount!)
             .toList();
         if (amounts.isEmpty) return '';
-        return amounts.reduce((a, b) => a < b ? a : b).formatAsPrice(code);
+        return amounts.reduce((a, b) => a < b ? a : b).formatAsPrice(code, locale: locale);
       }
       final priceEntry = selectedVariant?.prices?.firstWhere(
         (p) => p.currencyCode?.toUpperCase() == code,
         orElse: () => MoneyAmount(),
       );
-      return (priceEntry?.amount ?? 0).formatAsPrice(code);
+      return (priceEntry?.amount ?? 0).formatAsPrice(code, locale: locale);
+    }
+
+    String? variantCompareAt() {
+      final code = currencyCode.toUpperCase();
+      final priceEntry = selectedVariant?.prices?.firstWhere(
+        (p) => p.currencyCode?.toUpperCase() == code,
+        orElse: () => MoneyAmount(),
+      );
+      final amount    = priceEntry?.amount;
+      final compareAt = priceEntry?.compareAtAmount;
+      if (compareAt == null || amount == null || compareAt <= amount) return null;
+      return compareAt.formatAsPrice(code, locale: locale);
+    }
+
+    int? variantDiscountPercent() {
+      final code = currencyCode.toUpperCase();
+      final priceEntry = selectedVariant?.prices?.firstWhere(
+        (p) => p.currencyCode?.toUpperCase() == code,
+        orElse: () => MoneyAmount(),
+      );
+      final amount    = priceEntry?.amount;
+      final compareAt = priceEntry?.compareAtAmount;
+      if (compareAt == null || amount == null || compareAt <= amount) return null;
+      return (((compareAt - amount) / compareAt) * 100).round();
     }
 
     return Scaffold(
+      backgroundColor: Colors.white,
       bottomNavigationBar: ProductDetailsBottomNavButton(
         selectedVariant: selectedVariant,
         product: widget.product,
@@ -303,29 +328,6 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
             centerTitle: false,
             pinned: true,
             actions: [
-              BlocBuilder<WishlistCubit, List<Product>>(
-                builder: (context, wishlist) {
-                  final isWishlisted =
-                      wishlist.any((p) => p.id == product.id);
-                  return InkWell(
-                    borderRadius: const BorderRadius.all(Radius.circular(50)),
-                    onTap: () =>
-                        context.read<WishlistCubit>().toggle(product),
-                    child: Ink(
-                      width: 45,
-                      height: 45,
-                      decoration: ShapeDecoration(
-                        color: AppTheme.lightTheme.cardColor,
-                        shape: const CircleBorder(),
-                      ),
-                      child: Icon(
-                        isWishlisted ? Icons.favorite : minimumzIcons.heart,
-                        color: isWishlisted ? Colors.red : null,
-                      ),
-                    ),
-                  );
-                },
-              ),
               Padding(
                 padding: const EdgeInsetsDirectional.only(end: 20.0, start: 10.0),
                 child: InkWell(
@@ -344,7 +346,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
               ),
             ],
             foregroundColor: ColorConstant.primary,
-            backgroundColor: ColorConstant.cream,
+            backgroundColor: Colors.white,
             surfaceTintColor: Colors.transparent,
             expandedHeight: 400,
             flexibleSpace: FlexibleSpaceBar(
@@ -385,7 +387,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                             begin: Alignment.bottomCenter,
                             end: Alignment.topCenter,
                             colors: [
-                              ColorConstant.cream.withValues(alpha: 0.7),
+                              Colors.white.withValues(alpha: 0.7),
                               Colors.transparent,
                             ],
                           ),
@@ -431,34 +433,117 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Flexible(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (product.collection?.title != null)
-                          Text(product.collection!.localizedTitle(locale),
-                              style: context.bodySmall),
-                        if (product.collection?.title != null) const Gap(5.0),
-                        Text(product.localizedTitle(locale) ?? '', style: context.headlineSmall),
-                      ],
+                  if (product.collection?.title != null) ...[
+                    GestureDetector(
+                      onTap: () => context.router.push(
+                        CollectionRoute(collection: product.collection!),
+                      ),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: ColorConstant.primary.withValues(alpha: 0.10),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                              color: ColorConstant.primary.withValues(alpha: 0.30)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.category_outlined,
+                                size: 13, color: ColorConstant.primary),
+                            const Gap(5),
+                            Text(
+                              product.collection!.localizedTitle(locale),
+                              style: context.bodySmall?.copyWith(
+                                color: ColorConstant.primary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
-                  ),
-                  if (product.variants?.isNotEmpty ?? false)
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    const Gap(8.0),
+                  ],
+                  Text(product.localizedTitle(locale) ?? '', style: context.headlineSmall),
+                  if (product.variants?.isNotEmpty ?? false) ...[
+                    const Gap(8),
+                    Text(
+                      selectedVariant == null ? context.l10n.startsFrom : '',//context.l10n.price,
+                      style: context.bodySmall!.copyWith(fontWeight: FontWeight.w500,fontSize: 16),
+                    ),
+                    const Gap(4),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        Text(selectedVariant == null ? context.l10n.startsFrom : context.l10n.price,
-                            style: context.bodySmall),
-                        const Gap(5.0),
-                        Text(
-                          variantPrice(),
-                          style: context.headlineSmall,
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Text(
+                              variantPrice(),
+                              style: context.headlineSmall,
+                            ),
+                            if (variantCompareAt() != null) ...[
+                              const SizedBox(width: 8),
+                              Text(
+                                variantCompareAt()!,
+                                style: context.bodySmall?.copyWith(
+                                  color: ColorConstant.manatee,
+                                  decoration: TextDecoration.lineThrough,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Colors.red.shade600,
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  '-${variantDiscountPercent()}%',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                        BlocBuilder<WishlistCubit, List<Product>>(
+                          builder: (context, wishlist) {
+                            final isWishlisted =
+                                wishlist.any((p) => p.id == product.id);
+                            return InkWell(
+                              borderRadius:
+                                  const BorderRadius.all(Radius.circular(50)),
+                              onTap: () =>
+                                  context.read<WishlistCubit>().toggle(product),
+                              child: Ink(
+                                width: 44,
+                                height: 44,
+                                decoration: ShapeDecoration(
+                                  color: AppTheme.lightTheme.cardColor,
+                                  shape: const CircleBorder(),
+                                ),
+                                child: Icon(
+                                  isWishlisted
+                                      ? Icons.favorite
+                                      : minimumzIcons.heart,
+                                  color: isWishlisted ? Colors.red : null,
+                                ),
+                              ),
+                            );
+                          },
                         ),
                       ],
                     ),
+                  ],
                 ],
               ),
             ),
@@ -495,7 +580,19 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
             ),
           ),
           const SliverGap(6),
-          if (product.localizedDescription(locale) != null)
+          if (product.localizedDescription(locale) != null) ...[
+            const SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20.0),
+                child: Divider(height: 32),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+                child: Text(context.l10n.description, style: context.bodyLargeW600),
+              ),
+            ),
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20.0),
@@ -505,11 +602,14 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                     Html(
                       data: product.localizedDescription(locale)!,
                       style: {
-                        '*': Style(
-                          fontSize: FontSize(
-                              context.bodyMedium?.fontSize ?? 14),
-                          color: ColorConstant.manatee,
+                        'body': Style(
                           margin: Margins.zero,
+                          padding: HtmlPaddings.zero,
+                          fontSize: FontSize(16),
+                          color: const Color(0xFF555555),
+                        ),
+                        'p': Style(
+                          margin: Margins.only(bottom: 8),
                           padding: HtmlPaddings.zero,
                         ),
                       },
@@ -519,6 +619,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                 ),
               ),
             ),
+          ],
           // ── Physical specs (weight, dimensions, age range) ───────
           if (_hasSpecs(product))
             SliverToBoxAdapter(
@@ -542,7 +643,9 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                         imageUrl: product.type!.logo,
                         icon: Icons.storefront_outlined,
                         color: ColorConstant.brownDark,
-                        onTap: () => context.router.pushAndPopUntil(
+                        logoSize: 34,
+                        fontSize: 18,
+                        onTap: () => context.router.push(
                           CollectionRoute(
                             collection: ProductCollection(
                               id: product.type!.id,
@@ -552,8 +655,6 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                               banner: product.type!.banner,
                             ),
                           ),
-                          predicate: (route) =>
-                              route.settings.name == DashboardRoute.name,
                         ),
                       ),
                     ...?(product.tags?.map((tag) => _InfoChip(label: tag.value ?? ''))),
@@ -977,12 +1078,14 @@ class _SpecRow {
 }
 
 class _InfoChip extends StatelessWidget {
-  const _InfoChip({required this.label, this.icon, this.imageUrl, this.color, this.onTap});
+  const _InfoChip({required this.label, this.icon, this.imageUrl, this.color, this.onTap, this.logoSize = 16, this.fontSize = 12});
   final String label;
   final IconData? icon;
   final String? imageUrl;
   final Color? color;
   final VoidCallback? onTap;
+  final double logoSize;
+  final double fontSize;
 
   @override
   Widget build(BuildContext context) {
@@ -990,7 +1093,7 @@ class _InfoChip extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: chipColor.withValues(alpha: 0.10),
         borderRadius: BorderRadius.circular(20),
@@ -1005,21 +1108,21 @@ class _InfoChip extends StatelessWidget {
               child: CachedNetworkImage(
           cacheManager: DohCacheManager.instance,
                 imageUrl: imageUrl!,
-                width: 16,
-                height: 16,
+                width: logoSize,
+                height: logoSize,
                 fit: BoxFit.contain,
                 errorWidget: (_, __, ___) =>
-                    Icon(Icons.storefront_outlined, size: 13, color: chipColor),
+                    Icon(Icons.storefront_outlined, size: logoSize - 3, color: chipColor),
               ),
             ),
-            const Gap(4),
+            const Gap(6),
           ] else if (icon != null) ...[
-            Icon(icon, size: 13, color: chipColor),
+            Icon(icon, size: fontSize + 1, color: chipColor),
             const Gap(4),
           ],
           Text(label,
               style: TextStyle(
-                  fontSize: 12,
+                  fontSize: fontSize,
                   fontWeight: FontWeight.w500,
                   color: chipColor)),
         ],
@@ -1099,9 +1202,9 @@ class ProductDetailsRelatedCard extends StatelessWidget {
                   ),
                   const Gap(4),
                   Text(
-                    price.formatAsPrice(currencyCode),
+                    price.formatAsPrice(currencyCode, locale: locale),
                     style: context.bodyExtraSmall
-                        ?.copyWith(color: ColorConstant.brownDark, fontWeight: FontWeight.w600),
+                        ?.copyWith(color: Colors.black, fontWeight: FontWeight.w600),
                   ),
                 ],
               ),
