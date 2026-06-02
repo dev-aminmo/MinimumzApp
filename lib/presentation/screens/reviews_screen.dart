@@ -1,5 +1,6 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:minimumz/common/doh_cache_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -189,13 +190,13 @@ class _Header extends StatelessWidget {
                 Row(
                   children: List.generate(5, (i) {
                     if (i < fullStars) {
-                      return const Icon(Icons.star,
-                          size: 14, color: Color(0xffFF981F));
+                      return const Icon( CupertinoIcons.star_fill,
+                          size: 14, color: Color(0xffFFCF04 ));
                     } else if (i == fullStars && halfStar) {
-                      return const Icon(Icons.star_half,
-                          size: 14, color: Color(0xffFF981F));
+                      return const Icon( CupertinoIcons.star_lefthalf_fill,
+                          size: 14, color: Color(0xffFFCF04 ));
                     }
-                    return Icon(Icons.star_border,
+                    return Icon( CupertinoIcons.star,
                         size: 14, color: ColorConstant.manatee);
                   }),
                 ),
@@ -301,7 +302,7 @@ class _ReviewCard extends StatelessWidget {
                 Row(
                   children: List.generate(5, (i) {
                     return Icon(
-                      i < fullStars ? Icons.star : Icons.star_border,
+                      i < fullStars ?  CupertinoIcons.star_fill :  CupertinoIcons.star,
                       size: 14,
                       color: i < fullStars
                           ? const Color(0xffFF981F)

@@ -1,11 +1,13 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:minimumz/common/doh_cache_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:gap/gap.dart';
 import 'package:minimumz/common/extensions/extensions.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
+import 'package:minimumz/common/pricing_utils.dart';
 import 'package:minimumz/cubits/locale/locale_cubit.dart';
 import 'package:minimumz/cubits/wishlist/wishlist_cubit.dart';
 import 'package:minimumz/data/data.dart';
@@ -33,26 +35,13 @@ class ProductCard extends StatelessWidget {
     final currencyCode = PreferenceRepository.currencyCode.toUpperCase();
     final allMoneyAmounts = (product.variants ?? [])
         .expand((v) => v.prices ?? <MoneyAmount>[])
-        .where((p) => p.amount != null)
         .toList();
 
-    // Prefer user's currency; fall back to any available price so product never shows blank
-    final currencyMatches = allMoneyAmounts.where((p) => p.currencyCode?.toUpperCase() == currencyCode).toList();
-    final allPrices       = currencyMatches.isNotEmpty ? currencyMatches : allMoneyAmounts;
-    final effectiveCurrency = currencyMatches.isNotEmpty
-        ? currencyCode
-        : (allMoneyAmounts.firstOrNull?.currencyCode?.toUpperCase() ?? currencyCode);
-
-    final price = allPrices.isEmpty
-        ? null
-        : allPrices.map((p) => p.amount!).reduce((a, b) => a < b ? a : b);
-
-    final compareAt = allPrices.isEmpty
-        ? null
-        : allPrices
-            .where((p) => p.compareAtAmount != null)
-            .map((p) => p.compareAtAmount!)
-            .fold<int?>(null, (best, v) => best == null || v > best ? v : best);
+    final effectiveCurrency = allMoneyAmounts.effectiveCurrency(currencyCode);
+    final price             = allMoneyAmounts.minPrice(effectiveCurrency);
+    final compareAt         = price != null
+        ? allMoneyAmounts.maxCompareAt(effectiveCurrency, price)
+        : null;
 
     return Container(
       decoration: BoxDecoration(
@@ -113,90 +102,102 @@ class ProductCard extends StatelessWidget {
                 ),
               ),
               // ── Info ───────────────────────────────────────────────
-              Padding(
-                padding: const EdgeInsets.fromLTRB(10, 12, 10, 4),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      product.localizedTitle(locale) ?? '',
-                      style: context.bodyExtraSmallW500?.copyWith(
-                        fontSize: 18,
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(8, 10, 8, 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        product.localizedTitle(locale) ?? '',
+                        style: context.bodyExtraSmallW500?.copyWith(fontSize: 13),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const Gap(10),
-                    // ── Price + Button ────────────────────────────────
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                price.formatAsPrice(effectiveCurrency, locale: locale),
-                                style: context.bodySmallW500?.copyWith(
-                                  color: Colors.black,
-                                  fontSize: 15,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              if (compareAt != null)
+                      const Spacer(),
+                      // ── Price + Button ──────────────────────────────
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
                                 Text(
-                                  compareAt.formatAsPrice(effectiveCurrency, locale: locale),
-                                  style: context.bodyExtraSmall?.copyWith(
-                                    color: ColorConstant.manatee,
-                                    decoration: TextDecoration.lineThrough,
+                                  price.formatAsPrice(effectiveCurrency, locale: locale),
+                                  style: context.bodySmallW500?.copyWith(
+                                    color: Colors.black,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w800,
                                   ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
-                            ],
+                                if (compareAt != null)
+                                  Text(
+                                    compareAt.formatAsPrice(effectiveCurrency, locale: locale),
+                                    style: context.bodyExtraSmall?.copyWith(
+                                      color: ColorConstant.manatee,
+                                      decoration: TextDecoration.lineThrough,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                              ],
+                            ),
                           ),
-                        ),
-                        if (!shimmer) ...[
-                          const SizedBox(width: 8),
-                          _QuickAddButton(product: product),
-                        ],
-                      ],
-                    ),
-                    // ── Views + Rating ────────────────────────────────
-                    if (product.viewsCount > 0 || product.avgRating > 0) ...[
-                      const Gap(6),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          if (product.viewsCount > 0) ...[
-                            Icon(Icons.remove_red_eye_outlined,
-                                size: 11, color: ColorConstant.manatee),
-                            const SizedBox(width: 2),
-                            Text(
-                              product.viewsCount.toString(),
-                              style: context.bodyExtraSmall
-                                  ?.copyWith(color: ColorConstant.manatee),
-                            ),
-                          ],
-                          if (product.viewsCount > 0 && product.avgRating > 0)
-                            const SizedBox(width: 6),
-                          if (product.avgRating > 0) ...[
-                            const Icon(Icons.star_rounded,
-                                color: Colors.amber, size: 11),
-                            const SizedBox(width: 2),
-                            Text(
-                              product.avgRating.toStringAsFixed(1),
-                              style: context.bodyExtraSmall
-                                  ?.copyWith(fontWeight: FontWeight.w600),
-                            ),
+                          if (!shimmer) ...[
+                            const SizedBox(width: 8),
+                            _QuickAddButton(product: product),
                           ],
                         ],
                       ),
+                      // ── Views + Rating (space always reserved) ─────
+                      const Gap(5),
+                      Visibility(
+                        visible: product.viewsCount > 0 || product.avgRating > 0,
+                        maintainSize: true,
+                        maintainAnimation: true,
+                        maintainState: true,
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            SizedBox(height: 15),
+                            if (product.viewsCount > 0) ...[
+                              Icon(Icons.remove_red_eye_outlined,
+                                  size: 13, color: ColorConstant.manatee),
+                              const SizedBox(width: 2),
+                              Text(
+                                product.viewsCount.toString(),
+                                style: context.bodySmall
+                                    ?.copyWith(color: ColorConstant.manatee),
+                              ),
+                            ],
+                            if (product.viewsCount > 0 && product.avgRating > 0)
+                              const SizedBox(width: 6),
+                            if (product.avgRating > 0) ...[
+                              ...List.generate(5, (i) {
+                                final full = i < product.avgRating.floor();
+                                final half = !full && i < product.avgRating && (product.avgRating % 1) >= 0.5;
+                                return Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: .5),
+                                  child: Icon(
+                                    full ? CupertinoIcons.star_fill : half ? CupertinoIcons.star_lefthalf_fill : CupertinoIcons.star,
+                                    color: (full || half) ? const Color(0xffFFCF04 ) : ColorConstant.manatee.withValues(alpha: 0.4),
+                                    size: 15,
+
+
+                                  ),
+                                );
+                              },
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
                     ],
-                  ],
+                  ),
                 ),
               ),
             ],
@@ -346,11 +347,9 @@ class _QuickAddButtonState extends State<_QuickAddButton> {
       } else {
         final locale = LocaleCubit.instance.state.languageCode;
         final code = PreferenceRepository.currencyCode.toUpperCase();
-        final unitPrice = (variant.prices ?? [])
-            .where((p) => p.currencyCode?.toUpperCase() == code && p.amount != null)
-            .map((p) => p.amount!)
-            .fold<num>(0, (a, b) => a < b ? a : b)
-            .toInt();
+        final variantPrices = variant.prices ?? <MoneyAmount>[];
+        final effectiveCode = variantPrices.effectiveCurrency(code);
+        final unitPrice = variantPrices.minPrice(effectiveCode) ?? 0;
         updated = [
           ...items,
           LineItem(

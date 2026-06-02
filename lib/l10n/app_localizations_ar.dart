@@ -79,6 +79,13 @@ class AppLocalizationsAr extends AppLocalizations {
   String get enterValidEmail => 'أدخل بريداً إلكترونياً صحيحاً';
 
   @override
+  String get enterFullName => 'يرجى إدخال الاسم الأول والأخير';
+
+  @override
+  String get fullNameHelper =>
+      'مثال: محمد أمين  —  الكلمة الأخيرة تُستخدم كاسم العائلة';
+
+  @override
   String get emailRequired => 'البريد الإلكتروني مطلوب';
 
   @override

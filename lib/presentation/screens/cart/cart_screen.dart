@@ -71,31 +71,11 @@ class _CartScreenState extends State<CartScreen> {
 
     EasyLoading.show(status: context.l10n.placingOrder);
     try {
-      if (_selectedShipping?.id != null) {
-        await getIt<DataStore>().carts.addShippingMethod(
-              cartId: cartId,
-              req: StorePostCartsCartShippingMethodReq(optionId: _selectedShipping!.id!),
-            );
-      }
-
-      await getIt<DataStore>().carts.createPaymentSessions(cartId: cartId);
-
-      final sessions = (await getIt<DataStore>().carts.retrieve(cartId: cartId))?.cart?.paymentSessions;
-      final codSession = sessions?.firstWhere(
-        (s) => s.providerId == 'manual',
-        orElse: () => sessions!.first,
-      );
-      if (codSession != null) {
-        await getIt<DataStore>().carts.setPaymentSession(
-              cartId: cartId,
-              req: StorePostCartsCartPaymentSessionReq(providerId: codSession.providerId ?? 'manual'),
-            );
-      }
-
       final result = await getIt<DataStore>().carts.complete(cartId: cartId);
       if (result?.type == 'order' && result?.order != null) {
         final prefs = getIt<PreferenceRepository>();
         await Future.wait([prefs.clearCartId(), prefs.clearCachedCart()]);
+        EasyLoading.dismiss();
         if (context.mounted) {
           context.read<CartBloc>().add(const CartEvent.loadCart());
           await context.router.push(OrderConfirmedRoute(order: result!.order!));

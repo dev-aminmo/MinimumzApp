@@ -25,6 +25,7 @@ class SignInWithEmailScreen extends StatefulWidget {
 
 class _SignInWithEmailScreenState extends State<SignInWithEmailScreen> {
   bool _obscurePassword = true;
+  bool _submitted = false;
   final _formKey = GlobalKey<FormState>();
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
@@ -37,7 +38,9 @@ class _SignInWithEmailScreenState extends State<SignInWithEmailScreen> {
   }
 
   void _submit() {
+    if (_submitted) return;
     if (!_formKey.currentState!.validate()) return;
+    _submitted = true;
     context.read<AuthenticationBloc>().add(
           AuthenticationEvent.loginCustomer(
               email: _emailCtrl.text, password: _passwordCtrl.text),
@@ -64,7 +67,10 @@ class _SignInWithEmailScreenState extends State<SignInWithEmailScreen> {
             EasyLoading.dismiss();
             if (context.mounted) context.router.replaceAll([const DashboardRoute()]);
           },
-          orElse: () => EasyLoading.dismiss(),
+          orElse: () {
+            _submitted = false;
+            EasyLoading.dismiss();
+          },
         );
       },
       builder: (context, state) {

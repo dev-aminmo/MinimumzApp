@@ -10,6 +10,7 @@ import 'package:minimumz/presentation/routes/app_router.dart';
 import 'package:minimumz/presentation/screens/cart/bloc/cart/cart_bloc.dart';
 import 'package:minimumz/presentation/screens/cart/bloc/line_item/line_item_bloc.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
+import 'package:minimumz/common/pricing_utils.dart';
 import 'package:minimumz/cubits/locale/locale_cubit.dart';
 import 'package:minimumz/data/data.dart';
 
@@ -61,7 +62,10 @@ class _ProductDetailsBottomNavButtonState
         }).toList();
       } else {
         // Optimistic add: create a temporary line item
-        final int unitPrice = (widget.selectedVariant?.prices?.firstOrNull?.amount ?? 0).toInt();
+        final String code = PreferenceRepository.currencyCode.toUpperCase();
+        final variantPrices = widget.selectedVariant?.prices ?? <MoneyAmount>[];
+        final effectiveCode = variantPrices.effectiveCurrency(code);
+        final int unitPrice = variantPrices.minPrice(effectiveCode) ?? 0;
         final int total = unitPrice * newQty;
         final tempItem = LineItem(
           id: 'temp_${DateTime.now().millisecondsSinceEpoch}',

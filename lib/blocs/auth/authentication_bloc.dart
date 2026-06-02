@@ -99,12 +99,7 @@ class AuthenticationBloc
     emit(const _Loading());
     final result = await _authUsecase.logoutCustomer();
     if (result) {
-      final prefs = getIt<PreferenceRepository>();
-      await Future.wait([
-        prefs.clearCurrencyCode(),
-        prefs.clearCartId(),
-        prefs.clearCachedCart(),
-      ]);
+      await getIt<PreferenceRepository>().clearUserSessionData();
       emit(const _LoggedOut());
     } else {
       emit(_Error(Failure(message: 'Error signing out')));
@@ -112,6 +107,9 @@ class AuthenticationBloc
   }
 
   void _storeCurrencyCode(Customer customer) {
+    // Only apply the account's currency when no country has been explicitly
+    // selected by the user. If the user picked Bahrain, we keep BHD.
+    if (PreferenceRepository.instance.country != null) return;
     final code = customer.currencyCode;
     if (code != null && code.isNotEmpty) {
       PreferenceRepository.instance.setCurrencyCode(code);

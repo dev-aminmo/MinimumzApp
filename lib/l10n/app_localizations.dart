@@ -236,6 +236,18 @@ abstract class AppLocalizations {
   /// **'Enter a valid email'**
   String get enterValidEmail;
 
+  /// No description provided for @enterFullName.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter your first and last name'**
+  String get enterFullName;
+
+  /// No description provided for @fullNameHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. Mohammed Amin  —  last word is used as last name'**
+  String get fullNameHelper;
+
   /// No description provided for @emailRequired.
   ///
   /// In en, this message translates to:

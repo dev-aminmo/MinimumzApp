@@ -241,6 +241,10 @@ class _CollectionScreenState extends State<CollectionScreen> {
         body: BlocConsumer<ProductsBloc, ProductsState>(
           listener: (context, state) {
             state.whenOrNull(
+              loading: () {
+                _loadedCount = 0;
+                _pagingController.refresh();
+              },
               loaded: _onLoaded,
               error: (error) => _pagingController.error = error,
             );
@@ -394,7 +398,7 @@ class _CollectionScreenState extends State<CollectionScreen> {
                     gridDelegate:
                         const SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 2,
-                      mainAxisExtent: 301,
+                      mainAxisExtent: 306,
                       crossAxisSpacing: 12,
                       mainAxisSpacing: 12,
                     ),

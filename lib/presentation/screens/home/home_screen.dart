@@ -11,6 +11,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:gap/gap.dart';
 import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
 import 'package:minimumz/common/extensions/extensions.dart';
+import 'package:minimumz/common/pricing_utils.dart';
 import 'package:minimumz/data/data.dart';
 import 'package:minimumz/di/di.dart';
 import 'package:minimumz/domain/repository/preference_repository.dart';
@@ -27,10 +28,33 @@ import '../dashboard_screen.dart';
 import '../../../cubits/locale/locale_cubit.dart';
 import 'bloc/collections/collections_bloc.dart';
 import 'bloc/products/products_bloc.dart';
+import '../../../common/network_log.dart';
+import '../../../common/country_change_notifier.dart';
 
 @RoutePage()
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  int _resetKey = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    CountryChangeNotifier.instance.addListener(_onCountryChange);
+  }
+
+  @override
+  void dispose() {
+    CountryChangeNotifier.instance.removeListener(_onCountryChange);
+    super.dispose();
+  }
+
+  void _onCountryChange() => setState(() => _resetKey++);
+
   @override
   Widget build(BuildContext context) {
     const inputBorder = OutlineInputBorder(
@@ -41,12 +65,14 @@ class HomeScreen extends StatelessWidget {
           child: CustomScrollView(
         slivers: [
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 5),
+            padding: const EdgeInsets.fromLTRB(0, 0, 0, 5),
+
             sliver: SliverAppBar(
               shadowColor: Colors.transparent,
               snap: true,
               floating: true,
-              leadingWidth: 45,
+              leadingWidth: 65,
+              actionsPadding: EdgeInsetsDirectional.only(end: 20),
               title: Hero(
                 tag: 'search',
                 child: Material(
@@ -68,28 +94,33 @@ class HomeScreen extends StatelessWidget {
                   ),
                 ),
               ),
-              leading: Hero(
-                tag: 'search_back',
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    borderRadius: const BorderRadius.all(Radius.circular(50)),
-                    onTap: () {
-                      dashboardScaffoldKey.currentState?.openDrawer();
-                    },
-                    child: Ink(
-                      width: 45,
-                      height: 45,
-                      decoration: ShapeDecoration(
-                        color: context.theme.cardColor,
-                        shape: const CircleBorder(),
-                      ),
-                      child: Icon(
-                        minimumzIcons.menu_horizontal,
-                        size: 13,
-                        color: context.theme.iconTheme.color,
+              leading: Padding(
+                padding: const EdgeInsetsDirectional.only(start: 20),
+                child: Hero(
+                  tag: 'search_back',
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: const BorderRadius.all(Radius.circular(50)),
+                      onTap: () {
+                        dashboardScaffoldKey.currentState?.openDrawer();
+                      },
+                      child: Ink(
+                        width: 45,
+                        height: 45,
+
+                        decoration: ShapeDecoration(
+                          color: context.theme.cardColor,
+                          shape: const CircleBorder(),
+                        ),
+                        child: Icon(
+                          minimumzIcons.menu_horizontal,
+                          size: 13,
+                          color: context.theme.iconTheme.color,
+                        ),
                       ),
                     ),
+
                   ),
                 ),
               ),
@@ -105,11 +136,11 @@ class HomeScreen extends StatelessWidget {
           const SliverGap(10),
           _CategoriesSection(),
           const SliverGap(10),
-          const _BestSellersSection(),
+          _BestSellersSection(key: ValueKey('bs_$_resetKey')),
           const SliverGap(10),
           const _BrandsSection(),
           const SliverGap(10),
-          const NewArrival(),
+          NewArrival(key: ValueKey('na_$_resetKey')),
         ],
       )),
     );
@@ -151,7 +182,7 @@ class _SliderSectionState extends State<_SliderSection> {
   void _loadCache() {
     final cached = PreferenceRepository.instance.cachedSlider;
     if (cached != null && cached.isNotEmpty) {
-      setState(() => _slides = cached);
+      _slides = cached;
       WidgetsBinding.instance.addPostFrameCallback((_) => _startAutoPlay());
     }
   }
@@ -532,17 +563,16 @@ class CategoryTile extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              width: 82,
-              height: 82,
+              width: 72,
+              height: 72,
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(25)
+                borderRadius: BorderRadius.circular(40),
               ),
               child: collection.logo != null
                   ? CachedNetworkImage(
                       cacheManager: DohCacheManager.instance,
                       imageUrl: collection.logo!,
-                      fit: BoxFit.contain,
-
+                      fit: BoxFit.cover,
                       errorWidget: (_, __, ___) => Icon(
                         Icons.category_outlined,
                         color: ColorConstant.primary,
@@ -598,7 +628,7 @@ class _CategorySkeletonTile extends StatelessWidget {
 // ── Best sellers ──────────────────────────────────────────────────────────────
 
 class _BestSellersSection extends StatefulWidget {
-  const _BestSellersSection();
+  const _BestSellersSection({super.key});
 
   @override
   State<_BestSellersSection> createState() => _BestSellersSectionState();
@@ -619,7 +649,9 @@ class _BestSellersSectionState extends State<_BestSellersSection> {
   void initState() {
     super.initState();
     _loadCache();
-    _fetchFromNetwork();
+    Future.delayed(const Duration(milliseconds: 400), () {
+      if (mounted) _fetchFromNetwork();
+    });
   }
 
   @override
@@ -654,18 +686,15 @@ class _BestSellersSectionState extends State<_BestSellersSection> {
 
   Future<void> _fetchFromNetwork() async {
     final countryId = PreferenceRepository.instance.country?.id;
-    if (countryId == null) {
-      if (mounted) setState(() => _loading = false);
-      return;
-    }
-    setState(() => _loading = true);
+    // Show skeleton only when there's nothing to display yet.
+    if (_products == null && mounted) setState(() => _loading = true);
     try {
       final res = await getIt<DataStore>().products.list(queryParams: {
         'sort': 'best_sellers',
         'limit': 12,
-        'country_id': countryId,
+        if (countryId != null) 'country_id': countryId,
       });
-      final products = res?.products ?? [];
+      final products = filterPricedProducts(res?.products ?? []);
       if (!mounted) return;
       PreferenceRepository.instance.setCachedBestSellers(products);
       _timer?.cancel();
@@ -684,10 +713,7 @@ class _BestSellersSectionState extends State<_BestSellersSection> {
       return const SliverToBoxAdapter(child: SizedBox.shrink());
     }
 
-    return BlocListener<ProductsBloc, ProductsState>(
-      listenWhen: (_, s) => s.maybeWhen(loading: () => true, orElse: () => false),
-      listener: (_, __) => _fetchFromNetwork(),
-      child: SliverToBoxAdapter(
+    return SliverToBoxAdapter(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -726,7 +752,6 @@ class _BestSellersSectionState extends State<_BestSellersSection> {
           ),
         ],
       ),
-    ),
     );
   }
 }
@@ -753,7 +778,10 @@ class _BrandsSectionState extends State<_BrandsSection> {
   @override
   void initState() {
     super.initState();
-    _load();
+    _loadCache();
+    Future.delayed(const Duration(milliseconds: 800), () {
+      if (mounted) _load();
+    });
   }
 
   @override
@@ -763,17 +791,28 @@ class _BrandsSectionState extends State<_BrandsSection> {
     super.dispose();
   }
 
+  void _loadCache() {
+    final cached = PreferenceRepository.instance.cachedBrands;
+    if (cached != null) {
+      setState(() { _brands = cached; _loading = false; });
+      if (cached.isNotEmpty) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => _startAutoPlay());
+      }
+    }
+  }
+
   Future<void> _load() async {
     try {
       final brands = await getIt<DataStore>().brands.list(limit: 20);
       if (mounted) {
+        PreferenceRepository.instance.setCachedBrands(brands);
         setState(() { _brands = brands; _loading = false; });
         if (brands.isNotEmpty) {
           WidgetsBinding.instance.addPostFrameCallback((_) => _startAutoPlay());
         }
       }
     } catch (_) {
-      if (mounted) setState(() { _brands = []; _loading = false; });
+      if (mounted) setState(() { _brands = _brands ?? []; _loading = false; });
     }
   }
 
@@ -913,9 +952,15 @@ class _NewArrivalState extends State<NewArrival> {
   int _loadedCount = 0;
   ProductFilter _filter = ProductFilter.empty;
 
+  // Pre-fetches the first page independently of the PagingController lifecycle.
+  // Returning users get cached data instantly (zero wait); first-timers wait
+  // for the staggered network fetch. _fetchPage(0) just awaits this future.
+  Future<List<Product>?>? _firstPagePrefetch;
+
   @override
   void initState() {
     super.initState();
+    _firstPagePrefetch = _prefetchFirstPage();
     _pagingController.addPageRequestListener(_fetchPage);
   }
 
@@ -925,17 +970,71 @@ class _NewArrivalState extends State<NewArrival> {
     super.dispose();
   }
 
-  Future<void> _fetchPage(int offset) async {
+  Future<List<Product>?> _fetchNetworkPage(int offset) async {
     final countryId = PreferenceRepository.instance.country?.id;
+    final res = await getIt<DataStore>().products.list(queryParams: {
+      'offset': offset,
+      'limit': _pageSize,
+      'sort': 'created_at',
+      if (countryId != null) 'country_id': countryId,
+      ..._filter.toQueryParams(),
+    });
+    final raw = res?.products;
+    return raw == null ? null : filterPricedProducts(raw);
+  }
+
+  Future<List<Product>?> _prefetchFirstPage() async {
+    // Serve cache immediately — returning users see data with zero delay.
+    final cached = PreferenceRepository.instance.cachedNewArrivals;
+    if (cached != null && cached.isNotEmpty) {
+      _backgroundRefreshCache(); // silently update cache for next session
+      return cached;
+    }
+    // No cache: stagger behind slider (T+0) and best-sellers (T+400ms).
+    await Future.delayed(const Duration(milliseconds: 900));
     try {
-      final res = await getIt<DataStore>().products.list(queryParams: {
-        'offset': offset,
-        'limit': _pageSize,
-        'sort': 'created_at',
-        if (countryId != null) 'country_id': countryId,
-        ..._filter.toQueryParams(),
-      });
-      final products = res?.products ?? [];
+      final products = await _fetchNetworkPage(0);
+      if (products != null && products.isNotEmpty) {
+        PreferenceRepository.instance.setCachedNewArrivals(products);
+      }
+      return products;
+    } catch (_) {
+      return null; // _fetchPage falls through to a direct retry
+    }
+  }
+
+  Future<void> _backgroundRefreshCache() async {
+    await Future.delayed(const Duration(milliseconds: 900));
+    try {
+      final products = await _fetchNetworkPage(0);
+      if (products != null && products.isNotEmpty) {
+        await PreferenceRepository.instance.setCachedNewArrivals(products);
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _fetchPage(int offset) async {
+    try {
+      List<Product> products;
+
+      if (offset == 0 && _firstPagePrefetch != null) {
+        final prefetched = await _firstPagePrefetch;
+        _firstPagePrefetch = null;
+
+        if (prefetched != null) {
+          products = prefetched;
+        } else {
+          // Pre-fetch failed — direct retry, then cache the result.
+          final fetched = await _fetchNetworkPage(0);
+          products = fetched ?? [];
+          if (products.isNotEmpty) {
+            PreferenceRepository.instance.setCachedNewArrivals(products);
+          }
+        }
+      } else {
+        products = await _fetchNetworkPage(offset) ?? [];
+      }
+
       if (!mounted) return;
       _loadedCount += products.length;
       final isLast = products.length < _pageSize;
@@ -944,9 +1043,9 @@ class _NewArrivalState extends State<NewArrival> {
       } else {
         _pagingController.appendPage(products, _loadedCount);
       }
-      if (mounted) setState(() {});
+      if (mounted) setState(() {}); // update _loadedCount label
     } catch (e) {
-      _pagingController.error = e.toString();
+      if (mounted) _pagingController.error = e.toString();
     }
   }
 
@@ -956,7 +1055,7 @@ class _NewArrivalState extends State<NewArrival> {
         ? '${context.l10n.newArrival} ($_loadedCount)'
         : context.l10n.newArrival;
     return MultiSliver(
-          children: [
+        children: [
             SliverToBoxAdapter(
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
@@ -1037,29 +1136,39 @@ class _NewArrivalState extends State<NewArrival> {
               ),
             ),
             SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 10),
               sliver: PagedSliverGrid(
                 pagingController: _pagingController,
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
-                  mainAxisExtent: 301,
-                  crossAxisSpacing: 12.0,
-                  mainAxisSpacing: 12.0,
+                  mainAxisExtent: 320,
+                  crossAxisSpacing: 8.0,
+                  mainAxisSpacing: 8.0,
                 ),
                 builderDelegate: PagedChildBuilderDelegate<Product>(
                   itemBuilder: (_, product, __) => ProductCard(product: product),
                   firstPageProgressIndicatorBuilder: (_) {
                     const product = Product(title: 'Medusa Product');
+                    const card = SizedBox(
+                      height: 320,
+                      child: ProductCard(product: product, shimmer: true),
+                    );
                     return const Skeletonizer(
                       enabled: true,
-                      child: Wrap(
-                        spacing: 4,
-                        alignment: WrapAlignment.spaceBetween,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          ProductCard(product: product, shimmer: true),
-                          ProductCard(product: product, shimmer: true),
-                          ProductCard(product: product, shimmer: true),
-                          ProductCard(product: product, shimmer: true),
+                          Row(children: [
+                            Expanded(child: card),
+                            SizedBox(width: 8),
+                            Expanded(child: card),
+                          ]),
+                          SizedBox(height: 8),
+                          Row(children: [
+                            Expanded(child: card),
+                            SizedBox(width: 8),
+                            Expanded(child: card),
+                          ]),
                         ],
                       ),
                     );
@@ -1147,7 +1256,10 @@ class _ApiPingBannerState extends State<_ApiPingBanner> {
   @override
   void initState() {
     super.initState();
-    _ping();
+    // Defer so the ping doesn't compete with Slider + Collections at T+0.
+    Future.delayed(const Duration(milliseconds: 1500), () {
+      if (mounted) _ping();
+    });
   }
 
   Future<void> _ping() async {
@@ -1270,7 +1382,9 @@ class _ApiPingBannerState extends State<_ApiPingBanner> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Header
-              Padding(
+              GestureDetector(
+                onTap: () => _showNetworkLog(context),
+                child: Padding(
                 padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
                 child: Row(
                   children: [
@@ -1323,6 +1437,7 @@ class _ApiPingBannerState extends State<_ApiPingBanner> {
                     ),
                   ],
                 ),
+              ),
               ),
 
               if (isLoading)
@@ -1428,6 +1543,169 @@ class _ApiPingBannerState extends State<_ApiPingBanner> {
               ],
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+void _showNetworkLog(BuildContext context) {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (_) => const _NetworkLogSheet(),
+  );
+}
+
+class _NetworkLogSheet extends StatefulWidget {
+  const _NetworkLogSheet();
+
+  @override
+  State<_NetworkLogSheet> createState() => _NetworkLogSheetState();
+}
+
+class _NetworkLogSheetState extends State<_NetworkLogSheet> {
+  bool _copied = false;
+
+  @override
+  void initState() {
+    super.initState();
+    NetworkLog.instance.addListener(_onUpdate);
+  }
+
+  @override
+  void dispose() {
+    NetworkLog.instance.removeListener(_onUpdate);
+    super.dispose();
+  }
+
+  void _onUpdate() => setState(() {});
+
+  String _buildText() {
+    final entries = NetworkLog.instance.entries;
+    if (entries.isEmpty) return 'No requests recorded yet.';
+    final buf = StringBuffer();
+    for (final e in entries) {
+      final t = e.timestamp;
+      final time =
+          '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}:${t.second.toString().padLeft(2, '0')}';
+      buf.writeln('── ${e.method} ${e.statusCode ?? '---'} ${e.durationMs}ms $time ──');
+      buf.writeln('URL: ${e.url}');
+      if (e.error != null) buf.writeln('ERROR: ${e.error}');
+      if (e.requestBody != null) {
+        buf.writeln('REQUEST:');
+        buf.writeln(_fmt(e.requestBody));
+      }
+      if (e.responseBody != null) {
+        buf.writeln('RESPONSE:');
+        buf.writeln(_fmt(e.responseBody));
+      }
+      buf.writeln();
+    }
+    return buf.toString().trimRight();
+  }
+
+  String _fmt(dynamic v) {
+    try {
+      return const JsonEncoder.withIndent('  ').convert(v);
+    } catch (_) {
+      return v.toString();
+    }
+  }
+
+  Future<void> _copy() async {
+    await Clipboard.setData(ClipboardData(text: _buildText()));
+    if (!mounted) return;
+    setState(() => _copied = true);
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) setState(() => _copied = false);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final text = _buildText();
+    return DraggableScrollableSheet(
+      initialChildSize: 0.75,
+      minChildSize: 0.4,
+      maxChildSize: 0.95,
+      builder: (_, controller) => Container(
+        decoration: const BoxDecoration(
+          color: Color(0xFF1E1E1E),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        ),
+        child: Column(
+          children: [
+            // Handle bar
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              child: Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            // Header row
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 12, 10),
+              child: Row(
+                children: [
+                  const Text(
+                    'Network Log',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700),
+                  ),
+                  const Spacer(),
+                  GestureDetector(
+                    onTap: () {
+                      NetworkLog.instance.clear();
+                    },
+                    child: const Icon(Icons.delete_outline,
+                        color: Colors.white54, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  GestureDetector(
+                    onTap: _copy,
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 200),
+                      child: _copied
+                          ? const Icon(Icons.check_rounded,
+                              key: ValueKey('ok'),
+                              color: Colors.greenAccent,
+                              size: 20)
+                          : const Icon(Icons.copy_rounded,
+                              key: ValueKey('copy'),
+                              color: Colors.white54,
+                              size: 20),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1, color: Colors.white10),
+            // Scrollable log text
+            Expanded(
+              child: SingleChildScrollView(
+                controller: controller,
+                padding: const EdgeInsets.all(14),
+                child: SelectableText(
+                  text,
+                  style: const TextStyle(
+                    fontFamily: 'monospace',
+                    fontSize: 11,
+                    color: Colors.white70,
+                    height: 1.55,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

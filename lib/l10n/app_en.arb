@@ -25,6 +25,8 @@
   "minimum8Characters": "Minimum 8 characters",
   "required": "Required",
   "enterValidEmail": "Enter a valid email",
+  "enterFullName": "Please enter your first and last name",
+  "fullNameHelper": "e.g. Mohammed Amin  —  last word is used as last name",
   "emailRequired": "Email is required",
 
   "home": "Home",

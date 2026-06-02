@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:injectable/injectable.dart';
+import 'package:minimumz/common/pricing_utils.dart';
 import 'package:minimumz/di/di.dart';
 import 'package:minimumz/data/data.dart';
 
@@ -19,7 +20,12 @@ class ProductsBloc extends Bloc<ProductsEvent, ProductsState> {
       result.when(
         (response) {
           if (response.products != null) {
-            emit(_Loaded(response.products!, count: response.count, limit: response.limit, offset: response.offset));
+            emit(_Loaded(
+              filterPricedProducts(response.products!),
+              count: response.count,
+              limit: response.limit,
+              offset: response.offset,
+            ));
           }
         },
         (error) => emit(_Error(error.message)),

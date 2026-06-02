@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:gap/gap.dart';
 import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
 import 'package:minimumz/common/colors.dart';
+import 'package:minimumz/common/pricing_utils.dart';
 import 'package:minimumz/domain/repository/preference_repository.dart';
 import 'package:minimumz/domain/model/product_filter.dart';
 import 'package:minimumz/common/extensions/extensions.dart';
@@ -168,7 +169,7 @@ class _SearchScreenState extends State<SearchScreen> {
         },
       );
       if (!mounted) return;
-      final products   = res?.products ?? [];
+      final products   = filterPricedProducts(res?.products ?? []);
       final isLastPage = products.length < _pageSize;
       if (isLastPage) {
         _pagingController.appendLastPage(products);

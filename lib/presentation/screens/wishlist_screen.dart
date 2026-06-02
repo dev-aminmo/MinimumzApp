@@ -7,7 +7,6 @@ import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
 import 'package:minimumz/common/extensions/extensions.dart';
 import 'package:minimumz/cubits/wishlist/wishlist_cubit.dart';
 import 'package:minimumz/data/data.dart';
-import 'package:minimumz/di/di.dart';
 import 'package:minimumz/domain/repository/preference_repository.dart';
 
 import '../../common/colors.dart';
@@ -43,36 +42,9 @@ class _WishlistScreenState extends State<WishlistScreen> {
   void initState() {
     super.initState();
     _allProducts = List<Product>.from(context.read<WishlistCubit>().state);
+    // Use pre-computed available IDs (set on country change / login) — no API call here.
+    _availableIds = PreferenceRepository.instance.wishlistAvailableIds;
     _pagingController.addPageRequestListener(_loadPage);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _refreshPrices());
-  }
-
-  Future<void> _refreshPrices() async {
-    final ids = context.read<WishlistCubit>().state
-        .map((p) => p.id)
-        .whereType<String>()
-        .toList();
-    if (ids.isEmpty) return;
-    final countryId = PreferenceRepository.instance.country?.id;
-    try {
-      final result = await getIt<DataStore>().products.list(queryParams: {
-        'id[]': ids,
-        'limit': ids.length,
-        if (countryId != null) 'country_id': countryId,
-      });
-      final refreshed = result?.products ?? [];
-      if (!mounted) return;
-      if (refreshed.isNotEmpty) {
-        context.read<WishlistCubit>().refreshPrices(refreshed);
-      }
-      // If a country is selected, only show products the API returned for it
-      if (countryId != null) {
-        setState(() {
-          _availableIds = refreshed.map((p) => p.id).whereType<String>().toSet();
-        });
-        _pagingController.refresh();
-      }
-    } catch (_) {}
   }
 
   void _loadPage(int pageKey) {

@@ -64,7 +64,11 @@ class Failure {
                 }
                 break;
               default:
-                "Unexpected error occurred";
+                failure = failure.copyWith(
+                    code: error.response?.statusCode,
+                    message: (error.response?.data is Map)
+                        ? ((error.response!.data as Map)['message'] ?? 'Unexpected error occurred')
+                        : 'Unexpected error occurred');
             }
             break;
           case DioExceptionType.sendTimeout:

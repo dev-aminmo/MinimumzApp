@@ -14,6 +14,8 @@ class RetrieveCartUsecase {
     try {
       final storeApi = getIt<DataStore>();
       final prefRepo = getIt<PreferenceRepository>();
+      final preferredCountryId = prefRepo.country?.id?.toString();
+
       StoreCartsRes? result;
       if (prefRepo.cartId?.isNotEmpty ?? false) {
         try {
@@ -30,9 +32,32 @@ class RetrieveCartUsecase {
       }
 
       if (result == null) {
-        result = await storeApi.carts.createCart();
+        // Pass the user's preferred country so prices are correct from the start.
+        result = await storeApi.carts.createCart(
+          req: preferredCountryId != null
+              ? StorePostCartReq(regionId: preferredCountryId)
+              : null,
+        );
         if (result?.cart?.id != null) {
           await prefRepo.setCartId(result!.cart!.id!);
+        }
+      } else if (preferredCountryId != null &&
+          result.cart?.regionId != null &&
+          result.cart!.regionId != preferredCountryId) {
+        // Cart's country doesn't match the user's current preference — sync it.
+        // This handles: country changed while app was closed, or SAR guest cart
+        // still active after the user switched to BHD.
+        final cartId = result.cart!.id;
+        if (cartId != null) {
+          try {
+            final updated = await storeApi.carts.update(
+              cartId: cartId,
+              req: StorePostCartsCartReq(regionId: preferredCountryId),
+            );
+            if (updated != null) result = updated;
+          } catch (_) {
+            // Best-effort: keep the existing cart if the update fails.
+          }
         }
       }
 

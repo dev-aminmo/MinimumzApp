@@ -1,4 +1,5 @@
 import 'package:animated_digit/animated_digit.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_html/flutter_html.dart';
 import 'package:auto_route/auto_route.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -18,12 +19,12 @@ import 'package:minimumz/presentation/components/index.dart';
 import 'package:minimumz/presentation/theme/theme.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:minimumz/data/data.dart';
+import 'package:minimumz/common/pricing_utils.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
 import 'widgets/bottom_nav_button.dart';
 import 'dart:async';
-import 'dart:math';
 
 @RoutePage()
 class ProductDetailsScreen extends StatefulWidget {
@@ -257,46 +258,40 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
         context.bottomViewPadding == 0.0 ? 30.0 : context.bottomViewPadding;
     final currencyCode = PreferenceRepository.currencyCode;
 
+    List<MoneyAmount> allAmounts() => (product.variants ?? [])
+        .expand((v) => v.prices ?? <MoneyAmount>[])
+        .toList();
+
+    List<MoneyAmount> selectedAmounts() =>
+        selectedVariant != null ? (selectedVariant!.prices ?? []) : allAmounts();
+
     String variantPrice() {
       final code = currencyCode.toUpperCase();
-      if (selectedVariant == null) {
-        final amounts = (product.variants ?? [])
-            .expand((v) => v.prices ?? <MoneyAmount>[])
-            .where((p) => p.currencyCode?.toUpperCase() == code && p.amount != null)
-            .map((p) => p.amount!)
-            .toList();
-        if (amounts.isEmpty) return '';
-        return amounts.reduce((a, b) => a < b ? a : b).formatAsPrice(code, locale: locale);
-      }
-      final priceEntry = selectedVariant?.prices?.firstWhere(
-        (p) => p.currencyCode?.toUpperCase() == code,
-        orElse: () => MoneyAmount(),
-      );
-      return (priceEntry?.amount ?? 0).formatAsPrice(code, locale: locale);
+      final amounts = selectedAmounts();
+      final effective = amounts.effectiveCurrency(code);
+      final p = amounts.minPrice(effective);
+      return p == null ? '' : p.formatAsPrice(effective, locale: locale);
     }
 
     String? variantCompareAt() {
       final code = currencyCode.toUpperCase();
-      final priceEntry = selectedVariant?.prices?.firstWhere(
-        (p) => p.currencyCode?.toUpperCase() == code,
-        orElse: () => MoneyAmount(),
-      );
-      final amount    = priceEntry?.amount;
-      final compareAt = priceEntry?.compareAtAmount;
-      if (compareAt == null || amount == null || compareAt <= amount) return null;
-      return compareAt.formatAsPrice(code, locale: locale);
+      final amounts = selectedAmounts();
+      final effective = amounts.effectiveCurrency(code);
+      final p = amounts.minPrice(effective);
+      if (p == null) return null;
+      final ca = amounts.maxCompareAt(effective, p);
+      return ca == null ? null : ca.formatAsPrice(effective, locale: locale);
     }
 
     int? variantDiscountPercent() {
       final code = currencyCode.toUpperCase();
-      final priceEntry = selectedVariant?.prices?.firstWhere(
-        (p) => p.currencyCode?.toUpperCase() == code,
-        orElse: () => MoneyAmount(),
-      );
-      final amount    = priceEntry?.amount;
-      final compareAt = priceEntry?.compareAtAmount;
-      if (compareAt == null || amount == null || compareAt <= amount) return null;
-      return (((compareAt - amount) / compareAt) * 100).round();
+      final amounts = selectedAmounts();
+      final effective = amounts.effectiveCurrency(code);
+      final p = amounts.minPrice(effective);
+      if (p == null) return null;
+      final ca = amounts.maxCompareAt(effective, p);
+      if (ca == null) return null;
+      return (((ca - p) / ca) * 100).round();
     }
 
     return Scaffold(
@@ -436,35 +431,40 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (product.collection?.title != null) ...[
-                    GestureDetector(
-                      onTap: () => context.router.push(
-                        CollectionRoute(collection: product.collection!),
-                      ),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                        decoration: BoxDecoration(
-                          color: ColorConstant.primary.withValues(alpha: 0.10),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                              color: ColorConstant.primary.withValues(alpha: 0.30)),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.category_outlined,
-                                size: 13, color: ColorConstant.primary),
-                            const Gap(5),
-                            Text(
-                              product.collection!.localizedTitle(locale),
-                              style: context.bodySmall?.copyWith(
-                                color: ColorConstant.primary,
-                                fontWeight: FontWeight.w600,
+                  if (product.collection?.title != null || product.type?.value != null) ...[
+                    Wrap(
+                      spacing: 16,
+                      runSpacing: 10,
+                      children: [
+                        if (product.type?.value != null)
+                          _TopChip(
+                            label: product.type!.value!,
+                            icon: Icons.storefront_outlined,
+                            logoUrl: product.type!.logo,
+                            color:ColorConstant.manatee,
+                            onTap: () => context.router.push(
+                              CollectionRoute(
+                                collection: ProductCollection(
+                                  id: product.type!.id,
+                                  title: product.type!.value,
+                                  filterParam: 'type_id',
+                                  logo: product.type!.logo,
+                                  banner: product.type!.banner,
+                                ),
                               ),
                             ),
-                          ],
-                        ),
-                      ),
+                          ),
+                        if (product.collection?.title != null)
+                          _TopChip(
+                            label: product.collection!.localizedTitle(locale),
+                            icon: Icons.category_outlined,
+                            color: ColorConstant.manatee,
+                            onTap: () => context.router.push(
+                              CollectionRoute(collection: product.collection!),
+                            ),
+                          ),
+
+                      ],
                     ),
                     const Gap(8.0),
                   ],
@@ -555,12 +555,19 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
               child: Row(
                 children: [
                   if (_avgRating > 0) ...[
-                    const Icon(Icons.star_rounded, color: Colors.amber, size: 16),
-                    const SizedBox(width: 3),
-                    Text(_avgRating.toStringAsFixed(1),
-                        style: context.bodySmallW500),
+                    ...List.generate(5, (i) {
+                      final full = i < _avgRating.floor();
+                      final half = !full && i < _avgRating && (_avgRating % 1) >= 0.5;
+                      return Icon(
+                        full ?  CupertinoIcons.star_fill: half ?  CupertinoIcons.star_lefthalf_fill :  CupertinoIcons.star,
+                        color: (full || half) ? Color(0xffFFCF04 ) : ColorConstant.manatee.withValues(alpha: 0.4),
+                        size: 13,
+                      );
+                    }),
+                    const SizedBox(width: 5),
+                    Text(_avgRating.toStringAsFixed(1), style: context.bodySmallW500),
                     if (_reviewCount > 0) ...[
-                      const SizedBox(width: 2),
+                      const SizedBox(width: 3),
                       Text('($_reviewCount)',
                           style: context.bodyExtraSmall
                               ?.copyWith(color: ColorConstant.manatee)),
@@ -628,8 +635,8 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                 child: _SpecsCard(product: product),
               ),
             ),
-          // ── Brand + Tags ─────────────────────────────────────────
-          if (product.type?.value != null || (product.tags?.isNotEmpty ?? false))
+          // ── Tags ─────────────────────────────────────────────────
+          if (product.tags?.isNotEmpty ?? false)
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
@@ -637,26 +644,6 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                   spacing: 8,
                   runSpacing: 8,
                   children: [
-                    if (product.type?.value != null)
-                      _InfoChip(
-                        label: product.type!.value!,
-                        imageUrl: product.type!.logo,
-                        icon: Icons.storefront_outlined,
-                        color: ColorConstant.brownDark,
-                        logoSize: 34,
-                        fontSize: 18,
-                        onTap: () => context.router.push(
-                          CollectionRoute(
-                            collection: ProductCollection(
-                              id: product.type!.id,
-                              title: product.type!.value,
-                              filterParam: 'type_id',
-                              logo: product.type!.logo,
-                              banner: product.type!.banner,
-                            ),
-                          ),
-                        ),
-                      ),
                     ...?(product.tags?.map((tag) => _InfoChip(label: tag.value ?? ''))),
                   ],
                 ),
@@ -1077,6 +1064,73 @@ class _SpecRow {
   final String value;
 }
 
+class _TopChip extends StatelessWidget {
+  const _TopChip({
+    required this.label,
+    required this.color,
+    this.icon,
+    this.logoUrl,
+    this.onTap,
+  });
+  final String label;
+  final Color color;
+  final IconData? icon;
+  final String? logoUrl;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: color.withValues(alpha: 0.05),
+              boxShadow: [
+
+                BoxShadow(
+                  color: color.withValues(alpha: (logoUrl!=null)?0.30:0.05),
+                  blurRadius: 5,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: ClipOval(
+              child: logoUrl != null
+                  ? CachedNetworkImage(
+                      cacheManager: DohCacheManager.instance,
+                      imageUrl: logoUrl!,
+                      width: 42,
+                      height: 42,
+                      fit: BoxFit.cover,
+                      errorWidget: (_, __, ___) => Icon(
+                        icon ?? Icons.storefront_outlined,
+                        size: 17,
+                        color: color,
+                      ),
+                    )
+                  : Icon(icon ?? Icons.storefront_outlined, size: 17, color: color),
+            ),
+          ),
+          const Gap(8),
+          Text(
+            label,
+            style: context.bodySmall?.copyWith(
+              color: color,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _InfoChip extends StatelessWidget {
   const _InfoChip({required this.label, this.icon, this.imageUrl, this.color, this.onTap, this.logoSize = 16, this.fontSize = 12});
   final String label;
@@ -1140,14 +1194,11 @@ class ProductDetailsRelatedCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final locale = context.watch<LocaleCubit>().state.languageCode;
     final currencyCode = PreferenceRepository.currencyCode.toUpperCase();
-    final allPrices = (product.variants ?? [])
+    final allAmounts = (product.variants ?? [])
         .expand((v) => v.prices ?? <MoneyAmount>[])
-        .where((p) => p.currencyCode?.toUpperCase() == currencyCode && p.amount != null)
         .toList();
-
-    final price = allPrices.isEmpty
-        ? null
-        : allPrices.map((p) => p.amount!).reduce((a, b) => a < b ? a : b);
+    final effective = allAmounts.effectiveCurrency(currencyCode);
+    final price     = allAmounts.minPrice(effective);
 
     return GestureDetector(
       onTap: () => context.router.push(ProductDetailsRoute(product: product)),
@@ -1201,11 +1252,12 @@ class ProductDetailsRelatedCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const Gap(4),
-                  Text(
-                    price.formatAsPrice(currencyCode, locale: locale),
-                    style: context.bodyExtraSmall
-                        ?.copyWith(color: Colors.black, fontWeight: FontWeight.w600),
-                  ),
+                  if (price != null)
+                    Text(
+                      price.formatAsPrice(effective, locale: locale),
+                      style: context.bodyExtraSmall
+                          ?.copyWith(color: Colors.black, fontWeight: FontWeight.w600),
+                    ),
                 ],
               ),
             ),

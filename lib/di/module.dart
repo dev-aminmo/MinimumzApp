@@ -5,10 +5,9 @@ import 'package:minimumz/domain/repository/preference_repository.dart';
 
 abstract class RegisterCoreDependencies {
   static DataStore createDataStore() => DataStore.initialize(
-     baseUrl: 'https://darkorchid-mouse-412686.hostingersite.com/api',
+      baseUrl: 'https://darkorchid-mouse-412686.hostingersite.com/api',
       //baseUrl: 'https://google.com/api',
-      interceptors: [_authInterceptor, _localeInterceptor]
-
+      interceptors: [_authInterceptor, _localeInterceptor, TrafficInterceptor()],
   );
 
   static final Interceptor _localeInterceptor = InterceptorsWrapper(

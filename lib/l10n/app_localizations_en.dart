@@ -78,6 +78,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get enterValidEmail => 'Enter a valid email';
 
   @override
+  String get enterFullName => 'Please enter your first and last name';
+
+  @override
+  String get fullNameHelper =>
+      'e.g. Mohammed Amin  —  last word is used as last name';
+
+  @override
   String get emailRequired => 'Email is required';
 
   @override

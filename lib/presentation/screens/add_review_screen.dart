@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:auto_route/auto_route.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
@@ -186,8 +187,8 @@ class _AddReviewScreenState extends State<AddReviewScreen> {
                           allowHalfRating: false,
                           itemCount: 5,
                           itemBuilder: (context, _) => const Icon(
-                            Icons.star,
-                            color: Colors.amber,
+                            CupertinoIcons.star_fill,
+                            color:const Color(0xffFFCF04 ),
                           ),
                           onRatingUpdate: (rating) =>
                               setState(() => _rating = rating.round()),

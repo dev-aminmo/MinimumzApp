@@ -14,6 +14,7 @@ class CustomTextField extends StatelessWidget {
     this.onFieldSubmitted,
     this.textCapitalization,
     this.suffixIcon,
+    this.helperText,
   });
   final String labelText;
   final TextEditingController? controller;
@@ -24,6 +25,8 @@ class CustomTextField extends StatelessWidget {
   final TextCapitalization? textCapitalization;
   final void Function(String)? onFieldSubmitted;
   final Widget? suffixIcon;
+  final String? helperText;
+
   @override
   Widget build(BuildContext context) {
     return TextFormField(
@@ -37,8 +40,10 @@ class CustomTextField extends StatelessWidget {
       onFieldSubmitted: onFieldSubmitted,
       decoration: InputDecoration(
         labelText: labelText,
-          suffixIcon:suffixIcon,
+        suffixIcon: suffixIcon,
         labelStyle: context.bodySmall?.copyWith(color: ColorConstant.manatee),
+        helperText: helperText,
+        helperStyle: TextStyle(color: ColorConstant.manatee, fontSize: 11),
       ),
     );
   }

@@ -175,12 +175,65 @@ class PreferenceRepository {
     }
   }
 
+  // ── Brands cache ─────────────────────────────────────────────────────────────
+  static const String _cachedBrandsKey = 'cached_brands';
+
+  List<BrandItem>? get cachedBrands {
+    final raw = _prefs.getString(_cachedBrandsKey);
+    if (raw == null) return null;
+    try {
+      final list = jsonDecode(raw) as List;
+      return list.map((e) => BrandItem.fromJson(e as Map<String, dynamic>)).toList();
+    } catch (e) {
+      log(e.toString());
+      return null;
+    }
+  }
+
+  Future<void> setCachedBrands(List<BrandItem> brands) async {
+    try {
+      await _prefs.setString(
+        _cachedBrandsKey,
+        jsonEncode(brands.map((b) => b.toJson()).toList()),
+      );
+    } catch (e) {
+      log(e.toString());
+    }
+  }
+
+  // ── New Arrivals cache ────────────────────────────────────────────────────────
+  static const String _cachedNewArrivalsKey = 'cached_new_arrivals';
+
+  List<Product>? get cachedNewArrivals {
+    final raw = _prefs.getString(_cachedNewArrivalsKey);
+    if (raw == null) return null;
+    try {
+      final list = jsonDecode(raw) as List;
+      return list.map((e) => Product.fromJson(e as Map<String, dynamic>)).toList();
+    } catch (e) {
+      log(e.toString());
+      return null;
+    }
+  }
+
+  Future<void> setCachedNewArrivals(List<Product> products) async {
+    try {
+      await _prefs.setString(
+        _cachedNewArrivalsKey,
+        jsonEncode(products.map((p) => p.toJson()).toList()),
+      );
+    } catch (e) {
+      log(e.toString());
+    }
+  }
+
   // ── Locale-sensitive cache clearing ──────────────────────────────────────────
   Future<void> clearLocaleSensitiveCaches() async {
     await Future.wait([
       _prefs.remove(_cachedCollectionsKey),
       _prefs.remove(_cachedBestSellersKey),
-      _prefs.remove(_cachedSliderKey),
+      _prefs.remove(_cachedBrandsKey),
+      _prefs.remove(_cachedNewArrivalsKey),
     ]);
   }
 
@@ -274,6 +327,21 @@ class PreferenceRepository {
     );
   }
 
+  // ── Wishlist available IDs (country-filtered) ────────────────────────────────
+  static const String _wishlistAvailableIdsKey = 'wishlist_available_ids';
+
+  Set<String>? get wishlistAvailableIds {
+    final raw = _prefs.getStringList(_wishlistAvailableIdsKey);
+    if (raw == null) return null;
+    return raw.toSet();
+  }
+
+  Future<void> setWishlistAvailableIds(Set<String> ids) async =>
+      await _prefs.setStringList(_wishlistAvailableIdsKey, ids.toList());
+
+  Future<void> clearWishlistAvailableIds() async =>
+      await _prefs.remove(_wishlistAvailableIdsKey);
+
   // ── Search history ────────────────────────────────────────────────────────────
   static const String _searchHistoryKey = 'search_history';
   static const int _maxHistoryItems = 10;
@@ -315,6 +383,26 @@ class PreferenceRepository {
 
   Future<void> clearSearchHistory() async =>
       await _prefs.remove(_searchHistoryKey);
+
+  Future<void> clearUserSessionData() async {
+    setGuest(value: true);
+    // Restore currency to the selected region's currency, discarding the
+    // account-specific override set on login.
+    final regionCurrency = _region?.currencyCode;
+    if (regionCurrency != null && regionCurrency.isNotEmpty) {
+      await setCurrencyCode(regionCurrency);
+    } else {
+      await clearCurrencyCode();
+    }
+    await Future.wait([
+      clearCartId(),
+      clearCachedCart(),
+      clearSearchHistory(),
+      clearWishlistAvailableIds(),
+      _prefs.remove(_wishlistKey),
+      _prefs.remove(_recentlyViewedKey),
+    ]);
+  }
 
   Future<void> setWishlistProducts(List<Product> products) async {
     await _prefs.setString(

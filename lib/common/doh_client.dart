@@ -124,6 +124,7 @@ Future<String> dohResolve(String hostname) async {
 // For HTTP: returns the plain socket directly.
 HttpClient makeDohHttpClient() {
   final client = HttpClient();
+  client.userAgent = 'MiniMumz/1.0 (Mobile)';
   client.findProxy = (_) => 'DIRECT';
   client.connectionFactory =
       (Uri uri, String? proxyHost, int? proxyPort) async {

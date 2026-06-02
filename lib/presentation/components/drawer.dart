@@ -19,6 +19,9 @@ import '../routes/app_router.dart';
 import '../screens/dashboard_screen.dart';
 import '../screens/home/bloc/products/products_bloc.dart';
 import 'minimumz_icons.dart';
+import '../../cubits/wishlist/wishlist_cubit.dart';
+import '../../../domain/services/user_data_sync_service.dart';
+import '../../../common/country_change_notifier.dart';
 
 class DrawerWidget extends StatefulWidget {
   const DrawerWidget({super.key});
@@ -287,20 +290,24 @@ class _DrawerWidgetState extends State<DrawerWidget> {
                         loggedIn: (_) => ListTile(
                               leading: const Icon(minimumzIcons.logout, color: Colors.red),
                               onTap: () async {
-                                await showOkCancelAlertDialog(
+                                final result = await showOkCancelAlertDialog(
                                   context: context,
                                   style: AdaptiveStyle.material,
                                   title: context.l10n.confirmLogout,
                                   message: context.l10n.confirmLogoutMessage,
                                   isDestructiveAction: true,
                                   okLabel: context.l10n.logout,
-                                ).then((result) {
-                                  if (result == OkCancelResult.ok) {
+                                );
+                                if (result == OkCancelResult.ok) {
+                                  final wishlist = context.read<WishlistCubit>();
+                                  final cart = context.read<CartBloc>();
+                                  await clearUserDataOnLogout(wishlist, cart);
+                                  if (context.mounted) {
                                     context
                                         .read<AuthenticationBloc>()
                                         .add(const AuthenticationEvent.logoutCustomer());
                                   }
-                                });
+                                }
                               },
                               contentPadding: contentPadding,
                               title: Text(context.l10n.logout),
@@ -360,6 +367,10 @@ class _DrawerWidgetState extends State<DrawerWidget> {
       await prefRepo.setCurrencyCode(region.currencyCode!);
     }
 
+    // Currency changed — cached product prices are in the old currency, clear them.
+    await prefRepo.clearLocaleSensitiveCaches();
+    CountryChangeNotifier.instance.notify();
+
     final authState = context.read<AuthenticationBloc>().state;
     final isLoggedIn = authState.maybeMap(loggedIn: (_) => true, orElse: () => false);
     if (isLoggedIn && country.id != null) {
@@ -373,6 +384,9 @@ class _DrawerWidgetState extends State<DrawerWidget> {
           cartId: prefRepo.cartId!,
           req: StorePostCartsCartReq(regionId: region.id)));
     }
+
+    // Re-filter wishlist for the newly selected country (fire-and-forget).
+    filterWishlistForCountry(context.read<WishlistCubit>());
 
     setState(() {});
   }

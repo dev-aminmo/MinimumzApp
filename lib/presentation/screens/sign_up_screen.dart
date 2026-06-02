@@ -29,6 +29,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   bool _obscurePassword = true;
+  int _nameErrorCount = 0;
+  bool _submitted = false;
 
   @override
   void dispose() {
@@ -39,17 +41,22 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   void _submit() {
+    if (_submitted) return;
     if (!_formKey.currentState!.validate()) return;
+    _submitted = true;
+    final parts = _nameCtrl.text.trim().split(RegExp(r'[,\s]+')).where((p) => p.isNotEmpty).toList();
+    final firstName = parts.sublist(0, parts.length - 1).join(' ');
+    final lastName = parts.last;
     context.read<AuthenticationBloc>().add(AuthenticationEvent.signUpCustomer(
         email: _emailCtrl.text,
         password: _passwordCtrl.text,
-        firstName: _nameCtrl.text.trim(),
-        lastName: ''));
+        firstName: firstName,
+        lastName: lastName));
   }
 
   @override
   Widget build(BuildContext context) {
-    return BlocListener<AuthenticationBloc, AuthenticationState>(
+    return BlocConsumer<AuthenticationBloc, AuthenticationState>(
       listener: (context, state) {
         state.maybeMap(
           loading: (_) => EasyLoading.show(maskType: EasyLoadingMaskType.black),
@@ -67,10 +74,20 @@ class _SignUpScreenState extends State<SignUpScreen> {
             EasyLoading.dismiss();
             if (context.mounted) context.router.replaceAll([const DashboardRoute()]);
           },
-          orElse: () => EasyLoading.dismiss(),
+          orElse: () {
+            _submitted = false;
+            EasyLoading.dismiss();
+          },
         );
       },
-      child: AnnotatedRegion<SystemUiOverlayStyle>(
+      builder: (context, state) {
+        final error = state.mapOrNull(
+          error: (_) => _.failure.message,
+          loggedInAsGuest: (_) => _.failure?.message,
+          loggedOut: (_) => _.failure?.message,
+        );
+
+        return AnnotatedRegion<SystemUiOverlayStyle>(
         value: context.theme.appBarTheme.systemOverlayStyle!,
         child: GestureDetector(
           onTap: () => FocusScope.of(context).unfocus(),
@@ -97,14 +114,56 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               ?.copyWith(color: ColorConstant.manatee)),
                       const Gap(32),
 
+                      // ── Error banner ─────────────────────────────
+                      AnimatedSize(
+                        duration: const Duration(milliseconds: 250),
+                        child: (error != null && error.isNotEmpty)
+                            ? Container(
+                                width: double.infinity,
+                                margin: const EdgeInsets.only(bottom: 20),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 14, vertical: 12),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xffFFE9E9),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.error_outline,
+                                        color: Colors.redAccent, size: 18),
+                                    const Gap(8),
+                                    Expanded(
+                                      child: Text(error,
+                                          style: context.bodySmall?.copyWith(
+                                              color: Colors.redAccent)),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            : const SizedBox.shrink(),
+                      ),
+
                       // ── Fields ───────────────────────────────────
                       CustomTextField(
                         controller: _nameCtrl,
                         labelText: context.l10n.fullName,
                         keyboardType: TextInputType.name,
                         textInputAction: TextInputAction.next,
-                        validator: (val) =>
-                            (val == null || val.trim().isEmpty) ? context.l10n.required : null,
+                        validator: (val) {
+                          if (val == null || val.trim().isEmpty) {
+                            _nameErrorCount = 0;
+                            return context.l10n.required;
+                          }
+                          final parts = val.trim().split(RegExp(r'[,\s]+')).where((p) => p.isNotEmpty).toList();
+                          if (parts.length < 2) {
+                            _nameErrorCount++;
+                            return _nameErrorCount == 1
+                                ? context.l10n.enterFullName
+                                : context.l10n.fullNameHelper;
+                          }
+                          _nameErrorCount = 0;
+                          return null;
+                        },
                       ),
                       const Gap(12),
                       CustomTextField(
@@ -192,7 +251,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
             ),
           ),
         ),
-      ),
+      );
+      },
     );
   }
 }

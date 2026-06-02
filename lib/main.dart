@@ -20,6 +20,9 @@ import 'package:minimumz/presentation/routes/app_router.dart';
 import 'package:minimumz/presentation/screens/home/bloc/collections/collections_bloc.dart';
 import 'package:minimumz/presentation/screens/home/bloc/products/products_bloc.dart';
 import 'package:minimumz/presentation/theme/theme.dart';
+import 'package:google_fonts/src/google_fonts_base.dart' as gfb;
+import 'package:http/io_client.dart';
+import 'common/doh_client.dart';
 import 'di/di.dart';
 import 'observer.dart';
 
@@ -38,6 +41,7 @@ Future<void> main() async {
       options.enableLogs = true;
     },
     appRunner: () async {
+      gfb.httpClient = IOClient(makeDohHttpClient());
       final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
       FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
       Bloc.observer = MyBlocObserver();
