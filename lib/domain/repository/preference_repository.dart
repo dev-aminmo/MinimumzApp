@@ -342,6 +342,35 @@ class PreferenceRepository {
   Future<void> clearWishlistAvailableIds() async =>
       await _prefs.remove(_wishlistAvailableIdsKey);
 
+  // ── Addresses cache ───────────────────────────────────────────────────────────
+  static const String _cachedAddressesKey = 'cached_addresses';
+
+  List<Address>? get cachedAddresses {
+    final raw = _prefs.getString(_cachedAddressesKey);
+    if (raw == null) return null;
+    try {
+      final list = jsonDecode(raw) as List;
+      return list.map((e) => Address.fromJson(e as Map<String, dynamic>)).toList();
+    } catch (e) {
+      log(e.toString());
+      return null;
+    }
+  }
+
+  Future<void> setCachedAddresses(List<Address> addresses) async {
+    try {
+      await _prefs.setString(
+        _cachedAddressesKey,
+        jsonEncode(addresses.map((a) => a.toJson()).toList()),
+      );
+    } catch (e) {
+      log(e.toString());
+    }
+  }
+
+  Future<void> clearCachedAddresses() async =>
+      _prefs.remove(_cachedAddressesKey);
+
   // ── Search history ────────────────────────────────────────────────────────────
   static const String _searchHistoryKey = 'search_history';
   static const int _maxHistoryItems = 10;

@@ -265,18 +265,24 @@ class Cart {
     );
   }
 
+  // Sentinel so copyWith can explicitly set shippingAddress to null.
+  static const _unset = Object();
+
   Cart copyWith({
     List<LineItem>? items,
     int? subTotal,
     int? total,
+    Object? shippingAddress = _unset,
   }) {
     return Cart(
       id: id,
       email: email,
       billingAddressId: billingAddressId,
       billingAddress: billingAddress,
-      shippingAddressId: shippingAddressId,
-      shippingAddress: shippingAddress,
+      shippingAddressId: identical(shippingAddress, _unset) ? shippingAddressId : null,
+      shippingAddress: identical(shippingAddress, _unset)
+          ? this.shippingAddress
+          : shippingAddress as Address?,
       items: items ?? this.items,
       regionId: regionId,
       region: region,

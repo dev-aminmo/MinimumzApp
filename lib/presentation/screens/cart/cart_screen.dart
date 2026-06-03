@@ -1,4 +1,5 @@
 import 'package:auto_route/auto_route.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -599,6 +600,8 @@ class _PaymentMethodTile extends StatelessWidget {
 
 // ── Address bottom sheet ──────────────────────────────────────────────────────
 
+enum _AddrMode { select, form }
+
 class _AddressSheet extends StatefulWidget {
   const _AddressSheet({required this.cart});
   final Cart cart;
@@ -608,62 +611,175 @@ class _AddressSheet extends StatefulWidget {
 }
 
 class _AddressSheetState extends State<_AddressSheet> {
+  _AddrMode _mode = _AddrMode.select;
+  Address? _editingAddress;
+
+  // Saved addresses (filtered to current country)
+  List<Address> _addresses = [];
+  bool _fetchingAddresses = false;
+
+  // Form
   final _formKey = GlobalKey<FormState>();
-  late final _firstNameCtrl =
-      TextEditingController(text: widget.cart.shippingAddress?.firstName ?? '');
-  late final _lastNameCtrl =
-      TextEditingController(text: widget.cart.shippingAddress?.lastName ?? '');
-  late final _address1Ctrl =
-      TextEditingController(text: widget.cart.shippingAddress?.address1 ?? '');
-  late final _cityCtrl =
-      TextEditingController(text: widget.cart.shippingAddress?.city ?? '');
-  late final _provinceCtrl =
-      TextEditingController(text: widget.cart.shippingAddress?.province ?? '');
-  late final _postalCodeCtrl =
-      TextEditingController(text: widget.cart.shippingAddress?.postalCode ?? '');
-  late final _phoneCtrl =
-      TextEditingController(text: widget.cart.shippingAddress?.phone ?? '');
+  late TextEditingController _firstNameCtrl;
+  late TextEditingController _lastNameCtrl;
+  late TextEditingController _address1Ctrl;
+  late TextEditingController _address2Ctrl;
+  late TextEditingController _cityCtrl;
+  late TextEditingController _provinceCtrl;
+  late TextEditingController _postalCodeCtrl;
+  late TextEditingController _phoneCtrl;
   bool _saving = false;
 
+  String get _currentCountryCode =>
+      getIt<PreferenceRepository>().country?.iso2?.toLowerCase() ?? '';
+
   @override
-  void dispose() {
+  void initState() {
+    super.initState();
+    _initFormWith(widget.cart.shippingAddress);
+    _bootAddresses();
+  }
+
+  void _bootAddresses() {
+    final code = _currentCountryCode;
+    final cached = PreferenceRepository.instance.cachedAddresses ?? [];
+    final filtered =
+        cached.where((a) => a.countryCode?.toLowerCase() == code).toList();
+    setState(() {
+      _addresses = filtered;
+      if (_addresses.isEmpty) _mode = _AddrMode.form;
+    });
+    _fetchAddresses(code);
+  }
+
+  Future<void> _fetchAddresses(String code) async {
+    setState(() => _fetchingAddresses = true);
+    try {
+      final list =
+          await getIt<DataStore>().customers.listShippingAddresses();
+      await PreferenceRepository.instance.setCachedAddresses(list);
+      final filtered =
+          list.where((a) => a.countryCode?.toLowerCase() == code).toList();
+      if (mounted) {
+        setState(() {
+          _addresses = filtered;
+          _fetchingAddresses = false;
+          if (_addresses.isEmpty && _mode == _AddrMode.select) {
+            _mode = _AddrMode.form;
+          }
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _fetchingAddresses = false);
+    }
+  }
+
+  void _initFormWith(Address? src) {
+    _firstNameCtrl = TextEditingController(text: src?.firstName ?? '');
+    _lastNameCtrl = TextEditingController(text: src?.lastName ?? '');
+    _address1Ctrl = TextEditingController(text: src?.address1 ?? '');
+    _address2Ctrl = TextEditingController(text: src?.address2 ?? '');
+    _cityCtrl = TextEditingController(text: src?.city ?? '');
+    _provinceCtrl = TextEditingController(text: src?.province ?? '');
+    _postalCodeCtrl = TextEditingController(text: src?.postalCode ?? '');
+    _phoneCtrl = TextEditingController(text: src?.phone ?? '');
+  }
+
+  void _disposeFormControllers() {
     _firstNameCtrl.dispose();
     _lastNameCtrl.dispose();
     _address1Ctrl.dispose();
+    _address2Ctrl.dispose();
     _cityCtrl.dispose();
     _provinceCtrl.dispose();
     _postalCodeCtrl.dispose();
     _phoneCtrl.dispose();
+  }
+
+  @override
+  void dispose() {
+    _disposeFormControllers();
     super.dispose();
+  }
+
+  void _enterForm({Address? prefill}) {
+    _disposeFormControllers();
+    _editingAddress = prefill;
+    _initFormWith(prefill);
+    setState(() => _mode = _AddrMode.form);
+  }
+
+  void _applyToCart(Address address) {
+    final cartId = widget.cart.id;
+    if (cartId == null) return;
+
+    // Optimistic: reflect the new address in the UI immediately.
+    final currentCart =
+        context.read<CartBloc>().state.whenOrNull(loaded: (c) => c) ??
+            widget.cart;
+    context.read<CartBloc>().add(
+      CartEvent.refreshCart(currentCart.copyWith(shippingAddress: address)),
+    );
+
+    if (mounted) Navigator.pop(context);
+
+    // Background: persist to server (no loading spinner — state is already _Loaded).
+    context.read<CartBloc>().add(
+      CartEvent.updateCart(
+        cartId: cartId,
+        req: StorePostCartsCartReq(
+          shippingAddress: {
+            'first_name': address.firstName ?? '',
+            'last_name': address.lastName ?? '',
+            'address_1': address.address1 ?? '',
+            'address_2': address.address2 ?? '',
+            'city': address.city ?? '',
+            'province': address.province ?? '',
+            'postal_code': address.postalCode ?? '',
+            'phone': address.phone ?? '',
+            'country_code':
+                address.countryCode?.toLowerCase() ?? _currentCountryCode,
+          },
+        ),
+      ),
+    );
   }
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     final cartId = widget.cart.id;
     if (cartId == null) return;
-
     setState(() => _saving = true);
+
+    final countryCode = _currentCountryCode.isEmpty ? 'sa' : _currentCountryCode;
+
+    final address = Address(
+      firstName: _firstNameCtrl.text.trim(),
+      lastName: _lastNameCtrl.text.trim(),
+      address1: _address1Ctrl.text.trim(),
+      address2: _address2Ctrl.text.trim().isEmpty ? null : _address2Ctrl.text.trim(),
+      city: _cityCtrl.text.trim(),
+      province: _provinceCtrl.text.trim(),
+      postalCode: _postalCodeCtrl.text.trim(),
+      phone: _phoneCtrl.text.trim().isEmpty ? null : _phoneCtrl.text.trim(),
+      countryCode: countryCode,
+    );
+
     try {
-      final countryCode =
-          getIt<PreferenceRepository>().country?.iso2?.toLowerCase() ?? 'sa';
-      final req = StorePostCartsCartReq(
-        shippingAddress: {
-          'first_name': _firstNameCtrl.text.trim(),
-          'last_name': _lastNameCtrl.text.trim(),
-          'address_1': _address1Ctrl.text.trim(),
-          'city': _cityCtrl.text.trim(),
-          'province': _provinceCtrl.text.trim(),
-          'postal_code': _postalCodeCtrl.text.trim(),
-          'phone': _phoneCtrl.text.trim(),
-          'country_code': countryCode,
-        },
-      );
-      context.read<CartBloc>().add(CartEvent.updateCart(cartId: cartId, req: req));
-      if (mounted) Navigator.pop(context);
-    } catch (_) {
+      // Persist to address book
+      if (_editingAddress?.id != null) {
+        await getIt<DataStore>().customers.updateShippingAddress(
+          addressId: _editingAddress!.id!,
+          address: address,
+        );
+      } else {
+        await getIt<DataStore>().customers.addShippingAddress(address: address);
+      }
+      _applyToCart(address);
+    } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(context.l10n.failedToSaveAddress)),
+          SnackBar(content: Text(_apiError(e, context.l10n.failedToSaveAddress))),
         );
       }
     } finally {
@@ -671,66 +787,174 @@ class _AddressSheetState extends State<_AddressSheet> {
     }
   }
 
+  // ── Shared header decoration ─────────────────────────────────────────────────
+
+  Widget _dragHandle() => Center(
+        child: Container(
+          margin: const EdgeInsets.only(top: 12, bottom: 8),
+          width: 40,
+          height: 4,
+          decoration: BoxDecoration(
+            color: ColorConstant.manatee.withValues(alpha: 0.4),
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+      );
+
   @override
   Widget build(BuildContext context) {
+    return _mode == _AddrMode.select
+        ? _buildSelectMode(context)
+        : _buildFormMode(context);
+  }
+
+  // ── Select mode ──────────────────────────────────────────────────────────────
+
+  Widget _buildSelectMode(BuildContext context) {
     final country = getIt<PreferenceRepository>().country;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _dragHandle(),
+        // Header
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: ColorConstant.primary.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.location_on_outlined,
+                    color: ColorConstant.primary, size: 22),
+              ),
+              const Gap(12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(context.l10n.addressTitle,
+                        style: context.bodyLargeW600),
+                    if (country != null)
+                      Text(country.name ?? '',
+                          style: context.bodyExtraSmall
+                              ?.copyWith(color: ColorConstant.manatee)),
+                  ],
+                ),
+              ),
+              if (_fetchingAddresses)
+                SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: ColorConstant.manatee),
+                ),
+            ],
+          ),
+        ),
+        const Divider(height: 0),
+        // List
+        Flexible(
+          child: ListView(
+            shrinkWrap: true,
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+            children: [
+              ..._addresses.map((addr) => _AddressTile(
+                    address: addr,
+                    isSelected: _isCurrentCartAddress(addr),
+                    onTap: () => _applyToCart(addr),
+                    onEdit: () => _enterForm(prefill: addr),
+                  )),
+              const Gap(8),
+              // Add new tile
+              _AddNewTile(onTap: () => _enterForm()),
+              const Gap(8),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  bool _isCurrentCartAddress(Address addr) {
+    final s = widget.cart.shippingAddress;
+    if (s == null) return false;
+    return s.firstName == addr.firstName &&
+        s.lastName == addr.lastName &&
+        s.address1 == addr.address1 &&
+        s.city == addr.city;
+  }
+
+  // ── Form mode ────────────────────────────────────────────────────────────────
+
+  Widget _buildFormMode(BuildContext context) {
+    final country = getIt<PreferenceRepository>().country;
+    final isEdit = _editingAddress != null;
+    final hasAddresses = _addresses.isNotEmpty;
 
     return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      padding:
+          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: Form(
         key: _formKey,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // ── Drag handle ───────────────────────────────────────
-            Center(
-              child: Container(
-                margin: const EdgeInsets.only(top: 12, bottom: 8),
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: ColorConstant.manatee.withValues(alpha: 0.4),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-
-            // ── Header ────────────────────────────────────────────
+            _dragHandle(),
+            // Header
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+              padding: const EdgeInsets.fromLTRB(12, 8, 20, 16),
               child: Row(
                 children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: ColorConstant.primary.withValues(alpha: 0.1),
-                      shape: BoxShape.circle,
+                  if (hasAddresses)
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_ios_new_rounded,
+                          size: 18),
+                      onPressed: () =>
+                          setState(() => _mode = _AddrMode.select),
+                    )
+                  else
+                    Padding(
+                      padding: const EdgeInsets.only(left: 8),
+                      child: Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: ColorConstant.primary.withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(Icons.location_on_outlined,
+                            color: ColorConstant.primary, size: 22),
+                      ),
                     ),
-                    child: Icon(Icons.location_on_outlined,
-                        color: ColorConstant.primary, size: 22),
+                  const Gap(8),
+                  Expanded(
+                    child: Text(
+                      isEdit
+                          ? context.l10n.editAddress
+                          : context.l10n.addAddress,
+                      style: context.bodyLargeW600,
+                    ),
                   ),
-                  const Gap(12),
-                  Text(context.l10n.addressTitle, style: context.bodyLargeW600),
                 ],
               ),
             ),
             const Divider(height: 0),
-
-            // ── Fields ────────────────────────────────────────────
+            // Fields
             Flexible(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
                 child: Column(
                   children: [
-                    // Country (read-only)
                     _ReadOnlyField(
                       label: context.l10n.country,
                       value: country?.name ?? '',
                       icon: Icons.flag_outlined,
                     ),
                     const Gap(14),
-                    // First name + Last name
                     Row(
                       children: [
                         Expanded(
@@ -763,6 +987,11 @@ class _AddressSheetState extends State<_AddressSheet> {
                     ),
                     const Gap(14),
                     _AddressField(
+                      controller: _address2Ctrl,
+                      label: context.l10n.addressLine2Optional,
+                    ),
+                    const Gap(14),
+                    _AddressField(
                       controller: _cityCtrl,
                       label: context.l10n.city,
                       icon: Icons.location_city_outlined,
@@ -776,6 +1005,8 @@ class _AddressSheetState extends State<_AddressSheet> {
                           child: _AddressField(
                             controller: _provinceCtrl,
                             label: context.l10n.provinceState,
+                            required: true,
+                            requiredMsg: context.l10n.required,
                           ),
                         ),
                         const Gap(12),
@@ -784,6 +1015,8 @@ class _AddressSheetState extends State<_AddressSheet> {
                             controller: _postalCodeCtrl,
                             label: context.l10n.postalCode,
                             keyboardType: TextInputType.number,
+                            required: true,
+                            requiredMsg: context.l10n.required,
                           ),
                         ),
                       ],
@@ -799,8 +1032,7 @@ class _AddressSheetState extends State<_AddressSheet> {
                 ),
               ),
             ),
-
-            // ── Save button ───────────────────────────────────────
+            // Save button
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
               child: SizedBox(
@@ -824,6 +1056,135 @@ class _AddressSheetState extends State<_AddressSheet> {
                           style: const TextStyle(
                               fontSize: 15, fontWeight: FontWeight.w600)),
                 ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Saved address tile ────────────────────────────────────────────────────────
+
+class _AddressTile extends StatelessWidget {
+  const _AddressTile({
+    required this.address,
+    required this.isSelected,
+    required this.onTap,
+    required this.onEdit,
+  });
+
+  final Address address;
+  final bool isSelected;
+  final VoidCallback onTap;
+  final VoidCallback onEdit;
+
+  @override
+  Widget build(BuildContext context) {
+    final name =
+        '${address.firstName ?? ''} ${address.lastName ?? ''}'.trim();
+    final line2 = [address.city, address.province]
+        .where((v) => v?.isNotEmpty == true)
+        .join(', ');
+
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? ColorConstant.primary.withValues(alpha: 0.06)
+              : context.theme.cardColor,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isSelected
+                ? ColorConstant.primary
+                : ColorConstant.manatee.withValues(alpha: 0.25),
+            width: isSelected ? 1.5 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              isSelected
+                  ? Icons.location_on_rounded
+                  : Icons.location_on_outlined,
+              color: isSelected ? ColorConstant.primary : ColorConstant.manatee,
+              size: 22,
+            ),
+            const Gap(12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (name.isNotEmpty)
+                    Text(name, style: context.bodySmallW500),
+                  if (address.address1?.isNotEmpty == true)
+                    Text(address.address1!,
+                        style: context.bodySmall
+                            ?.copyWith(color: ColorConstant.manatee)),
+                  if (line2.isNotEmpty)
+                    Text(line2,
+                        style: context.bodyExtraSmall
+                            ?.copyWith(color: ColorConstant.manatee)),
+                ],
+              ),
+            ),
+            if (isSelected)
+              Padding(
+                padding: const EdgeInsets.only(right: 6),
+                child: Icon(Icons.check_circle_rounded,
+                    color: ColorConstant.primary, size: 18),
+              ),
+            IconButton(
+              icon: Icon(Icons.edit_outlined,
+                  size: 18, color: ColorConstant.manatee),
+              onPressed: onEdit,
+              visualDensity: VisualDensity.compact,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Add new address tile ──────────────────────────────────────────────────────
+
+class _AddNewTile extends StatelessWidget {
+  const _AddNewTile({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: ColorConstant.primary.withValues(alpha: 0.4),
+            width: 1.5,
+            strokeAlign: BorderSide.strokeAlignInside,
+          ),
+          color: ColorConstant.primary.withValues(alpha: 0.04),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.add_location_alt_outlined,
+                color: ColorConstant.primary, size: 20),
+            const Gap(8),
+            Text(
+              context.l10n.addAddress,
+              style: TextStyle(
+                color: ColorConstant.primary,
+                fontWeight: FontWeight.w500,
+                fontSize: 14,
               ),
             ),
           ],
@@ -911,14 +1272,17 @@ class _AddressField extends StatelessWidget {
             : null,
         filled: true,
         fillColor: context.theme.cardColor,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: ColorConstant.manatee.withValues(alpha: 0.3)),
+          borderSide:
+              BorderSide(color: ColorConstant.manatee.withValues(alpha: 0.3)),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: ColorConstant.manatee.withValues(alpha: 0.3)),
+          borderSide:
+              BorderSide(color: ColorConstant.manatee.withValues(alpha: 0.3)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -934,8 +1298,20 @@ class _AddressField extends StatelessWidget {
         ),
       ),
       validator: required
-          ? (v) => (v == null || v.trim().isEmpty) ? requiredMsg ?? 'Required' : null
+          ? (v) =>
+              (v == null || v.trim().isEmpty) ? requiredMsg ?? 'Required' : null
           : null,
     );
   }
+}
+
+String _apiError(Object e, String fallback) {
+  if (e is DioException) {
+    final data = e.response?.data;
+    if (data is Map) {
+      final msg = data['message'];
+      if (msg is String && msg.isNotEmpty) return msg;
+    }
+  }
+  return fallback;
 }

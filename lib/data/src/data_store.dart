@@ -297,8 +297,17 @@ class _RetryInterceptor extends Interceptor {
   static const _delays = [Duration(seconds: 1), Duration(seconds: 3)];
 
   static bool _shouldRetry(DioException err) {
+    final method = err.requestOptions.method.toUpperCase();
+    final isReadOnly = method == 'GET' || method == 'HEAD';
     final status = err.response?.statusCode;
-    if (status == 403 || (status != null && status >= 500)) return true;
+
+    // WAF/proxy blocks — safe to retry any method (no body was processed).
+    if (status == 403) return true;
+
+    // Server errors — only retry reads; writes are not idempotent.
+    if (status != null && status >= 500) return isReadOnly;
+
+    // Connection-level failures — nothing reached the server, safe for any method.
     return err.type == DioExceptionType.connectionTimeout ||
         err.type == DioExceptionType.receiveTimeout ||
         err.type == DioExceptionType.connectionError;

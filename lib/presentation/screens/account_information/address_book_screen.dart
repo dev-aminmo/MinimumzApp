@@ -4,8 +4,10 @@ import 'package:flutter/services.dart';
 import 'package:gap/gap.dart';
 import 'package:minimumz/common/colors.dart';
 import 'package:minimumz/common/extensions/extensions.dart';
+import 'package:dio/dio.dart';
 import 'package:minimumz/data/data.dart';
 import 'package:minimumz/di/di.dart';
+import 'package:minimumz/domain/repository/preference_repository.dart';
 import 'package:minimumz/presentation/components/index.dart';
 
 @RoutePage()
@@ -24,19 +26,31 @@ class _AddressBookScreenState extends State<AddressBookScreen> {
   @override
   void initState() {
     super.initState();
-    _load();
+    // Show cached data immediately, then refresh in background
+    final cached = PreferenceRepository.instance.cachedAddresses;
+    if (cached != null) {
+      _addresses = cached;
+      _loading = false;
+    }
+    _load(silent: cached != null);
   }
 
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+  Future<void> _load({bool silent = false}) async {
+    if (!silent) {
+      setState(() {
+        _loading = _addresses.isEmpty;
+        _error = null;
+      });
+    }
     try {
       final list = await getIt<DataStore>().customers.listShippingAddresses();
+      await PreferenceRepository.instance.setCachedAddresses(list);
       if (mounted) setState(() { _addresses = list; _loading = false; });
     } catch (_) {
-      if (mounted) setState(() { _error = 'load_failed'; _loading = false; });
+      if (mounted) setState(() {
+        if (_addresses.isEmpty) _error = 'load_failed';
+        _loading = false;
+      });
     }
   }
 
@@ -56,11 +70,15 @@ class _AddressBookScreenState extends State<AddressBookScreen> {
       ),
     );
     if (confirmed != true) return;
+    // Optimistic remove
+    final index = _addresses.indexOf(address);
+    setState(() => _addresses = List.of(_addresses)..remove(address));
     try {
       await getIt<DataStore>().customers.deleteShippingAddress(addressId: address.id!);
-      _load();
     } catch (_) {
+      // Revert on failure
       if (mounted) {
+        setState(() => _addresses = List.of(_addresses)..insert(index, address));
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(context.l10n.failedToDeleteAddress)),
         );
@@ -75,7 +93,7 @@ class _AddressBookScreenState extends State<AddressBookScreen> {
       backgroundColor: context.theme.scaffoldBackgroundColor,
       builder: (_) => _AddressFormSheet(existing: existing),
     );
-    _load();
+    _load(silent: true);
   }
 
   @override
@@ -201,20 +219,28 @@ class _AddressFormSheetState extends State<_AddressFormSheet> {
   late final TextEditingController _countryCode;
   late final TextEditingController _province;
   late final TextEditingController _postalCode;
+  late final TextEditingController _phone;
   bool _loading = false;
 
   @override
   void initState() {
     super.initState();
     final a = widget.existing;
+    // For edits: preserve the address's own country.
+    // For new addresses: default to the currently selected country.
+    final prefCountry = PreferenceRepository.instance.country?.iso2?.toUpperCase();
+    final initialCountry = (a?.countryCode?.isNotEmpty == true)
+        ? a!.countryCode!.toUpperCase()
+        : (prefCountry ?? '');
     _firstName   = TextEditingController(text: a?.firstName ?? '');
     _lastName    = TextEditingController(text: a?.lastName ?? '');
     _address1    = TextEditingController(text: a?.address1 ?? '');
     _address2    = TextEditingController(text: a?.address2 ?? '');
     _city        = TextEditingController(text: a?.city ?? '');
-    _countryCode = TextEditingController(text: a?.countryCode ?? '');
+    _countryCode = TextEditingController(text: initialCountry);
     _province    = TextEditingController(text: a?.province ?? '');
     _postalCode  = TextEditingController(text: a?.postalCode ?? '');
+    _phone       = TextEditingController(text: a?.phone ?? '');
   }
 
   @override
@@ -227,6 +253,7 @@ class _AddressFormSheetState extends State<_AddressFormSheet> {
     _countryCode.dispose();
     _province.dispose();
     _postalCode.dispose();
+    _phone.dispose();
     super.dispose();
   }
 
@@ -241,8 +268,9 @@ class _AddressFormSheetState extends State<_AddressFormSheet> {
       address2:    _address2.text.trim().isEmpty ? null : _address2.text.trim(),
       city:        _city.text.trim(),
       countryCode: _countryCode.text.trim().toUpperCase(),
-      province:    _province.text.trim().isEmpty ? null : _province.text.trim(),
-      postalCode:  _postalCode.text.trim().isEmpty ? null : _postalCode.text.trim(),
+      province:    _province.text.trim(),
+      postalCode:  _postalCode.text.trim(),
+      phone:       _phone.text.trim().isEmpty ? null : _phone.text.trim(),
     );
 
     try {
@@ -255,10 +283,10 @@ class _AddressFormSheetState extends State<_AddressFormSheet> {
         await getIt<DataStore>().customers.addShippingAddress(address: address);
       }
       if (mounted) Navigator.pop(context);
-    } catch (_) {
+    } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(context.l10n.failedToSaveAddressRetry)),
+          SnackBar(content: Text(_apiError(e, context.l10n.failedToSaveAddressRetry))),
         );
       }
     } finally {
@@ -266,25 +294,55 @@ class _AddressFormSheetState extends State<_AddressFormSheet> {
     }
   }
 
+  OutlineInputBorder _border(Color color, {double width = 1}) =>
+      OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: color, width: width),
+      );
+
+  InputDecoration _field(
+    BuildContext context,
+    String label, {
+    IconData? icon,
+    bool req = false,
+  }) =>
+      InputDecoration(
+        labelText: req ? '$label *' : label,
+        prefixIcon: icon != null
+            ? Icon(icon, size: 18, color: ColorConstant.manatee)
+            : null,
+        filled: true,
+        fillColor: context.theme.cardColor,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        border: _border(ColorConstant.manatee.withValues(alpha: 0.3)),
+        enabledBorder: _border(ColorConstant.manatee.withValues(alpha: 0.3)),
+        focusedBorder: _border(ColorConstant.primary, width: 1.5),
+        errorBorder: _border(Colors.redAccent),
+        focusedErrorBorder: _border(Colors.redAccent, width: 1.5),
+      );
+
+  String _countryDisplayName(String code) {
+    if (code.isEmpty) return '';
+    final regions = PreferenceRepository.instance.cachedRegions ?? [];
+    for (final region in regions) {
+      for (final c in region.countries ?? []) {
+        if (c.iso2?.toUpperCase() == code.toUpperCase()) {
+          return c.displayName ?? c.name ?? code.toUpperCase();
+        }
+      }
+    }
+    // Fallback: if the code matches the preference country, use its name.
+    final pref = PreferenceRepository.instance.country;
+    if (pref?.iso2?.toUpperCase() == code.toUpperCase()) {
+      return pref?.name ?? code.toUpperCase();
+    }
+    return code.toUpperCase();
+  }
+
   @override
   Widget build(BuildContext context) {
-    const inputBorder = OutlineInputBorder(
-      borderRadius: BorderRadius.all(Radius.circular(10.0)),
-      borderSide: BorderSide(width: 0, color: Colors.transparent),
-    );
-
-    InputDecoration field(String hint, {bool required = false}) => InputDecoration(
-      filled: true,
-      isDense: true,
-      hintText: required ? '$hint *' : hint,
-      border: inputBorder,
-      enabledBorder: inputBorder,
-      focusedBorder: inputBorder,
-      hintStyle: TextStyle(color: ColorConstant.manatee),
-      fillColor: context.theme.cardColor,
-    );
-
-    String? req(String? v) => (v == null || v.trim().isEmpty) ? context.l10n.required : null;
+    String? reqValidator(String? v) =>
+        (v == null || v.trim().isEmpty) ? context.l10n.required : null;
 
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
@@ -293,102 +351,165 @@ class _AddressFormSheetState extends State<_AddressFormSheet> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            AppBar(
-              automaticallyImplyLeading: false,
-              title: Text(widget.existing != null ? context.l10n.editAddress : context.l10n.addAddress),
-              actions: [
-                _loading
-                    ? const Padding(
-                        padding: EdgeInsets.all(14),
-                        child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
-                      )
-                    : TextButton(onPressed: _submit, child: Text(context.l10n.save)),
-              ],
+            // ── Drag handle ───────────────────────────────────────
+            Center(
+              child: Container(
+                margin: const EdgeInsets.only(top: 12, bottom: 8),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: ColorConstant.manatee.withValues(alpha: 0.4),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
             ),
-            SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-              child: Column(
+            // ── Header ────────────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+              child: Row(
                 children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextFormField(
-                          controller: _firstName,
-                          textInputAction: TextInputAction.next,
-                          decoration: field(context.l10n.firstName, required: true),
-                          validator: req,
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: TextFormField(
-                          controller: _lastName,
-                          textInputAction: TextInputAction.next,
-                          decoration: field(context.l10n.lastName, required: true),
-                          validator: req,
-                        ),
-                      ),
-                    ],
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: ColorConstant.primary.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.location_on_outlined,
+                        color: ColorConstant.primary, size: 22),
                   ),
-                  const Gap(10),
-                  TextFormField(
-                    controller: _address1,
-                    textInputAction: TextInputAction.next,
-                    decoration: field(context.l10n.addressLine1, required: true),
-                    validator: req,
+                  const Gap(12),
+                  Expanded(
+                    child: Text(
+                      widget.existing != null
+                          ? context.l10n.editAddress
+                          : context.l10n.addAddress,
+                      style: context.bodyLargeW600,
+                    ),
                   ),
-                  const Gap(10),
-                  TextFormField(
-                    controller: _address2,
-                    textInputAction: TextInputAction.next,
-                    decoration: field(context.l10n.addressLine2Optional),
-                  ),
-                  const Gap(10),
-                  TextFormField(
-                    controller: _city,
-                    textInputAction: TextInputAction.next,
-                    decoration: field(context.l10n.city, required: true),
-                    validator: req,
-                  ),
-                  const Gap(10),
-                  Row(
-                    children: [
-                      SizedBox(
-                        width: 90,
-                        child: TextFormField(
-                          controller: _countryCode,
-                          textInputAction: TextInputAction.next,
-                          textCapitalization: TextCapitalization.characters,
-                          maxLength: 2,
-                          decoration: field(context.l10n.country, required: true).copyWith(counterText: ''),
-                          validator: (v) {
-                            if (v == null || v.trim().isEmpty) return context.l10n.required;
-                            if (v.trim().length != 2) return context.l10n.twoChars;
-                            return null;
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: TextFormField(
-                          controller: _province,
-                          textInputAction: TextInputAction.next,
-                          decoration: field(context.l10n.provinceState),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: TextFormField(
-                          controller: _postalCode,
-                          textInputAction: TextInputAction.done,
-                          decoration: field(context.l10n.postalCode),
-                          onFieldSubmitted: (_) => _submit(),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const Gap(10),
                 ],
+              ),
+            ),
+            const Divider(height: 0),
+            // ── Fields ────────────────────────────────────────────
+            Flexible(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+                child: Column(
+                  children: [
+                    // Country (read-only)
+                    _ReadOnlyAddressField(
+                      label: context.l10n.country,
+                      value: _countryDisplayName(_countryCode.text),
+                      icon: Icons.flag_outlined,
+                    ),
+                    const Gap(14),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            controller: _firstName,
+                            textInputAction: TextInputAction.next,
+                            decoration: _field(context, context.l10n.firstName,
+                                icon: Icons.person_outline, req: true),
+                            validator: reqValidator,
+                          ),
+                        ),
+                        const Gap(12),
+                        Expanded(
+                          child: TextFormField(
+                            controller: _lastName,
+                            textInputAction: TextInputAction.next,
+                            decoration: _field(context, context.l10n.lastName, req: true),
+                            validator: reqValidator,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const Gap(14),
+                    TextFormField(
+                      controller: _address1,
+                      textInputAction: TextInputAction.next,
+                      decoration: _field(context, context.l10n.addressLine1,
+                          icon: Icons.home_outlined, req: true),
+                      validator: reqValidator,
+                    ),
+                    const Gap(14),
+                    TextFormField(
+                      controller: _address2,
+                      textInputAction: TextInputAction.next,
+                      decoration: _field(context, context.l10n.addressLine2Optional),
+                    ),
+                    const Gap(14),
+                    TextFormField(
+                      controller: _city,
+                      textInputAction: TextInputAction.next,
+                      decoration: _field(context, context.l10n.city,
+                          icon: Icons.location_city_outlined, req: true),
+                      validator: reqValidator,
+                    ),
+                    const Gap(14),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            controller: _province,
+                            textInputAction: TextInputAction.next,
+                            decoration: _field(context, context.l10n.provinceState, req: true),
+                            validator: reqValidator,
+                          ),
+                        ),
+                        const Gap(12),
+                        Expanded(
+                          child: TextFormField(
+                            controller: _postalCode,
+                            textInputAction: TextInputAction.next,
+                            keyboardType: TextInputType.number,
+                            decoration: _field(context, context.l10n.postalCode, req: true),
+                            validator: reqValidator,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const Gap(14),
+                    TextFormField(
+                      controller: _phone,
+                      textInputAction: TextInputAction.done,
+                      keyboardType: TextInputType.phone,
+                      decoration: _field(context, context.l10n.phone,
+                          icon: Icons.phone_outlined),
+                      onFieldSubmitted: (_) => _submit(),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            // ── Save button ───────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+              child: SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: ColorConstant.brownDark,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14)),
+                  ),
+                  onPressed: _loading ? null : _submit,
+                  child: _loading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white),
+                        )
+                      : Text(
+                          context.l10n.save,
+                          style: const TextStyle(
+                              fontSize: 15, fontWeight: FontWeight.w600),
+                        ),
+                ),
               ),
             ),
           ],
@@ -396,4 +517,59 @@ class _AddressFormSheetState extends State<_AddressFormSheet> {
       ),
     );
   }
+}
+
+class _ReadOnlyAddressField extends StatelessWidget {
+  const _ReadOnlyAddressField({
+    required this.label,
+    required this.value,
+    required this.icon,
+  });
+
+  final String label;
+  final String value;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+      decoration: BoxDecoration(
+        color: ColorConstant.manatee.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: ColorConstant.manatee.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: ColorConstant.manatee),
+          const Gap(10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label,
+                    style: context.bodyExtraSmall
+                        ?.copyWith(color: ColorConstant.manatee)),
+                const Gap(2),
+                Text(value, style: context.bodySmallW500),
+              ],
+            ),
+          ),
+          Icon(Icons.lock_outline,
+              size: 14, color: ColorConstant.manatee.withValues(alpha: 0.5)),
+        ],
+      ),
+    );
+  }
+}
+
+String _apiError(Object e, String fallback) {
+  if (e is DioException) {
+    final data = e.response?.data;
+    if (data is Map) {
+      final msg = data['message'];
+      if (msg is String && msg.isNotEmpty) return msg;
+    }
+  }
+  return fallback;
 }

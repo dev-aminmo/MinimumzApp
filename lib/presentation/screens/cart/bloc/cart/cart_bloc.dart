@@ -39,8 +39,16 @@ class CartBloc extends Bloc<CartEvent, CartState> {
     final result = await _usecase();
     result.when(
       (cart) {
-        emit(CartState.loaded(cart));
-        _prefs.setCachedCart(cart);
+        final prefCountry = _prefs.country?.iso2?.toLowerCase();
+        final cartCountry = cart.shippingAddress?.countryCode?.toLowerCase();
+        final resolved = (prefCountry != null &&
+                cartCountry != null &&
+                cartCountry.isNotEmpty &&
+                cartCountry != prefCountry)
+            ? cart.copyWith(shippingAddress: null)
+            : cart;
+        emit(CartState.loaded(resolved));
+        _prefs.setCachedCart(resolved);
       },
       (error) {
         // Silently keep cached data if we have it; only surface the error when
@@ -60,13 +68,23 @@ class CartBloc extends Bloc<CartEvent, CartState> {
   }
 
   Future<void> _onUpdateCart(_UpdateCart event, Emitter<CartState> emit) async {
-    emit(const CartState.loading());
+    if (state is! _Loaded) emit(const CartState.loading());
     final result =
         await _updateCartUsecase(cartId: event.cartId, req: event.req);
     result.when(
       (cart) {
-        emit(CartState.loaded(cart));
-        _prefs.setCachedCart(cart);
+        // If the server returns an address from a different country than the
+        // one the user selected, strip it so the UI prompts for a new one.
+        final prefCountry = _prefs.country?.iso2?.toLowerCase();
+        final cartCountry = cart.shippingAddress?.countryCode?.toLowerCase();
+        final resolved = (prefCountry != null &&
+                cartCountry != null &&
+                cartCountry.isNotEmpty &&
+                cartCountry != prefCountry)
+            ? cart.copyWith(shippingAddress: null)
+            : cart;
+        emit(CartState.loaded(resolved));
+        _prefs.setCachedCart(resolved);
       },
       (error) => emit(CartState.error(error.message)),
     );

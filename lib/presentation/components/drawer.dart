@@ -1,3 +1,5 @@
+import 'dart:async' show unawaited;
+
 import 'package:adaptive_dialog/adaptive_dialog.dart';
 import 'package:auto_route/auto_route.dart';
 import 'package:flag/flag.dart';
@@ -251,7 +253,7 @@ class _DrawerWidgetState extends State<DrawerWidget> {
                                   countries: countries,
                                   selectedId: savedCountry?.id,
                                 );
-                                await onShippingTap(countries, loaded.regions, countryId);
+                                onShippingTap(countries, loaded.regions, countryId);
                               },
                               contentPadding: contentPadding,
                               title: Text(context.l10n.shippingTo),
@@ -351,8 +353,8 @@ class _DrawerWidgetState extends State<DrawerWidget> {
     );
   }
 
-  Future<void> onShippingTap(
-      List<Country> countries, List<Region> regions, int? countryId) async {
+  void onShippingTap(
+      List<Country> countries, List<Region> regions, int? countryId) {
     final prefRepo = getIt<PreferenceRepository>();
     final savedCountry = prefRepo.country;
     if (countryId == null || countryId == savedCountry?.id) return;
@@ -360,35 +362,37 @@ class _DrawerWidgetState extends State<DrawerWidget> {
     final country = countries.firstWhere((c) => c.id == countryId);
     final region = regions.firstWhere((r) => r.id == country.regionId);
 
-    await prefRepo.setCountry(country);
-    await prefRepo.setRegion(region);
-
+    // ── Optimistic: update in-memory state and reflect in UI immediately ────────
+    // setCountry/setRegion set their in-memory fields synchronously before
+    // the first await, so the drawer and CountryChangeNotifier see the new
+    // value on the same frame.
+    unawaited(prefRepo.setCountry(country));
+    unawaited(prefRepo.setRegion(region));
     if (region.currencyCode != null) {
-      await prefRepo.setCurrencyCode(region.currencyCode!);
+      unawaited(prefRepo.setCurrencyCode(region.currencyCode!));
     }
-
-    // Currency changed — cached product prices are in the old currency, clear them.
-    await prefRepo.clearLocaleSensitiveCaches();
     CountryChangeNotifier.instance.notify();
+    setState(() {});
 
-    final authState = context.read<AuthenticationBloc>().state;
-    final isLoggedIn = authState.maybeMap(loggedIn: (_) => true, orElse: () => false);
-    if (isLoggedIn && country.id != null) {
-      await AccountInformationUsecase.instance
-          .updateInformation(StorePostCustomersCustomerReq(countryId: country.id));
-    }
-
+    // ── Background: sync caches and server (fire-and-forget) ────────────────────
+    unawaited(prefRepo.clearLocaleSensitiveCaches());
     context.read<ProductsBloc>().add(const ProductsEvent.resetProducts());
+
     if (prefRepo.cartId != null) {
       context.read<CartBloc>().add(CartEvent.updateCart(
           cartId: prefRepo.cartId!,
           req: StorePostCartsCartReq(regionId: region.id)));
     }
 
-    // Re-filter wishlist for the newly selected country (fire-and-forget).
-    filterWishlistForCountry(context.read<WishlistCubit>());
+    final authState = context.read<AuthenticationBloc>().state;
+    final isLoggedIn =
+        authState.maybeMap(loggedIn: (_) => true, orElse: () => false);
+    if (isLoggedIn && country.id != null) {
+      unawaited(AccountInformationUsecase.instance
+          .updateInformation(StorePostCustomersCustomerReq(countryId: country.id)));
+    }
 
-    setState(() {});
+    filterWishlistForCountry(context.read<WishlistCubit>());
   }
 }
 
