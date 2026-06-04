@@ -135,6 +135,9 @@
   "passwordsDoNotMatch": "كلمتا المرور غير متطابقتين",
 
   "order": "الطلب",
+  "orderStatus": "حالة الطلب",
+  "trackingNumber": "رقم التتبع",
+  "copiedToClipboard": "تم النسخ",
   "items": "العناصر",
   "fulfillment": "التوصيل",
   "payment": "الدفع",

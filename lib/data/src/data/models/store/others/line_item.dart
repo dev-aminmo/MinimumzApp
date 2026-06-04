@@ -51,6 +51,10 @@ class LineItem {
   /// Example: "One Size"
   final String? description;
 
+  /// Color swatch hex values for the variant's color-type options
+  /// (e.g. ["#FF0000"]). Empty for non-color or simple products.
+  final List<String>? colors;
+
   /// A url string to a small image of the contents of the line item.
   ///
   /// Example: "https://medusa-public-images.s3.eu-west-1.amazonaws.com/coffee-mug.png"
@@ -165,6 +169,7 @@ class LineItem {
     this.adjustments,
     required this.title,
     this.description,
+    this.colors,
     this.thumbnail,
     this.isReturn,
     this.isGiftCard,
@@ -221,6 +226,9 @@ class LineItem {
       claimOrder: json['claim_order'] != null ? ClaimOrder.fromJson(json['claim_order']) : null,
       title: json['title'],
       description: json['description'],
+      colors: json['colors'] != null
+          ? List<String>.from(json['colors'].map((e) => e.toString()))
+          : null,
       thumbnail: json['thumbnail'],
       isReturn: json['is_return'],
       isGiftCard: json['is_giftcard'],
@@ -276,6 +284,7 @@ class LineItem {
       adjustments: adjustments,
       title: title,
       description: description,
+      colors: colors,
       thumbnail: thumbnail,
       isReturn: isReturn,
       isGiftCard: isGiftCard,
@@ -323,6 +332,7 @@ class LineItem {
     json['adjustments'] = adjustments?.map((e) => e.toJson()).toList();
     json['title'] = title;
     json['description'] = description;
+    json['colors'] = colors;
     json['thumbnail'] = thumbnail;
     json['is_return'] = isReturn;
     json['is_giftcard'] = isGiftCard;

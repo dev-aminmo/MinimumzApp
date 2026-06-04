@@ -103,7 +103,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: InkWell(
                       borderRadius: const BorderRadius.all(Radius.circular(50)),
                       onTap: () {
-                        dashboardScaffoldKey.currentState?.openDrawer();
+                        Scaffold.of(context).openDrawer();
                       },
                       child: Ink(
                         width: 45,
@@ -125,6 +125,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               actions: const [
+                NotificationBellButton(),
+                SizedBox(width: 10),
                 CartBadgeButton(),
               ],
             ),

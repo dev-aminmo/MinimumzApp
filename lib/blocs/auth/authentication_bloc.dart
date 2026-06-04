@@ -48,6 +48,9 @@ class AuthenticationBloc
       result.when((customer) {
         _storeCurrencyCode(customer);
         emit(_LoggedIn(customer));
+        // Returning users restore their session here (no fresh login), so
+        // re-register the FCM token — it may be new, rotated, or never sent.
+        NotificationService.instance.registerToken();
       }, (error) {
         if (error.code == 401) {
           emit(const _LoggedOut());
@@ -97,6 +100,9 @@ class AuthenticationBloc
     Emitter<AuthenticationState> emit,
   ) async {
     emit(const _Loading());
+    // Unregister this device from the account while the session is still valid,
+    // so a later login (e.g. a different user on this device) doesn't inherit it.
+    await NotificationService.instance.clearToken();
     final result = await _authUsecase.logoutCustomer();
     if (result) {
       await getIt<PreferenceRepository>().clearUserSessionData();

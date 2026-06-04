@@ -1,6 +1,7 @@
 import 'dart:developer';
 
 import 'package:minimumz/data/src/data/models/store/others/address.dart';
+import 'package:minimumz/data/src/data/models/store/orders/order.dart';
 
 import '../models/request/index.dart';
 import '../models/response/index.dart';
@@ -90,6 +91,23 @@ class CustomersResource extends BaseResource {
       } else {
         throw response;
       }
+    } catch (error, stackTrace) {
+      log(error.toString(), stackTrace: stackTrace);
+      rethrow;
+    }
+  }
+
+  /// Retrieve a single order by id.
+  Future<Order?> getOrder(String id, {Map<String, dynamic>? customHeaders}) async {
+    try {
+      if (customHeaders != null) {
+        client.options.headers.addAll(customHeaders);
+      }
+      final response = await client.get('/store/customers/me/orders/$id');
+      if (response.statusCode == 200 && response.data['order'] != null) {
+        return Order.fromJson(response.data['order']);
+      }
+      return null;
     } catch (error, stackTrace) {
       log(error.toString(), stackTrace: stackTrace);
       rethrow;

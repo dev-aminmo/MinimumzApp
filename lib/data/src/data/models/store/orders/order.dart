@@ -126,6 +126,9 @@ class Order {
   /// Randomly generated key used to continue the processing of the order in case of failure.
   final String? idempotencyKey;
 
+  /// Shipment tracking number/reference for the order, when available.
+  final String? trackingReference;
+
   /// The id of an external order.
   final String? externalId;
 
@@ -213,6 +216,7 @@ class Order {
     this.canceledAt,
     this.noNotification,
     this.idempotencyKey,
+    this.trackingReference,
     this.externalId,
     this.salesChannelId,
     this.salesChannel,
@@ -325,6 +329,7 @@ class Order {
       canceledAt: DateTime.tryParse(json['canceled_at'] ?? '')?.toLocal(),
       noNotification: json['no_notification'],
       idempotencyKey: json['idempotency_key'],
+      trackingReference: json['tracking_reference'],
       externalId: json['external_id'],
       salesChannelId: json['sales_channel_id'],
       salesChannel: json['sales_channel'] != null ? SalesChannel.fromJson(json['sales_channel']) : null,
@@ -393,6 +398,9 @@ class Order {
     json['canceled_at'] = canceledAt.toString();
     json['no_notification'] = noNotification;
     json['idempotency_key'] = idempotencyKey;
+    json['tracking_reference'] = trackingReference;
+    json['created_at'] = createdAt?.toIso8601String();
+    json['updated_at'] = updatedAt?.toIso8601String();
     json['external_id'] = externalId;
     json['sales_channel_id'] == salesChannelId;
     json['sales_channel'] = salesChannel?.toJson();

@@ -15,6 +15,7 @@ import 'package:skeletonizer/skeletonizer.dart';
 
 import '../../../../common/colors.dart';
 import '../../../../domain/repository/preference_repository.dart';
+import '../../../components/variant_picker_sheet.dart';
 import '../../../routes/app_router.dart';
 import '../../cart/bloc/cart/cart_bloc.dart';
 import '../../cart/bloc/line_item/line_item_bloc.dart';
@@ -310,9 +311,14 @@ class _QuickAddButtonState extends State<_QuickAddButton> {
 
   void _onTap(BuildContext context) {
     final variant = _autoVariant;
-    final purchasable = variant == null ? true : (variant.purchasable ?? false);
 
-    if (variant == null || !purchasable) {
+    // Multiple variations: let the user pick the exact one in a bottom sheet.
+    if (variant == null) {
+      VariantPickerSheet.show(context, widget.product);
+      return;
+    }
+
+    if (!(variant.purchasable ?? false)) {
       context.router.push(ProductDetailsRoute(product: widget.product));
       return;
     }
@@ -322,52 +328,14 @@ class _QuickAddButtonState extends State<_QuickAddButton> {
 
     setState(() => _busy = true);
 
-    // Optimistic banner — immediate feedback.
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(
-        content: Text(context.l10n.addedToCart),
-        duration: const Duration(seconds: 2),
-      ));
-
-    // Optimistic cart badge update — dashboard-level BlocListener guarantees
-    // the real server cart always overwrites this, even if this widget scrolls away.
-    final cartBloc = context.read<CartBloc>();
-    cartBloc.state.whenOrNull(loaded: (cart) {
-      final items = cart.items ?? <LineItem>[];
-      final List<LineItem> updated;
-      final existing = items.where((e) => e.variantId == variant.id);
-      if (existing.isNotEmpty) {
-        updated = items.map((item) {
-          if (item.variantId != variant.id) return item;
-          final qty = (item.quantity ?? 0) + 1;
-          final total = (item.unitPrice ?? 0) * qty;
-          return item.copyWith(quantity: qty, total: total, subtotal: total);
-        }).toList();
-      } else {
-        final locale = LocaleCubit.instance.state.languageCode;
-        final code = PreferenceRepository.currencyCode.toUpperCase();
-        final variantPrices = variant.prices ?? <MoneyAmount>[];
-        final effectiveCode = variantPrices.effectiveCurrency(code);
-        final unitPrice = variantPrices.minPrice(effectiveCode) ?? 0;
-        updated = [
-          ...items,
-          LineItem(
-            id: 'temp_${DateTime.now().millisecondsSinceEpoch}',
-            variantId: variant.id,
-            title: widget.product.localizedTitle(locale),
-            unitPrice: unitPrice,
-            quantity: 1,
-            total: unitPrice,
-            subtotal: unitPrice,
-            thumbnail: widget.product.thumbnail,
-          ),
-        ];
-      }
-      cartBloc.add(CartEvent.refreshCart(cart.copyWith(items: updated).recalculate()));
-    });
-
-    context.read<LineItemBloc>().add(LineItemEvent.add(cartId, variant.id!, 1));
+    addVariantToCart(
+      cartBloc: context.read<CartBloc>(),
+      lineItemBloc: context.read<LineItemBloc>(),
+      messenger: ScaffoldMessenger.of(context),
+      addedToCartText: context.l10n.addedToCart,
+      product: widget.product,
+      variant: variant,
+    );
   }
 
   @override

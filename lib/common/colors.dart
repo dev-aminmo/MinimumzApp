@@ -14,3 +14,18 @@ class ColorConstant {
 
   static Color scaffoldDark = const Color(0xff1B262C);
 }
+
+/// Parses a hex color string (e.g. "#FF0000", "f00", "FF0000FF") into a
+/// [Color], or null when it isn't a usable hex value. Used to render color
+/// variation swatches from API metadata.
+Color? hexToColor(dynamic raw) {
+  if (raw is! String) return null;
+  var hex = raw.trim().replaceFirst('#', '');
+  if (hex.length == 3) {
+    hex = hex.split('').map((c) => '$c$c').join();
+  }
+  if (hex.length == 6) hex = 'FF$hex';
+  if (hex.length != 8) return null;
+  final value = int.tryParse(hex, radix: 16);
+  return value == null ? null : Color(value);
+}

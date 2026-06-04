@@ -22,7 +22,14 @@ class OrderConfirmedScreen extends StatelessWidget {
         appBar: const CustomAppBar(),
         bottomNavigationBar: BottomNavButton(
           label: context.l10n.continueShopping,
-          onTap: () => context.router.popUntilRouteWithName(DashboardRoute.name),
+          onTap: () {
+            // OrderConfirmed lives inside a tab's nested stack, so popping to
+            // DashboardRoute (its grandparent) empties the navigator → blank
+            // page. Instead, clear this tab's stack and jump to the Home tab.
+            final tabsRouter = AutoTabsRouter.of(context);
+            context.router.popUntilRoot();
+            tabsRouter.setActiveIndex(0);
+          },
         ),
         body: SafeArea(
             child: Stack(

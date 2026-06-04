@@ -14,8 +14,6 @@ import 'package:minimumz/presentation/screens/cart/bloc/cart/cart_bloc.dart';
 import 'package:minimumz/presentation/screens/cart/bloc/line_item/line_item_bloc.dart';
 import '../routes/app_router.dart';
 
-var dashboardScaffoldKey = GlobalKey<ScaffoldState>();
-
 @RoutePage()
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -25,6 +23,7 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   bool pop = false;
 
   @override
@@ -94,7 +93,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 );
               },
               child: Scaffold(
-              key: dashboardScaffoldKey,
+              key: _scaffoldKey,
               drawer: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
                 child: const DrawerWidget(),

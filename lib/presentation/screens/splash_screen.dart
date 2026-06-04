@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:gap/gap.dart';
 import 'package:minimumz/blocs/auth/authentication_bloc.dart';
 import 'package:minimumz/common/colors.dart';
+import 'package:minimumz/services/notification_service.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import '../routes/app_router.dart';
 
@@ -23,11 +24,22 @@ class _SplashScreenState extends State<SplashScreen> {
     state.map(
       loggedInAsGuest: (_) =>
           context.router.replaceAll([const DashboardRoute()]),
-      loggedIn: (_) => context.router.replace(const DashboardRoute()),
+      loggedIn: (_) {
+        context.router.replace(const DashboardRoute());
+        _openPendingOrder();
+      },
       loggedOut: (_) => context.router.replace(const SignInRoute()),
       error: (_) => context.router.replace(const SignInRoute()),
       loading: (_) {},
     );
+  }
+
+  /// If the app was launched by tapping an order notification, open the order
+  /// page on top of the dashboard so it can be popped back to Home.
+  void _openPendingOrder() {
+    final orderId = NotificationService.instance.consumePendingOrder();
+    if (orderId == null || orderId.isEmpty) return;
+    context.router.push(OrderDetailsRoute(orderId: orderId));
   }
 
   @override

@@ -373,6 +373,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get order => 'Order';
 
   @override
+  String get orderStatus => 'Order Status';
+
+  @override
+  String get trackingNumber => 'Tracking Number';
+
+  @override
+  String get copiedToClipboard => 'Copied to clipboard';
+
+  @override
   String get items => 'Items';
 
   @override

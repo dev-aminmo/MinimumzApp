@@ -374,6 +374,15 @@ class AppLocalizationsAr extends AppLocalizations {
   String get order => 'الطلب';
 
   @override
+  String get orderStatus => 'حالة الطلب';
+
+  @override
+  String get trackingNumber => 'رقم التتبع';
+
+  @override
+  String get copiedToClipboard => 'تم النسخ';
+
+  @override
   String get items => 'العناصر';
 
   @override

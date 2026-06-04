@@ -135,6 +135,9 @@
   "passwordsDoNotMatch": "Passwords do not match",
 
   "order": "Order",
+  "orderStatus": "Order Status",
+  "trackingNumber": "Tracking Number",
+  "copiedToClipboard": "Copied to clipboard",
   "items": "Items",
   "fulfillment": "Fulfillment",
   "payment": "Payment",

@@ -6,6 +6,7 @@ import 'package:minimumz/data/data.dart';
 
 import '../screens/home/home_screen.dart';
 import '../screens/orders/orders_screen.dart';
+import '../screens/orders/order_details_screen.dart';
 import '../screens/account_information/address_book_screen.dart';
 import '../screens/notifications_screen.dart';
 import '../screens/settings_screen.dart';
@@ -26,10 +27,18 @@ class AppRouter extends _$AppRouter {
         AutoRoute(page: VerificationCodeRoute.page),
         // Drawer-accessible routes (no bottom nav needed)
         AutoRoute(page: OrdersRoute.page),
+        AutoRoute(page: OrderDetailsRoute.page),
         AutoRoute(page: AccountInformationRoute.page),
         AutoRoute(page: AddressBookRoute.page),
         AutoRoute(page: SettingsRoute.page),
         AutoRoute(page: NotificationsRoute.page),
+        AutoRoute(page: ProductDetailsRoute.page),
+        AutoRoute(page: ReviewsRoute.page),
+        AutoRoute(page: AddReviewRoute.page),
+        AutoRoute(page: CollectionRoute.page),
+        AutoRoute(page: RecentlyViewedRoute.page),
+        AutoRoute(page: CartRoute.page),
+        AutoRoute(page: OrderConfirmedRoute.page),
         AutoRoute(
           page: DashboardRoute.page,
           children: [

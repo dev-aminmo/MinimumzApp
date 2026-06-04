@@ -133,6 +133,23 @@ class _LineItemCardState extends State<LineItemCard> {
     } catch (_) {}
   }
 
+  /// The variation label to show under the title. The API returns it in the
+  /// line item's `description` (e.g. "Small / Red"); simple products send the
+  /// placeholder "Default", which we hide.
+  String? get _variation {
+    final v = (widget.lineItem.description ?? widget.lineItem.variant?.title)
+        ?.trim();
+    if (v == null || v.isEmpty || v == 'Default') return null;
+    return v;
+  }
+
+  /// Color swatches for the variant's color-type options, parsed from the
+  /// line item's `colors` hex list.
+  List<Color> get _swatches => (widget.lineItem.colors ?? const [])
+      .map(hexToColor)
+      .whereType<Color>()
+      .toList();
+
   @override
   Widget build(BuildContext context) {
     final variant = widget.lineItem.variant;
@@ -201,14 +218,51 @@ class _LineItemCardState extends State<LineItemCard> {
                         overflow: TextOverflow.ellipsis,
                         maxLines: 2,
                       ),
-                      const Gap(5),
-                      Text(
-                        widget.lineItem.variant?.title ?? '',
-                        style: context.bodySmallW500,
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 2,
-                      ),
-                      const Gap(5),
+                      if (_variation != null) ...[
+                        const Gap(6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: context.theme.scaffoldBackgroundColor,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              ..._swatches.map((c) => Padding(
+                                    padding: const EdgeInsetsDirectional.only(
+                                        end: 5),
+                                    child: Container(
+                                      width: 13,
+                                      height: 13,
+                                      decoration: BoxDecoration(
+                                        color: c,
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: ColorConstant.manatee
+                                              .withValues(alpha: 0.35),
+                                          width: 1,
+                                        ),
+                                      ),
+                                    ),
+                                  )),
+                              ConstrainedBox(
+                                constraints:
+                                    const BoxConstraints(maxWidth: 150),
+                                child: Text(
+                                  _variation!,
+                                  style: context.bodyExtraSmallW500?.copyWith(
+                                      color: ColorConstant.brownDark),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                      const Gap(8),
                       _PriceRow(
                         lineItem: widget.lineItem,
                         qty: _qty,
@@ -219,25 +273,43 @@ class _LineItemCardState extends State<LineItemCard> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Row(
-                        children: [
-                          _CircleButton(
-                            onTap: () => _decrement(context),
-                            child: const Icon(Icons.arrow_drop_down),
-                          ),
-                          const Gap(15),
-                          Text(_qty.toString(), style: context.bodySmallW500),
-                          const Gap(15),
-                          _CircleButton(
-                            onTap: canAdd ? () => _increment(context) : null,
-                            child: Icon(Icons.arrow_drop_up,
-                                color: canAdd ? null : ColorConstant.manatee),
-                          ),
-                        ],
+                      // ── Quantity stepper ──────────────────────────
+                      Container(
+                        decoration: BoxDecoration(
+                          color: context.theme.scaffoldBackgroundColor,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: ColorConstant.beige),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _StepButton(
+                              icon: Icons.remove_rounded,
+                              onTap: () => _decrement(context),
+                            ),
+                            ConstrainedBox(
+                              constraints: const BoxConstraints(minWidth: 26),
+                              child: Center(
+                                child: Text(
+                                  _qty.toString(),
+                                  style: context.bodySmallW500
+                                      ?.copyWith(fontWeight: FontWeight.w700),
+                                ),
+                              ),
+                            ),
+                            _StepButton(
+                              icon: Icons.add_rounded,
+                              emphasized: true,
+                              onTap:
+                                  canAdd ? () => _increment(context) : null,
+                            ),
+                          ],
+                        ),
                       ),
-                      _CircleButton(
+                      // ── Delete ────────────────────────────────────
+                      _RoundIconButton(
+                        icon: minimumzIcons.delete,
                         onTap: () => _delete(context),
-                        child: const Icon(minimumzIcons.delete, size: 14.0),
                       ),
                     ],
                   ),
@@ -278,7 +350,11 @@ class _PriceRow extends StatelessWidget {
     if (!hasDiscount) {
       return Text(
         currentPrice,
-        style: context.bodySmallW500?.copyWith(color: ColorConstant.manatee),
+        style: context.bodySmallW500?.copyWith(
+          color: ColorConstant.brownDark,
+          fontWeight: FontWeight.w800,
+          fontSize: 15,
+        ),
         overflow: TextOverflow.ellipsis,
       );
     }
@@ -298,33 +374,69 @@ class _PriceRow extends StatelessWidget {
         const Gap(6),
         Text(
           currentPrice,
-          style: context.bodySmallW500?.copyWith(color: Colors.green),
+          style: context.bodySmallW500?.copyWith(
+            color: Colors.green,
+            fontWeight: FontWeight.w800,
+            fontSize: 15,
+          ),
         ),
       ],
     );
   }
 }
 
-class _CircleButton extends StatelessWidget {
-  const _CircleButton({required this.child, this.onTap});
-  final Widget child;
+/// A +/- control used inside the quantity stepper pill. The "+" is
+/// [emphasized] with the primary color; a null [onTap] renders it muted.
+class _StepButton extends StatelessWidget {
+  const _StepButton({required this.icon, this.onTap, this.emphasized = false});
+  final IconData icon;
+  final VoidCallback? onTap;
+  final bool emphasized;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = onTap != null;
+    final color = !enabled
+        ? ColorConstant.manatee.withValues(alpha: 0.35)
+        : emphasized
+            ? ColorConstant.primary
+            : ColorConstant.brownDark;
+    return Material(
+      color: Colors.transparent,
+      child: InkResponse(
+        onTap: onTap,
+        radius: 22,
+        child: Padding(
+          padding: const EdgeInsets.all(7),
+          child: Icon(icon, size: 18, color: color),
+        ),
+      ),
+    );
+  }
+}
+
+/// A standalone circular icon action. Defaults to a light red "delete" look.
+class _RoundIconButton extends StatelessWidget {
+  const _RoundIconButton({required this.icon, this.onTap});
+  final IconData icon;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     return Material(
       color: Colors.transparent,
-      child: InkWell(
-        borderRadius: const BorderRadius.all(Radius.circular(50)),
+      child: InkResponse(
         onTap: onTap,
-        child: Ink(
-          width: 30,
-          height: 30,
-          decoration: ShapeDecoration(
-            color: context.theme.scaffoldBackgroundColor,
-            shape: const CircleBorder(),
+        radius: 24,
+        child: Container(
+          width: 34,
+          height: 34,
+          decoration: BoxDecoration(
+            color: Colors.red.withValues(alpha: 0.08),
+            shape: BoxShape.circle,
           ),
-          child: child,
+          alignment: Alignment.center,
+          child: Icon(icon, size: 15, color: Colors.red.shade400),
         ),
       ),
     );

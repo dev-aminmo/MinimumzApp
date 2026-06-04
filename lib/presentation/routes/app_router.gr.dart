@@ -123,6 +123,17 @@ abstract class _$AppRouter extends RootStackRouter {
         ),
       );
     },
+    OrderDetailsRoute.name: (routeData) {
+      final args = routeData.argsAs<OrderDetailsRouteArgs>();
+      return AutoRoutePage<dynamic>(
+        routeData: routeData,
+        child: OrderDetailsScreen(
+          key: args.key,
+          orderId: args.orderId,
+          order: args.order,
+        ),
+      );
+    },
     OrdersRoute.name: (routeData) {
       return AutoRoutePage<dynamic>(
         routeData: routeData,
@@ -525,6 +536,49 @@ class OrderConfirmedRouteArgs {
   @override
   String toString() {
     return 'OrderConfirmedRouteArgs{key: $key, order: $order}';
+  }
+}
+
+/// generated route for
+/// [OrderDetailsScreen]
+class OrderDetailsRoute extends PageRouteInfo<OrderDetailsRouteArgs> {
+  OrderDetailsRoute({
+    Key? key,
+    required String orderId,
+    Order? order,
+    List<PageRouteInfo>? children,
+  }) : super(
+          OrderDetailsRoute.name,
+          args: OrderDetailsRouteArgs(
+            key: key,
+            orderId: orderId,
+            order: order,
+          ),
+          initialChildren: children,
+        );
+
+  static const String name = 'OrderDetailsRoute';
+
+  static const PageInfo<OrderDetailsRouteArgs> page =
+      PageInfo<OrderDetailsRouteArgs>(name);
+}
+
+class OrderDetailsRouteArgs {
+  const OrderDetailsRouteArgs({
+    this.key,
+    required this.orderId,
+    this.order,
+  });
+
+  final Key? key;
+
+  final String orderId;
+
+  final Order? order;
+
+  @override
+  String toString() {
+    return 'OrderDetailsRouteArgs{key: $key, orderId: $orderId, order: $order}';
   }
 }
 

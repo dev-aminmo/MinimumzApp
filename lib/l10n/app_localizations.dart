@@ -824,6 +824,24 @@ abstract class AppLocalizations {
   /// **'Order'**
   String get order;
 
+  /// No description provided for @orderStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Order Status'**
+  String get orderStatus;
+
+  /// No description provided for @trackingNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Tracking Number'**
+  String get trackingNumber;
+
+  /// No description provided for @copiedToClipboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Copied to clipboard'**
+  String get copiedToClipboard;
+
   /// No description provided for @items.
   ///
   /// In en, this message translates to:

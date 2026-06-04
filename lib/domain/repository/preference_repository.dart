@@ -41,6 +41,7 @@ class PreferenceRepository {
   static const String _currencyCodeKey = 'currency_code';
   static const String _wishlistKey = 'wishlist';
   static const String _notificationsKey = 'notifications_enabled';
+  static const String _fcmTokenKey = 'registered_fcm_token';
   static const String _regionsKey = 'cached_regions';
 
   bool get isGuest => _prefs.getBool(_guestKey) ?? false;
@@ -148,6 +149,40 @@ class PreferenceRepository {
   }
 
   Future<void> clearCachedCart() async => _prefs.remove(_cachedCartKey);
+
+  // ── Cached order details (per id) ─────────────────────────────────────────
+  static const String _cachedOrdersKey = 'cached_order_details';
+  static const int _maxCachedOrders = 20;
+
+  /// Returns the cached order-detail JSON for [id], or null if not cached.
+  Map<String, dynamic>? cachedOrderDetail(String id) {
+    try {
+      final raw = _prefs.getString(_cachedOrdersKey);
+      if (raw == null) return null;
+      final map = jsonDecode(raw) as Map<String, dynamic>;
+      final entry = map[id];
+      return entry is Map<String, dynamic> ? entry : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> setCachedOrderDetail(String id, Map<String, dynamic> json) async {
+    try {
+      final raw = _prefs.getString(_cachedOrdersKey);
+      final map = raw != null
+          ? Map<String, dynamic>.from(jsonDecode(raw) as Map<String, dynamic>)
+          : <String, dynamic>{};
+      map.remove(id); // re-insert at the end to keep recency order
+      map[id] = json;
+      while (map.length > _maxCachedOrders) {
+        map.remove(map.keys.first);
+      }
+      await _prefs.setString(_cachedOrdersKey, jsonEncode(map));
+    } catch (e) {
+      log(e.toString());
+    }
+  }
 
   // ── Best sellers cache ────────────────────────────────────────────────────────
   static const String _cachedBestSellersKey = 'cached_best_sellers';
@@ -293,6 +328,18 @@ class PreferenceRepository {
 
   Future<void> setNotificationsEnabled(bool value) async =>
       await _prefs.setBool(_notificationsKey, value);
+
+  /// The FCM token last successfully registered with the backend. Used to skip
+  /// redundant updates when the device token hasn't changed.
+  String? get registeredFcmToken => _prefs.getString(_fcmTokenKey);
+
+  Future<void> setRegisteredFcmToken(String? token) async {
+    if (token == null || token.isEmpty) {
+      await _prefs.remove(_fcmTokenKey);
+    } else {
+      await _prefs.setString(_fcmTokenKey, token);
+    }
+  }
 
   // ── Recently viewed ──────────────────────────────────────────────────────────
   static const String _recentlyViewedKey = 'recently_viewed';

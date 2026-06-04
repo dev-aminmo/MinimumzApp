@@ -8,6 +8,7 @@ import 'package:minimumz/common/extensions/extensions.dart';
 import 'package:minimumz/services/notification_service.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import '../components/index.dart';
+import '../routes/app_router.dart';
 
 @RoutePage()
 class NotificationsScreen extends StatefulWidget {
@@ -17,7 +18,8 @@ class NotificationsScreen extends StatefulWidget {
   State<NotificationsScreen> createState() => _NotificationsScreenState();
 }
 
-class _NotificationsScreenState extends State<NotificationsScreen> {
+class _NotificationsScreenState extends State<NotificationsScreen>
+    with WidgetsBindingObserver {
   List<Map<String, dynamic>> _notifications = [];
   AuthorizationStatus _permissionStatus = AuthorizationStatus.notDetermined;
   bool _loading = true;
@@ -25,7 +27,26 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    // Refresh the list live when a notification arrives while this screen is open.
+    NotificationService.instance.notificationsRevision.addListener(_onRevision);
     _load();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    NotificationService.instance.notificationsRevision
+        .removeListener(_onRevision);
+    super.dispose();
+  }
+
+  void _onRevision() => _load();
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // A notification may have been saved by the background isolate while away.
+    if (state == AppLifecycleState.resumed) _load();
   }
 
   Future<void> _load() async {
@@ -37,6 +58,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       _notifications = list;
       _loading = false;
     });
+    // Mark everything read once viewed — clears the badge. The in-memory list
+    // keeps its original flags so unread items stay highlighted this session.
+    await NotificationService.instance.markAllRead();
+    // Dismiss any notifications still sitting in the system tray.
+    await NotificationService.instance.clearSystemTray();
   }
 
   Future<void> _clearAll() async {
@@ -96,17 +122,51 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       itemBuilder: (context, i) {
         final n = _notifications[i];
         final time = DateTime.tryParse(n['time'] ?? '');
+        final unread = n['read'] != true;
+        final orderId = (n['order_id'] ?? '').toString();
         return ListTile(
+          onTap: orderId.isEmpty
+              ? null
+              : () {
+                  // Mark this tile seen immediately (clears its red dot) before
+                  // navigating — storage is already read, this syncs the view.
+                  if (unread) setState(() => n['read'] = true);
+                  context.router.push(OrderDetailsRoute(orderId: orderId));
+                },
+          tileColor: unread
+              ? ColorConstant.primary.withValues(alpha: 0.05)
+              : null,
           contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-          leading: Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: ColorConstant.primary.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(Icons.notifications_rounded,
-                color: ColorConstant.primary, size: 22),
+          leading: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: ColorConstant.primary.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.notifications_rounded,
+                    color: ColorConstant.primary, size: 22),
+              ),
+              if (unread)
+                Positioned(
+                  top: 0,
+                  right: 0,
+                  child: Container(
+                    width: 11,
+                    height: 11,
+                    decoration: BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                          color: context.theme.scaffoldBackgroundColor,
+                          width: 1.5),
+                    ),
+                  ),
+                ),
+            ],
           ),
           title: Text(n['title'] ?? '',
               style: context.bodySmall?.copyWith(fontWeight: FontWeight.w600)),

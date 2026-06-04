@@ -774,64 +774,96 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                       SizedBox(
                         height: 48,
                         width: double.infinity,
-                        child: ListView.separated(
-                            separatorBuilder: (_, __) =>
-                                const SizedBox(width: 8.0),
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 20.0),
-                            physics: const BouncingScrollPhysics(),
-                            scrollDirection: Axis.horizontal,
-                            itemCount: productOption.values!
-                                .map((e) => e.value)
-                                .toSet()
-                                .toList()
-                                .length,
-                            itemBuilder: (context, index) {
-                              final productOptionValue = productOption.values!
-                                  .map((e) => e.value)
-                                  .toSet()
-                                  .toList()[index];
-                              final bool isSelected = optionsSelected
-                                      .containsKey(productOption.id) &&
-                                  optionsSelected
-                                      .containsValue(productOptionValue);
+                        child: Builder(builder: (context) {
+                          // Distinct values, keeping the first occurrence so we
+                          // retain its metadata (e.g. the color swatch hex).
+                          final seen = <String>{};
+                          final values = <ProductOptionValue>[];
+                          for (final ov
+                              in productOption.values ?? <ProductOptionValue>[]) {
+                            final v = ov.value;
+                            if (v != null && seen.add(v)) values.add(ov);
+                          }
+                          return ListView.separated(
+                              separatorBuilder: (_, __) =>
+                                  const SizedBox(width: 8.0),
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 20.0),
+                              physics: const BouncingScrollPhysics(),
+                              scrollDirection: Axis.horizontal,
+                              itemCount: values.length,
+                              itemBuilder: (context, index) {
+                                final ov = values[index];
+                                final productOptionValue = ov.value;
+                                final swatch = hexToColor(ov.metadata?['color']);
+                                final bool isSelected = optionsSelected
+                                        .containsKey(productOption.id) &&
+                                    optionsSelected
+                                        .containsValue(productOptionValue);
 
-                              return GestureDetector(
-                                onTap: () {
-                                  setState(() => optionsSelected.addAll({
-                                        productOption.id!: productOptionValue!
-                                      }));
-                                  selectVariant();
-                                },
-                                child: AnimatedContainer(
-                                  duration: const Duration(milliseconds: 180),
-                                  height: 48,
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 20),
-                                  decoration: BoxDecoration(
-                                    color: isSelected
-                                        ? ColorConstant.primary
-                                        : context.theme.cardColor,
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
+                                return GestureDetector(
+                                  onTap: () {
+                                    setState(() => optionsSelected.addAll({
+                                          productOption.id!: productOptionValue!
+                                        }));
+                                    selectVariant();
+                                  },
+                                  child: AnimatedContainer(
+                                    duration:
+                                        const Duration(milliseconds: 180),
+                                    height: 48,
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 20),
+                                    decoration: BoxDecoration(
                                       color: isSelected
                                           ? ColorConstant.primary
-                                          : ColorConstant.beige,
-                                    ),
-                                  ),
-                                  child: Center(
-                                    child: Text(
-                                      productOptionValue ?? '',
-                                      style: context.bodyMediumW500?.copyWith(
+                                          : context.theme.cardColor,
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
                                         color: isSelected
-                                            ? Colors.white
-                                            : null,
+                                            ? ColorConstant.primary
+                                            : ColorConstant.beige,
+                                      ),
+                                    ),
+                                    child: Center(
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          if (swatch != null) ...[
+                                            Container(
+                                              width: 18,
+                                              height: 18,
+                                              decoration: BoxDecoration(
+                                                color: swatch,
+                                                shape: BoxShape.circle,
+                                                border: Border.all(
+                                                  color: isSelected
+                                                      ? Colors.white
+                                                      : ColorConstant.manatee
+                                                          .withValues(
+                                                              alpha: 0.4),
+                                                  width: 1,
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                          ],
+                                          Text(
+                                            productOptionValue ?? '',
+                                            style: context.bodyMediumW500
+                                                ?.copyWith(
+                                              color: isSelected
+                                                  ? Colors.white
+                                                  : null,
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ),
                                   ),
-                                ),
-                              );
-                            }),
+                                );
+                              });
+                        }),
                       )
                     ],
                   );

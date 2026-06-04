@@ -203,8 +203,7 @@ class _DrawerWidgetState extends State<DrawerWidget> {
                       leading: const Icon(minimumzIcons.heart),
                       onTap: () {
                         Scaffold.of(context).closeDrawer();
-                        AutoTabsRouter.of(dashboardScaffoldKey.currentContext!)
-                            .setActiveIndex(2);
+                        AutoTabsRouter.of(context).setActiveIndex(2);
                       },
                       contentPadding: contentPadding,
                       title: Text(context.l10n.wishlist),
