@@ -771,4 +771,10 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get camera => 'الكاميرا';
+
+  @override
+  String get removeItemGoToCart => 'لإزالة هذا المنتج، انتقل إلى سلة التسوق.';
+
+  @override
+  String get goToCart => 'الذهاب إلى السلة';
 }

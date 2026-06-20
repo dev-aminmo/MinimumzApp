@@ -43,6 +43,10 @@ Future<void> main() async {
     appRunner: () async {
       gfb.httpClient = IOClient(makeDohHttpClient());
       final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+      // Cap in-memory decoded image cache — default 100 MB is too large for
+      // low-end devices. 50 MB covers ~100 product thumbnails comfortably.
+      PaintingBinding.instance.imageCache.maximumSizeBytes = 50 * 1024 * 1024;
+      PaintingBinding.instance.imageCache.maximumSize = 150;
       FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
       Bloc.observer = MyBlocObserver();
       await Firebase.initializeApp();

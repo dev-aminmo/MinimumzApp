@@ -1,5 +1,6 @@
 import '../../../enum/enums.dart';
 import '../others/index.dart';
+import 'product_attribute_group.dart';
 import 'product_option.dart';
 import 'product_variant.dart';
 import 'product_collection.dart';
@@ -127,6 +128,9 @@ class Product  {
   /// Maximum age in months (null = no restriction)
   final int? ageMax;
 
+  /// Product attribute groups (attribute sets → attributes → values)
+  final List<ProductAttributeGroup>? attributeGroups;
+
   const Product({
     this.id,
     this.title,
@@ -168,6 +172,7 @@ class Product  {
     this.videoUrl,
     this.ageMin,
     this.ageMax,
+    this.attributeGroups,
   });
 
   String? localizedTitle(String locale) {
@@ -250,6 +255,9 @@ class Product  {
       videoUrl: json['video_url'] as String?,
       ageMin: (json['age_min'] as num?)?.toInt(),
       ageMax: (json['age_max'] as num?)?.toInt(),
+      attributeGroups: (json['attribute_groups'] as List<dynamic>?)
+          ?.map((e) => ProductAttributeGroup.fromJson(e as Map<String, dynamic>))
+          .toList(),
     );
   }
 
@@ -387,6 +395,9 @@ class Product  {
     if (videoUrl != null) json['video_url'] = videoUrl;
     if (ageMin != null) json['age_min'] = ageMin;
     if (ageMax != null) json['age_max'] = ageMax;
+    if (attributeGroups != null) {
+      json['attribute_groups'] = attributeGroups!.map((g) => g.toJson()).toList();
+    }
     return json;
   }
 }

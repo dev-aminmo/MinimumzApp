@@ -314,5 +314,7 @@
   "photos": "Photos",
   "addPhoto": "Add photo",
   "gallery": "Gallery",
-  "camera": "Camera"
+  "camera": "Camera",
+  "removeItemGoToCart": "To remove this item, go to your cart.",
+  "goToCart": "Go to cart"
 }

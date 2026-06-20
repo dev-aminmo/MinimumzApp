@@ -27,6 +27,8 @@ class DataStore {
     required this.brands,
     required this.slider,
     required this.userData,
+    required this.notifications,
+    required this.home,
   });
 
   factory DataStore.initialize({
@@ -84,6 +86,8 @@ class DataStore {
       brands: BrandsResource(dio),
       slider: SliderResource(dio),
       userData: UserDataResource(dio),
+      notifications: NotificationsResource(dio),
+      home: HomeResource(dio),
     );
   }
 
@@ -163,6 +167,8 @@ class DataStore {
   final BrandsResource brands;
   final SliderResource slider;
   final UserDataResource userData;
+  final NotificationsResource notifications;
+  final HomeResource home;
 }
 
 class PingResult {
@@ -304,7 +310,9 @@ class _RetryInterceptor extends Interceptor {
     // WAF/proxy blocks — safe to retry any method (no body was processed).
     if (status == 403) return true;
 
-    // Server errors — only retry reads; writes are not idempotent.
+    // 502/503: gateway rejected before the server processed anything — safe to retry any method.
+    // Other 5xx: server may have partially processed — only retry reads.
+    if (status == 502 || status == 503) return true;
     if (status != null && status >= 500) return isReadOnly;
 
     // Connection-level failures — nothing reached the server, safe for any method.

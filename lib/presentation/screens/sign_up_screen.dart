@@ -65,7 +65,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
             final cartId = getIt<PreferenceRepository>().cartId;
             if (cartId != null) {
               try {
-                await getIt<DataStore>().carts.transferToCustomer(cartId: cartId);
+                final result = await getIt<DataStore>().carts.transferToCustomer(cartId: cartId);
+                // Backend may return a different cart ID if merge happened (user had existing cart).
+                final returnedId = result?.cart?.id;
+                if (returnedId != null && returnedId != cartId) {
+                  await getIt<PreferenceRepository>().setCartId(returnedId);
+                  if (result?.cart != null) {
+                    await getIt<PreferenceRepository>().setCachedCart(result!.cart!);
+                  }
+                }
               } catch (_) {}
             }
             if (context.mounted) {

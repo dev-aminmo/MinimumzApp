@@ -1579,6 +1579,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Camera'**
   String get camera;
+
+  /// No description provided for @removeItemGoToCart.
+  ///
+  /// In en, this message translates to:
+  /// **'To remove this item, go to your cart.'**
+  String get removeItemGoToCart;
+
+  /// No description provided for @goToCart.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to cart'**
+  String get goToCart;
 }
 
 class _AppLocalizationsDelegate

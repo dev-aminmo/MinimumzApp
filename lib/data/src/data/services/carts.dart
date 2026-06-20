@@ -1,5 +1,6 @@
 import 'dart:developer';
 
+import 'package:dio/dio.dart';
 import '../models/request/index.dart';
 import '../models/response/index.dart';
 import 'base.dart';
@@ -45,7 +46,13 @@ class CartsResource extends BaseResource {
       if (customHeaders != null) {
         client.options.headers.addAll(customHeaders);
       }
-      final response = await client.post('/store/carts/$cartId/complete');
+      // Stable key for this checkout attempt. The retry interceptor reuses the same
+      // RequestOptions (headers included), so the server deduplicates on retry.
+      final idempotencyKey = '${cartId}_${DateTime.now().microsecondsSinceEpoch}';
+      final response = await client.post(
+        '/store/carts/$cartId/complete',
+        options: Options(headers: {'Idempotency-Key': idempotencyKey}),
+      );
       if (response.statusCode == 200) {
         return StoreCompleteCartRes.fromJson(response.data);
       } else {

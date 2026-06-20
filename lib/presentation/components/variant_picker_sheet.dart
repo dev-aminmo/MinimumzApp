@@ -134,23 +134,86 @@ class _VariantPickerBodyState extends State<_VariantPickerBody> {
   @override
   void initState() {
     super.initState();
-    // Pre-select when a single variant trivially resolves.
+    // Default to the cheapest variant selected (so Add-to-cart is enabled on
+    // open, rather than greyed out until the user picks). We map that variant's
+    // option-value IDs back onto every option, so each option (e.g. colour AND
+    // size) is pre-selected and always resolves to a real variant.
     final options = _product.options ?? [];
-    if (options.length == 1 &&
-        (options.first.values?.length ?? 0) == 1 &&
-        _product.variants?.length == 1) {
-      _selected[options.first.id!] = options.first.values!.first.value!;
+    final variants = _product.variants ?? [];
+    if (options.isEmpty || variants.isEmpty) return;
+
+    final target = _cheapestVariant(variants) ?? variants.first;
+    final targetIds = _variantValueIds(target);
+    for (final opt in options) {
+      for (final value in opt.values ?? []) {
+        if (value.id != null && targetIds.contains(value.id)) {
+          _selected[opt.id!] = value.value!;
+          break;
+        }
+      }
     }
   }
 
+  /// The variant with the lowest price in the active currency, or null if none
+  /// have a resolvable price.
+  ProductVariant? _cheapestVariant(List<ProductVariant> variants) {
+    final code = PreferenceRepository.currencyCode.toUpperCase();
+    ProductVariant? best;
+    num? bestPrice;
+    for (final v in variants) {
+      final prices = v.prices ?? <MoneyAmount>[];
+      final price = prices.minPrice(prices.effectiveCurrency(code));
+      if (price == null) continue;
+      if (bestPrice == null || price < bestPrice) {
+        bestPrice = price;
+        best = v;
+      }
+    }
+    return best;
+  }
+
+  /// The set of option-value IDs that make up a variant.
+  Set<String> _variantValueIds(ProductVariant v) =>
+      (v.options ?? []).map((o) => o.id).whereType<String>().toSet();
+
+  /// The option-value IDs of the current selection (maps each selected value
+  /// string back to its option-value id).
+  Set<String> _selectedValueIds() {
+    final ids = <String>{};
+    for (final opt in _product.options ?? []) {
+      final sel = _selected[opt.id];
+      if (sel == null) continue;
+      for (final value in opt.values ?? []) {
+        if (value.value == sel && value.id != null) {
+          ids.add(value.id!);
+          break;
+        }
+      }
+    }
+    return ids;
+  }
+
   /// The variant matching the current selection, or null if incomplete.
+  /// Matches by stable option-value IDs (locale-proof and safe when value
+  /// labels themselves contain "/"), falling back to legacy title matching.
   ProductVariant? get _selectedVariant {
     final options = _product.options ?? [];
     if (_selected.length != options.length) return null;
+    final variants = _product.variants ?? <ProductVariant>[];
+
+    final selIds = _selectedValueIds();
+    if (selIds.length == options.length) {
+      for (final v in variants) {
+        final vIds = _variantValueIds(v);
+        if (vIds.isNotEmpty &&
+            vIds.length == selIds.length &&
+            vIds.containsAll(selIds)) return v;
+      }
+    }
+
     final values = _selected.values.map((e) => e.trim()).toSet();
-    for (final v in _product.variants ?? <ProductVariant>[]) {
-      final titleParts =
-          v.title?.split('/').map((e) => e.trim()).toSet();
+    for (final v in variants) {
+      final titleParts = v.title?.split('/').map((e) => e.trim()).toSet();
       if (titleParts != null && titleParts.containsAll(values)) return v;
     }
     return null;
@@ -289,7 +352,7 @@ class _VariantPickerBodyState extends State<_VariantPickerBody> {
                   children: [
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: Text(option.title ?? '',
+                      child: Text(option.localizedTitle(locale),
                           style: context.bodyLargeW600),
                     ),
                     const Gap(10),
@@ -344,7 +407,7 @@ class _VariantPickerBodyState extends State<_VariantPickerBody> {
                                     const Gap(8),
                                   ],
                                   Text(
-                                    value,
+                                    ov.localizedValue(locale),
                                     style: context.bodyMediumW500?.copyWith(
                                       color: isSelected ? Colors.white : null,
                                     ),

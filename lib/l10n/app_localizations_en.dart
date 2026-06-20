@@ -773,4 +773,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get camera => 'Camera';
+
+  @override
+  String get removeItemGoToCart => 'To remove this item, go to your cart.';
+
+  @override
+  String get goToCart => 'Go to cart';
 }

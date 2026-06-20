@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:auto_route/auto_route.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
@@ -5,6 +7,9 @@ import 'package:flutter/services.dart';
 import 'package:gap/gap.dart';
 import 'package:minimumz/common/colors.dart';
 import 'package:minimumz/common/extensions/extensions.dart';
+import 'package:minimumz/data/data.dart';
+import 'package:minimumz/di/di.dart';
+import 'package:minimumz/domain/repository/preference_repository.dart';
 import 'package:minimumz/services/notification_service.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import '../components/index.dart';
@@ -23,6 +28,9 @@ class _NotificationsScreenState extends State<NotificationsScreen>
   List<Map<String, dynamic>> _notifications = [];
   AuthorizationStatus _permissionStatus = AuthorizationStatus.notDetermined;
   bool _loading = true;
+
+  bool get _isLoggedIn => !PreferenceRepository.instance.isGuest &&
+      PreferenceRepository.instance.cookie != null;
 
   @override
   void initState() {
@@ -51,24 +59,60 @@ class _NotificationsScreenState extends State<NotificationsScreen>
 
   Future<void> _load() async {
     final status = await NotificationService.instance.getPermissionStatus();
-    final list = await NotificationService.instance.getStoredNotifications();
-    if (!mounted) return;
-    setState(() {
-      _permissionStatus = status;
-      _notifications = list;
-      _loading = false;
-    });
-    // Mark everything read once viewed — clears the badge. The in-memory list
-    // keeps its original flags so unread items stay highlighted this session.
+
+    // Show local cache instantly — no spinner for returning users.
+    final local = await NotificationService.instance.getStoredNotifications();
+    if (mounted) {
+      setState(() {
+        _permissionStatus = status;
+        _notifications = local;
+        _loading = false;
+      });
+    }
+
+    // Clear badge and system tray immediately regardless of login state.
     await NotificationService.instance.markAllRead();
-    // Dismiss any notifications still sitting in the system tray.
     await NotificationService.instance.clearSystemTray();
+
+    if (!_isLoggedIn) return;
+
+    // Logged-in: sync from server in background — server has complete history
+    // including notifications delivered while push was disabled or app uninstalled.
+    try {
+      final result = await getIt<DataStore>().notifications.list();
+      final serverList = result.items.map((n) => {
+        'id':       n.id,
+        'type':     n.type,
+        'order_id': n.orderId,
+        'status':   n.status,
+        'title':    n.title,
+        'body':     n.body,
+        'time':     n.createdAt,
+        'read':     n.isRead,
+      }).toList();
+
+      if (!mounted) return;
+      setState(() => _notifications = serverList);
+
+      if (serverList.any((n) => n['read'] != true)) {
+        unawaited(getIt<DataStore>().notifications.markRead());
+      }
+    } catch (_) {
+      // Server unavailable — local cache already displayed, nothing to do.
+    }
   }
 
   Future<void> _clearAll() async {
-    await NotificationService.instance.clearStoredNotifications();
-    if (!mounted) return;
-    setState(() => _notifications = []);
+    if (_isLoggedIn) {
+      // For logged-in users we don't hard-delete from the server — pruning
+      // handles that. Just clear the local list for this session.
+      if (!mounted) return;
+      setState(() => _notifications = []);
+    } else {
+      await NotificationService.instance.clearStoredNotifications();
+      if (!mounted) return;
+      setState(() => _notifications = []);
+    }
   }
 
   @override

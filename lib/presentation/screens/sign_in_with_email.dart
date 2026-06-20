@@ -58,7 +58,15 @@ class _SignInWithEmailScreenState extends State<SignInWithEmailScreen> {
             final cartId = PreferenceRepository.instance.cartId;
             if (cartId != null) {
               try {
-                await getIt<DataStore>().carts.transferToCustomer(cartId: cartId);
+                final result = await getIt<DataStore>().carts.transferToCustomer(cartId: cartId);
+                // Backend may return a different cart ID if merge happened (user had existing cart).
+                final returnedId = result?.cart?.id;
+                if (returnedId != null && returnedId != cartId) {
+                  await PreferenceRepository.instance.setCartId(returnedId);
+                  if (result?.cart != null) {
+                    await PreferenceRepository.instance.setCachedCart(result!.cart!);
+                  }
+                }
               } catch (_) {}
             }
             if (context.mounted) {

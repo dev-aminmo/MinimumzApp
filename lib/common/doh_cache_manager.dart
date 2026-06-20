@@ -9,7 +9,12 @@ import 'doh_client.dart';
 class DohCacheManager extends CacheManager with ImageCacheManager {
   static const key = 'dohCachedImages';
   static final DohCacheManager instance = DohCacheManager._();
-  DohCacheManager._() : super(Config(key, fileService: _DohFileService()));
+  DohCacheManager._() : super(Config(
+    key,
+    fileService: _DohFileService(),
+    maxNrOfCacheObjects: 150,
+    stalePeriod: const Duration(days: 7),
+  ));
 }
 
 class _DohFileService implements FileService {

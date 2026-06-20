@@ -1,5 +1,6 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
+import 'package:minimumz/common/colors.dart';
 import 'package:minimumz/common/extensions/extensions.dart';
 import 'package:minimumz/services/notification_service.dart';
 import '../routes/app_router.dart';
@@ -56,19 +57,18 @@ class _NotificationBellButtonState extends State<NotificationBellButton>
               children: [
                 Center(
                   child: Icon(Icons.notifications_outlined,
-                      size: 20, color: context.theme.iconTheme.color),
+                      size: 24, color: context.theme.iconTheme.color),
                 ),
                 if (count > 0)
                   Positioned(
                     top: 6,
                     right: 6,
                     child: Container(
-                      constraints:
-                          const BoxConstraints(minWidth: 16, minHeight: 16),
-                      padding: const EdgeInsets.symmetric(horizontal: 3),
+                      width: 16,
+                      height: 16,
                       decoration: BoxDecoration(
-                        color: Colors.red,
-                        borderRadius: BorderRadius.circular(8),
+                        color: ColorConstant.primary,
+                        shape: BoxShape.circle,
                       ),
                       child: Center(
                         child: Text(

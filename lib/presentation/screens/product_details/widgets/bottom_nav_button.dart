@@ -170,8 +170,20 @@ class _ProductDetailsBottomNavButtonState
                               onDecrement: () {
                                 final int newQty = (lineItem.quantity ?? 1) - 1;
                                 if (newQty < 1) {
-                                  // For simplicity, we don't delete optimistically from this button
-                                  // but we could. For now just prevent it.
+                                  // At quantity 1 the "-" must not remove the item.
+                                  // Removal is only allowed from the cart screen, so
+                                  // nudge the user there instead of deleting here.
+                                  ScaffoldMessenger.of(context)
+                                    ..hideCurrentSnackBar()
+                                    ..showSnackBar(SnackBar(
+                                      content:
+                                          Text(context.l10n.removeItemGoToCart),
+                                      action: SnackBarAction(
+                                        label: context.l10n.goToCart,
+                                        onPressed: () => context.router
+                                            .push(const CartRoute()),
+                                      ),
+                                    ));
                                   return;
                                 }
                                 _optimisticUpdate(newQty);

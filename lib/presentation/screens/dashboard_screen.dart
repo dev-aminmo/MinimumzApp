@@ -1,12 +1,9 @@
-import 'dart:async';
-import 'dart:io';
 import 'dart:ui';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 import 'package:minimumz/common/colors.dart';
 import 'package:minimumz/common/extensions/extensions.dart';
 import 'package:minimumz/presentation/components/index.dart';
@@ -24,7 +21,6 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  bool pop = false;
 
   @override
   Widget build(BuildContext context) {
@@ -37,16 +33,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         systemNavigationBarColor: bottomBarBgColor,
         systemNavigationBarContrastEnforced: false,
       ),
-      child: WillPopScope(
-        onWillPop: () async {
-          if (Platform.isIOS) return true;
-          if (pop) return true;
-          Fluttertoast.showToast(msg: context.l10n.pressAgainToExit);
-          pop = true;
-          Timer(const Duration(seconds: 2), () => pop = false);
-          return false;
-        },
-        child: AutoTabsRouter(
+      child: AutoTabsRouter(
           routes: const [
             HomeTabRoute(),
             CategoriesTabRoute(),
@@ -220,7 +207,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
             );
           },
         ),
-      ),
     );
   }
 }

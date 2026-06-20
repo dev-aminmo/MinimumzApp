@@ -37,15 +37,30 @@ class _CartScreenState extends State<CartScreen> {
   }
 
   Future<void> _loadShippingOptions() async {
-    final cartId = getIt<PreferenceRepository>().cartId;
+    final prefs = getIt<PreferenceRepository>();
+    final cartId = prefs.cartId;
     if (cartId == null) return;
+
+    // Show cached options instantly if available for this cart.
+    final cached = prefs.cachedShippingOptions(cartId);
+    if (cached != null && cached.isNotEmpty) {
+      setState(() {
+        _shippingOptions = cached;
+        _selectedShipping = cached.first;
+        _shippingLoading = false;
+      });
+      return; // Options are stable per cart — no need to re-fetch.
+    }
+
     setState(() => _shippingLoading = true);
     try {
       final res = await getIt<DataStore>().shippingOptions.listCartOptions(cartId: cartId);
       if (mounted) {
+        final options = res?.shippingOptions ?? [];
+        prefs.setCachedShippingOptions(cartId, options);
         setState(() {
-          _shippingOptions = res?.shippingOptions ?? [];
-          if (_shippingOptions.isNotEmpty) _selectedShipping = _shippingOptions.first;
+          _shippingOptions = options;
+          if (options.isNotEmpty) _selectedShipping = options.first;
           _shippingLoading = false;
         });
       }
@@ -75,7 +90,7 @@ class _CartScreenState extends State<CartScreen> {
       final result = await getIt<DataStore>().carts.complete(cartId: cartId);
       if (result?.type == 'order' && result?.order != null) {
         final prefs = getIt<PreferenceRepository>();
-        await Future.wait([prefs.clearCartId(), prefs.clearCachedCart()]);
+        await Future.wait([prefs.clearCartId(), prefs.clearCachedCart(), prefs.clearCachedOrdersList(), prefs.clearCachedShippingOptions()]);
         EasyLoading.dismiss();
         if (context.mounted) {
           context.read<CartBloc>().add(const CartEvent.loadCart());
@@ -99,8 +114,8 @@ class _CartScreenState extends State<CartScreen> {
     }
   }
 
-  void _showAddressSheet(BuildContext context, Cart cart) {
-    showModalBottomSheet(
+  Future<void> _showAddressSheet(BuildContext context, Cart cart) async {
+    await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: context.theme.scaffoldBackgroundColor,
@@ -112,6 +127,8 @@ class _CartScreenState extends State<CartScreen> {
         child: _AddressSheet(cart: cart),
       ),
     );
+    // Address may have changed — reload shipping options (cache cleared on selection).
+    if (mounted) _loadShippingOptions();
   }
 
   @override
@@ -249,7 +266,13 @@ class _CartBody extends StatelessWidget {
               (_, i) {
                 final items = cart.items!;
                 if (i.isEven) {
-                  return LineItemCard(lineItem: items[i ~/ 2], cartId: cart.id!);
+                  final item = items[i ~/ 2];
+                  // Stable key per line item: without it, Flutter reassociates a
+                  // deleted card's State (its `_hidden`/`_qty`) with a surviving
+                  // item by position, hiding items that are still in the cart and
+                  // counted in the badge/total.
+                  return LineItemCard(
+                      key: ValueKey(item.id), lineItem: item, cartId: cart.id!);
                 }
                 return const Gap(10);
               },
@@ -720,6 +743,9 @@ class _AddressSheetState extends State<_AddressSheet> {
     context.read<CartBloc>().add(
       CartEvent.refreshCart(currentCart.copyWith(shippingAddress: address)),
     );
+
+    // Clear shipping cache — a new address may have different available methods.
+    getIt<PreferenceRepository>().clearCachedShippingOptions();
 
     if (mounted) Navigator.pop(context);
 

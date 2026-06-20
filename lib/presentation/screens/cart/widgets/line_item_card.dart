@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:auto_route/auto_route.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:minimumz/common/doh_cache_manager.dart';
@@ -29,6 +31,7 @@ class LineItemCard extends StatefulWidget {
 class _LineItemCardState extends State<LineItemCard> {
   late int _qty;
   bool _hidden = false;
+  Timer? _qtyDebounce;
 
   @override
   void initState() {
@@ -39,11 +42,28 @@ class _LineItemCardState extends State<LineItemCard> {
   @override
   void didUpdateWidget(LineItemCard oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Accept server quantity once cart refreshes (only when not mid-operation)
-    if (widget.lineItem.quantity != null &&
+    // Accept server quantity once cart refreshes (only when not mid-operation).
+    // Skip if there's a pending debounced update — the user is still tapping.
+    if (_qtyDebounce == null &&
+        widget.lineItem.quantity != null &&
         widget.lineItem.quantity != oldWidget.lineItem.quantity) {
       setState(() => _qty = widget.lineItem.quantity!);
     }
+  }
+
+  @override
+  void dispose() {
+    _qtyDebounce?.cancel();
+    super.dispose();
+  }
+
+  void _scheduleUpdate(BuildContext context) {
+    _qtyDebounce?.cancel();
+    _qtyDebounce = Timer(const Duration(milliseconds: 600), () {
+      _qtyDebounce = null;
+      context.read<LineItemBloc>().add(
+          LineItemEvent.update(widget.cartId, widget.lineItem.id!, _qty));
+    });
   }
 
   void _optimisticUpdate(int newQty) {
@@ -72,6 +92,8 @@ class _LineItemCardState extends State<LineItemCard> {
 
   void _decrement(BuildContext context) {
     if (_qty <= 1) {
+      _qtyDebounce?.cancel();
+      _qtyDebounce = null;
       setState(() => _hidden = true);
       context
           .read<LineItemBloc>()
@@ -79,16 +101,14 @@ class _LineItemCardState extends State<LineItemCard> {
     } else {
       setState(() => --_qty);
       _optimisticUpdate(_qty);
-      context.read<LineItemBloc>().add(
-          LineItemEvent.update(widget.cartId, widget.lineItem.id!, _qty));
+      _scheduleUpdate(context);
     }
   }
 
   void _increment(BuildContext context) {
     setState(() => ++_qty);
     _optimisticUpdate(_qty);
-    context.read<LineItemBloc>().add(
-        LineItemEvent.update(widget.cartId, widget.lineItem.id!, _qty));
+    _scheduleUpdate(context);
   }
 
   void _delete(BuildContext context) {

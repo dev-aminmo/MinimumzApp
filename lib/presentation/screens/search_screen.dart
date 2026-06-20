@@ -100,9 +100,10 @@ class _SearchScreenState extends State<SearchScreen> {
 
   Future<void> _fetchSuggestions(String query) async {
     try {
+      // Omit viewed_ids from the inline suggestions dropdown — it can be a long
+      // comma-separated list that bloats every-keystroke requests unnecessarily.
       final data = await getIt<DataStore>().products.suggestions(
         query,
-        viewedIds:   _viewedIds,
         wishlistIds: _wishlistIds,
       );
       if (!mounted) return;

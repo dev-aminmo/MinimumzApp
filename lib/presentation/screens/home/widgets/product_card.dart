@@ -336,6 +336,14 @@ class _QuickAddButtonState extends State<_QuickAddButton> {
       product: widget.product,
       variant: variant,
     );
+
+    // The add is optimistic (badge already updated), so re-enable the button on
+    // a short debounce instead of waiting for the server round-trip. Keeps taps
+    // snappy on slow connections; the BlocListener still clears earlier on a
+    // fast success and shows an error on failure.
+    Future.delayed(const Duration(milliseconds: 600), () {
+      if (mounted) setState(() => _busy = false);
+    });
   }
 
   @override

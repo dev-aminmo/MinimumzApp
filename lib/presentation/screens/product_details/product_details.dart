@@ -128,15 +128,30 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
   }
 
   void _syncOptionsForVariant(ProductVariant v) {
-    if (v.title == null || (widget.product.options?.isEmpty ?? true)) return;
-    final parts = v.title!.split('/').map((e) => e.trim()).toList();
     final options = widget.product.options ?? [];
+    if (options.isEmpty) return;
+
+    // Prefer matching the variant's option-value IDs onto each option.
+    final variantIds = _variantValueIds(v);
+    if (variantIds.isNotEmpty) {
+      for (final opt in options) {
+        for (final value in opt.values ?? []) {
+          if (value.id != null && variantIds.contains(value.id)) {
+            if (opt.id != null) optionsSelected[opt.id!] = value.value!;
+            break;
+          }
+        }
+      }
+      return;
+    }
+
+    // Fallback: legacy positional title matching.
+    if (v.title == null) return;
+    final parts = v.title!.split('/').map((e) => e.trim()).toList();
     if (parts.length == options.length) {
       for (int i = 0; i < options.length; i++) {
         final opt = options[i];
-        if (opt.id != null && i < parts.length) {
-          optionsSelected[opt.id!] = parts[i];
-        }
+        if (opt.id != null) optionsSelected[opt.id!] = parts[i];
       }
     }
   }
@@ -148,6 +163,45 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
     super.dispose();
   }
 
+  /// The variant with the lowest price in the active currency, or null if none
+  /// have a resolvable price.
+  ProductVariant? _cheapestVariant(List<ProductVariant> variants) {
+    final code = PreferenceRepository.currencyCode.toUpperCase();
+    ProductVariant? best;
+    num? bestPrice;
+    for (final v in variants) {
+      final prices = v.prices ?? <MoneyAmount>[];
+      final price = prices.minPrice(prices.effectiveCurrency(code));
+      if (price == null) continue;
+      if (bestPrice == null || price < bestPrice) {
+        bestPrice = price;
+        best = v;
+      }
+    }
+    return best;
+  }
+
+  /// The set of option-value IDs that make up a variant.
+  Set<String> _variantValueIds(ProductVariant v) =>
+      (v.options ?? []).map((o) => o.id).whereType<String>().toSet();
+
+  /// The option-value IDs of the current selection (maps each selected value
+  /// string back to its option-value id).
+  Set<String> _selectedValueIds() {
+    final ids = <String>{};
+    for (final opt in widget.product.options ?? []) {
+      final sel = optionsSelected[opt.id];
+      if (sel == null) continue;
+      for (final value in opt.values ?? []) {
+        if (value.value == sel && value.id != null) {
+          ids.add(value.id!);
+          break;
+        }
+      }
+    }
+    return ids;
+  }
+
   @override
   void initState() {
     _viewsCount = widget.product.viewsCount;
@@ -155,16 +209,26 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
     selectedImage = _allImages.isNotEmpty ? _allImages[0] : widget.product.thumbnail;
     _mediaPage = 0;
     _pageController = PageController(initialPage: 0);
-    if (widget.product.options?.length == 1 &&
-        widget.product.options?.first.values?.length == 1 &&
-        widget.product.variants?.length == 1) {
-      optionsSelected.addAll({
-        widget.product.options!.first.id!:
-            widget.product.options!.first.values!.first.value!
-      });
-      selectedVariant = widget.product.variants?.first;
-    } else if (widget.product.options?.isEmpty ?? true) {
-      selectedVariant = widget.product.variants?.firstOrNull;
+    // Default to the cheapest variant selected so the action button is enabled
+    // and a concrete price shows immediately, instead of requiring a manual pick.
+    // That variant's option-value IDs are mapped back onto each option so every
+    // option (e.g. colour AND size) is pre-selected and resolves to a real variant.
+    final options = widget.product.options ?? [];
+    final variants = widget.product.variants ?? [];
+    if (options.isEmpty) {
+      selectedVariant = variants.firstOrNull;
+    } else if (variants.isNotEmpty) {
+      final target = _cheapestVariant(variants) ?? variants.first;
+      final targetIds = _variantValueIds(target);
+      for (final opt in options) {
+        for (final value in opt.values ?? []) {
+          if (value.id != null && targetIds.contains(value.id)) {
+            optionsSelected[opt.id!] = value.value!;
+            break;
+          }
+        }
+      }
+      selectedVariant = target;
     }
 
     super.initState();
@@ -216,36 +280,59 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
       title: widget.product.title ?? '',
       thumbnail: widget.product.thumbnail,
     );
-    try {
-      final updated = await getIt<DataStore>().reviews.recordView(
-            productId: id,
-            sessionId: PreferenceRepository.sessionId,
-          );
-      if (mounted) setState(() => _viewsCount = updated);
-    } catch (_) {}
+    // Optimistic increment — don't block on the server round-trip.
+    if (mounted) setState(() => _viewsCount++);
+    unawaited(getIt<DataStore>().reviews.recordView(
+      productId: id,
+      sessionId: PreferenceRepository.sessionId,
+    ));
   }
 
   void selectVariant() {
-    if (optionsSelected.length != (widget.product.options?.length ?? 0)) return;
-    final values = optionsSelected.values.toList();
-    for (final variant in widget.product.variants ?? []) {
-      final titleList = variant.title?.split('/').map((e) => e.trim()).toList();
-      if (titleList != null && titleList.toSet().containsAll(values.toSet())) {
-        setState(() {
-          selectedVariant = variant;
-          selectedImage = variant.thumbnail ?? widget.product.thumbnail;
-        });
-        // Scroll PageView to this variant's image
-        if (variant.thumbnail != null) {
-          final idx = _allImages.indexOf(variant.thumbnail!);
-          if (idx >= 0) {
-            final page = _hasVideo ? idx + 1 : idx;
-            _pageController.animateToPage(page,
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeInOut);
-          }
+    final options = widget.product.options ?? [];
+    if (optionsSelected.length != options.length) return;
+    final variants = widget.product.variants ?? [];
+
+    // Match by stable option-value IDs (locale-proof, safe when labels contain
+    // "/"), falling back to legacy title matching for data without option ids.
+    ProductVariant? match;
+    final selIds = _selectedValueIds();
+    if (selIds.length == options.length) {
+      for (final variant in variants) {
+        final vIds = _variantValueIds(variant);
+        if (vIds.isNotEmpty &&
+            vIds.length == selIds.length &&
+            vIds.containsAll(selIds)) {
+          match = variant;
+          break;
         }
-        break;
+      }
+    }
+    if (match == null) {
+      final values = optionsSelected.values.map((e) => e.trim()).toSet();
+      for (final variant in variants) {
+        final titleList = variant.title?.split('/').map((e) => e.trim()).toSet();
+        if (titleList != null && titleList.containsAll(values)) {
+          match = variant;
+          break;
+        }
+      }
+    }
+    if (match == null) return;
+
+    final variant = match;
+    setState(() {
+      selectedVariant = variant;
+      selectedImage = variant.thumbnail ?? widget.product.thumbnail;
+    });
+    // Scroll PageView to this variant's image
+    if (variant.thumbnail != null) {
+      final idx = _allImages.indexOf(variant.thumbnail!);
+      if (idx >= 0) {
+        final page = _hasVideo ? idx + 1 : idx;
+        _pageController.animateToPage(page,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut);
       }
     }
   }
@@ -649,6 +736,14 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                 ),
               ),
             ),
+          // ── Attribute groups ──────────────────────────────────────
+          if (product.attributeGroups?.isNotEmpty ?? false)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                child: _AttributeGroupsSection(groups: product.attributeGroups!),
+              ),
+            ),
           if (_totalMediaCount > 0)
             SliverToBoxAdapter(
               child: SizedBox(
@@ -767,7 +862,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                     children: [
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                        child: Text(productOption.title ?? '',
+                        child: Text(productOption.localizedTitle(locale),
                             style: context.bodyLargeW600),
                       ),
                       const Gap(10),
@@ -849,7 +944,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                                             const SizedBox(width: 8),
                                           ],
                                           Text(
-                                            productOptionValue ?? '',
+                                            ov.localizedValue(locale),
                                             style: context.bodyMediumW500
                                                 ?.copyWith(
                                               color: isSelected
@@ -958,6 +1053,184 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
           // ── Bottom padding ────────────────────────────────────────
           SliverGap(bottomPadding),
         ],
+      ),
+    );
+  }
+}
+
+class _AttributeGroupsSection extends StatelessWidget {
+  const _AttributeGroupsSection({required this.groups});
+  final List<ProductAttributeGroup> groups;
+
+  @override
+  Widget build(BuildContext context) {
+    final locale = context.watch<LocaleCubit>().state.languageCode;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Divider(height: 32),
+        Row(
+          children: [
+            Container(
+              width: 3,
+              height: 18,
+              decoration: BoxDecoration(
+                color: ColorConstant.primary,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const Gap(8),
+            Text(context.l10n.specifications, style: context.bodyLargeW600),
+          ],
+        ),
+        const Gap(14),
+        for (int gi = 0; gi < groups.length; gi++) ...[
+          _AttributeGroupCard(group: groups[gi], locale: locale),
+          if (gi < groups.length - 1) const Gap(12),
+        ],
+      ],
+    );
+  }
+}
+
+class _AttributeGroupCard extends StatelessWidget {
+  const _AttributeGroupCard({required this.group, required this.locale});
+  final ProductAttributeGroup group;
+  final String locale;
+
+  @override
+  Widget build(BuildContext context) {
+    final setName = group.localizedSetName(locale);
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: ColorConstant.primary.withValues(alpha: 0.12),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: ColorConstant.primary.withValues(alpha: 0.06),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Set name header ──────────────────────────────────────
+          if (setName.isNotEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    ColorConstant.primary.withValues(alpha: 0.10),
+                    ColorConstant.primary.withValues(alpha: 0.04),
+                  ],
+                  begin: AlignmentDirectional.centerStart,
+                  end: AlignmentDirectional.centerEnd,
+                ),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 28,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      color: ColorConstant.primary.withValues(alpha: 0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.label_outline_rounded,
+                      size: 15,
+                      color: ColorConstant.primary,
+                    ),
+                  ),
+                  const Gap(10),
+                  Text(setName, style: context.bodyMediumW500?.copyWith(color: ColorConstant.primary)),
+                ],
+              ),
+            ),
+          // ── Attribute rows ───────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            child: Column(
+              children: [
+                for (int i = 0; i < group.attributes.length; i++) ...[
+                  _AttributeRow(attr: group.attributes[i], locale: locale),
+                  if (i < group.attributes.length - 1)
+                    Divider(
+                      height: 18,
+                      thickness: 0.8,
+                      color: ColorConstant.beige,
+                    ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AttributeRow extends StatelessWidget {
+  const _AttributeRow({required this.attr, required this.locale});
+  final ProductAttributeItem attr;
+  final String locale;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 110,
+          child: Text(
+            attr.localizedName(locale),
+            style: context.bodySmall?.copyWith(
+              color: ColorConstant.manatee,
+              height: 1.5,
+            ),
+          ),
+        ),
+        const Gap(8),
+        Expanded(
+          child: Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: attr.values
+                .map((v) => _ValueChip(value: v.localized(locale)))
+                .toList(),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ValueChip extends StatelessWidget {
+  const _ValueChip({required this.value});
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: ColorConstant.beige,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        value,
+        style: context.bodyExtraSmall?.copyWith(
+          color: const Color(0xFF444444),
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }

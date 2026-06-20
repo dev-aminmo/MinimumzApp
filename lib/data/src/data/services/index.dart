@@ -17,3 +17,5 @@ export 'shipping_options.dart';
 export 'swaps.dart';
 export 'slider.dart';
 export 'user_data.dart';
+export 'notifications.dart';
+export 'home.dart';

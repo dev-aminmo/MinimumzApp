@@ -40,11 +40,13 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _resetKey = 0;
+  HomeBundle? _bundle;
 
   @override
   void initState() {
     super.initState();
     CountryChangeNotifier.instance.addListener(_onCountryChange);
+    _fetchBundle();
   }
 
   @override
@@ -53,7 +55,25 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-  void _onCountryChange() => setState(() => _resetKey++);
+  void _onCountryChange() {
+    setState(() => _resetKey++);
+    _fetchBundle();
+  }
+
+  Future<void> _fetchBundle() async {
+    try {
+      final bundle = await getIt<DataStore>().home.fetch();
+      if (!mounted) return;
+      PreferenceRepository.instance.setCachedSlider(bundle.slides);
+      PreferenceRepository.instance.setCachedCollections(bundle.collections);
+      PreferenceRepository.instance.setCachedBrands(bundle.brands);
+      PreferenceRepository.instance.setCachedBestSellers(
+          filterPricedProducts(bundle.bestSellers));
+      setState(() => _bundle = bundle);
+    } catch (_) {
+      // Bundle failed — sections fall back to their own individual calls.
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -134,13 +154,15 @@ class _HomeScreenState extends State<HomeScreen> {
           const SliverGap(10),
           const _ApiPingBanner(),
           const SliverGap(10),
-          const _SliderSection(),
+          _SliderSection(prefetched: _bundle?.slides),
           const SliverGap(10),
-          _CategoriesSection(),
+          _CategoriesSection(prefetched: _bundle?.collections),
           const SliverGap(10),
-          _BestSellersSection(key: ValueKey('bs_$_resetKey')),
+          _BestSellersSection(
+              key: ValueKey('bs_$_resetKey'),
+              prefetched: _bundle?.bestSellers),
           const SliverGap(10),
-          const _BrandsSection(),
+          _BrandsSection(prefetched: _bundle?.brands),
           const SliverGap(10),
           NewArrival(key: ValueKey('na_$_resetKey')),
         ],
@@ -152,17 +174,19 @@ class _HomeScreenState extends State<HomeScreen> {
 // ── Slider / hero carousel ────────────────────────────────────────────────────
 
 class _SliderSection extends StatefulWidget {
-  const _SliderSection();
+  const _SliderSection({this.prefetched});
+  final List<SliderSlide>? prefetched;
 
   @override
   State<_SliderSection> createState() => _SliderSectionState();
 }
 
-class _SliderSectionState extends State<_SliderSection> {
+class _SliderSectionState extends State<_SliderSection> with WidgetsBindingObserver {
   List<SliderSlide> _slides = [];
   int _currentPage = 0;
   final PageController _pageController = PageController();
   Timer? _timer;
+  bool _bundleReceived = false;
 
   static const Duration _interval = Duration(seconds: 3);
   static const Duration _animDuration = Duration(milliseconds: 500);
@@ -170,12 +194,41 @@ class _SliderSectionState extends State<_SliderSection> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadCache();
-    _fetchFromNetwork();
+    // Give the home bundle 700ms to arrive before falling back to own call.
+    Future.delayed(const Duration(milliseconds: 700), () {
+      if (mounted && !_bundleReceived) _fetchFromNetwork();
+    });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.hidden) {
+      _timer?.cancel();
+    } else if (state == AppLifecycleState.resumed) {
+      if (_slides.length > 1 && (_timer == null || !_timer!.isActive)) {
+        _startAutoPlay();
+      }
+    }
+  }
+
+  @override
+  void didUpdateWidget(_SliderSection old) {
+    super.didUpdateWidget(old);
+    final slides = widget.prefetched;
+    if (slides != null && slides != old.prefetched) {
+      _bundleReceived = true;
+      setState(() => _slides = slides);
+      if (_timer == null || !_timer!.isActive) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => _startAutoPlay());
+      }
+    }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _timer?.cancel();
     _pageController.dispose();
     super.dispose();
@@ -446,11 +499,14 @@ void _showAllBrands(BuildContext context, List<BrandItem> brands) {
 }
 
 class _CategoriesSection extends StatefulWidget {
+  const _CategoriesSection({this.prefetched});
+  final List<ProductCollection>? prefetched;
+
   @override
   State<_CategoriesSection> createState() => _CategoriesSectionState();
 }
 
-class _CategoriesSectionState extends State<_CategoriesSection> {
+class _CategoriesSectionState extends State<_CategoriesSection> with WidgetsBindingObserver {
   final ScrollController _scrollController = ScrollController();
   Timer? _timer;
   bool _autoPlayStarted = false;
@@ -461,7 +517,34 @@ class _CategoriesSectionState extends State<_CategoriesSection> {
   static const Duration _animDuration = Duration(milliseconds: 500);
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.hidden) {
+      _timer?.cancel();
+    } else if (state == AppLifecycleState.resumed) {
+      if (_autoPlayStarted && (_timer == null || !_timer!.isActive)) {
+        _startAutoPlay();
+      }
+    }
+  }
+
+  @override
+  void didUpdateWidget(_CategoriesSection old) {
+    super.didUpdateWidget(old);
+    if (widget.prefetched != null && old.prefetched == null && !_autoPlayStarted) {
+      _autoPlayStarted = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) => _startAutoPlay());
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _timer?.cancel();
     _scrollController.dispose();
     super.dispose();
@@ -483,65 +566,77 @@ class _CategoriesSectionState extends State<_CategoriesSection> {
     });
   }
 
+  Widget _buildLoaded(List<ProductCollection> collections) {
+    if (collections.isEmpty) return const SliverToBoxAdapter(child: SizedBox.shrink());
+
+    if (!_autoPlayStarted) {
+      _autoPlayStarted = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) => _startAutoPlay());
+    }
+
+    return SliverToBoxAdapter(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Headline(
+            headline: context.l10n.categories,
+            onViewAllTap: () => _showAllCategories(context, collections),
+          ),
+          const Gap(10),
+          SizedBox(
+            height: 108,
+            child: ListView.separated(
+              controller: _scrollController,
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              scrollDirection: Axis.horizontal,
+              separatorBuilder: (_, __) => const Gap(12),
+              itemCount: collections.length,
+              itemBuilder: (_, i) => CategoryTile(collection: collections[i]),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLoading() {
+    return SliverToBoxAdapter(
+      child: Skeletonizer(
+        enabled: true,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Headline(headline: context.l10n.categories, onViewAllTap: null),
+            const Gap(10),
+            SizedBox(
+              height: 108,
+              child: ListView.separated(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                scrollDirection: Axis.horizontal,
+                separatorBuilder: (_, __) => const Gap(12),
+                itemCount: 5,
+                itemBuilder: (_, __) => const _CategorySkeletonTile(),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    // When the home bundle has provided collections, use them directly.
+    if (widget.prefetched != null) {
+      return _buildLoaded(widget.prefetched!);
+    }
+
+    // Fall back to the CollectionsBloc (populated at app startup).
     return BlocBuilder<CollectionsBloc, CollectionsState>(
       builder: (context, state) {
         return state.map(
-          loading: (_) => SliverToBoxAdapter(
-            child: Skeletonizer(
-              enabled: true,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Headline(headline: context.l10n.categories, onViewAllTap: null),
-                  const Gap(10),
-                  SizedBox(
-                    height: 108,
-                    child: ListView.separated(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      scrollDirection: Axis.horizontal,
-                      separatorBuilder: (_, __) => const Gap(12),
-                      itemCount: 5,
-                      itemBuilder: (_, __) => const _CategorySkeletonTile(),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          loaded: (data) {
-            if (data.collections.isEmpty) return const SliverToBoxAdapter(child: SizedBox.shrink());
-
-            if (!_autoPlayStarted) {
-              _autoPlayStarted = true;
-              WidgetsBinding.instance.addPostFrameCallback((_) => _startAutoPlay());
-            }
-
-            return SliverToBoxAdapter(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Headline(
-                    headline: context.l10n.categories,
-                    onViewAllTap: () => _showAllCategories(context, data.collections),
-                  ),
-                  const Gap(10),
-                  SizedBox(
-                    height: 108,
-                    child: ListView.separated(
-                      controller: _scrollController,
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      scrollDirection: Axis.horizontal,
-                      separatorBuilder: (_, __) => const Gap(12),
-                      itemCount: data.collections.length,
-                      itemBuilder: (_, i) => CategoryTile(collection: data.collections[i]),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
+          loading: (_) => _buildLoading(),
+          loaded: (data) => _buildLoaded(data.collections),
           error: (_) => const SliverToBoxAdapter(child: SizedBox.shrink()),
         );
       },
@@ -630,15 +725,17 @@ class _CategorySkeletonTile extends StatelessWidget {
 // ── Best sellers ──────────────────────────────────────────────────────────────
 
 class _BestSellersSection extends StatefulWidget {
-  const _BestSellersSection({super.key});
+  const _BestSellersSection({super.key, this.prefetched});
+  final List<Product>? prefetched;
 
   @override
   State<_BestSellersSection> createState() => _BestSellersSectionState();
 }
 
-class _BestSellersSectionState extends State<_BestSellersSection> {
+class _BestSellersSectionState extends State<_BestSellersSection> with WidgetsBindingObserver {
   List<Product>? _products;
   bool _loading = true;
+  bool _bundleReceived = false;
   final ScrollController _scrollController = ScrollController();
   Timer? _timer;
 
@@ -650,14 +747,43 @@ class _BestSellersSectionState extends State<_BestSellersSection> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadCache();
-    Future.delayed(const Duration(milliseconds: 400), () {
-      if (mounted) _fetchFromNetwork();
+    // Give the home bundle 700ms to arrive before falling back to own call.
+    Future.delayed(const Duration(milliseconds: 700), () {
+      if (mounted && !_bundleReceived) _fetchFromNetwork();
     });
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.hidden) {
+      _timer?.cancel();
+    } else if (state == AppLifecycleState.resumed) {
+      if ((_products?.length ?? 0) > 1 && (_timer == null || !_timer!.isActive)) {
+        _startAutoPlay();
+      }
+    }
+  }
+
+  @override
+  void didUpdateWidget(_BestSellersSection old) {
+    super.didUpdateWidget(old);
+    final incoming = widget.prefetched;
+    if (incoming != null && incoming != old.prefetched) {
+      _bundleReceived = true;
+      final products = filterPricedProducts(incoming);
+      _timer?.cancel();
+      setState(() { _products = products; _loading = false; });
+      if (products.isNotEmpty) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => _startAutoPlay());
+      }
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _timer?.cancel();
     _scrollController.dispose();
     super.dispose();
@@ -688,7 +814,6 @@ class _BestSellersSectionState extends State<_BestSellersSection> {
 
   Future<void> _fetchFromNetwork() async {
     final countryId = PreferenceRepository.instance.country?.id;
-    // Show skeleton only when there's nothing to display yet.
     if (_products == null && mounted) setState(() => _loading = true);
     try {
       final res = await getIt<DataStore>().products.list(queryParams: {
@@ -761,15 +886,17 @@ class _BestSellersSectionState extends State<_BestSellersSection> {
 // ── Brands section ────────────────────────────────────────────────────────────
 
 class _BrandsSection extends StatefulWidget {
-  const _BrandsSection();
+  const _BrandsSection({this.prefetched});
+  final List<BrandItem>? prefetched;
 
   @override
   State<_BrandsSection> createState() => _BrandsSectionState();
 }
 
-class _BrandsSectionState extends State<_BrandsSection> {
+class _BrandsSectionState extends State<_BrandsSection> with WidgetsBindingObserver {
   List<BrandItem>? _brands;
   bool _loading = true;
+  bool _bundleReceived = false;
   final ScrollController _scrollController = ScrollController();
   Timer? _timer;
 
@@ -780,14 +907,41 @@ class _BrandsSectionState extends State<_BrandsSection> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadCache();
-    Future.delayed(const Duration(milliseconds: 800), () {
-      if (mounted) _load();
+    // Give the home bundle 700ms to arrive before falling back to own call.
+    Future.delayed(const Duration(milliseconds: 700), () {
+      if (mounted && !_bundleReceived) _load();
     });
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.hidden) {
+      _timer?.cancel();
+    } else if (state == AppLifecycleState.resumed) {
+      if ((_brands?.length ?? 0) > 1 && (_timer == null || !_timer!.isActive)) {
+        _startAutoPlay();
+      }
+    }
+  }
+
+  @override
+  void didUpdateWidget(_BrandsSection old) {
+    super.didUpdateWidget(old);
+    final incoming = widget.prefetched;
+    if (incoming != null && incoming != old.prefetched) {
+      _bundleReceived = true;
+      setState(() { _brands = incoming; _loading = false; });
+      if (incoming.isNotEmpty) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => _startAutoPlay());
+      }
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _timer?.cancel();
     _scrollController.dispose();
     super.dispose();

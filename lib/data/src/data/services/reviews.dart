@@ -101,21 +101,15 @@ class ReviewsResource extends BaseResource {
     }
   }
 
-  Future<int> recordView({
+  Future<void> recordView({
     required String productId,
     required String sessionId,
   }) async {
     try {
-      final response = await client.post(
+      await client.post(
         '/store/products/$productId/view',
         data: {'session_id': sessionId},
       );
-      if (response.statusCode == 200) {
-        return (response.data['views_count'] as num?)?.toInt() ?? 0;
-      }
-      return 0;
-    } catch (_) {
-      return 0;
-    }
+    } catch (_) {}
   }
 }

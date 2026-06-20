@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:developer';
 
-import 'package:injectable/injectable.dart';
+import 'package:injectable/injectable.dart' hide Order;
 import 'package:minimumz/di/di.dart';
 import 'package:minimumz/data/data.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -40,6 +40,7 @@ class PreferenceRepository {
   static const String _cookie = 'cookie';
   static const String _currencyCodeKey = 'currency_code';
   static const String _wishlistKey = 'wishlist';
+  static const int _maxWishlistItems = 100;
   static const String _notificationsKey = 'notifications_enabled';
   static const String _fcmTokenKey = 'registered_fcm_token';
   static const String _regionsKey = 'cached_regions';
@@ -149,6 +150,65 @@ class PreferenceRepository {
   }
 
   Future<void> clearCachedCart() async => _prefs.remove(_cachedCartKey);
+
+  // ── Shipping options cache (keyed by cart ID) ─────────────────────────────
+  static const String _cachedShippingKey = 'cached_shipping_options';
+
+  List<ShippingOption>? cachedShippingOptions(String cartId) {
+    final raw = _prefs.getString(_cachedShippingKey);
+    if (raw == null) return null;
+    try {
+      final map = jsonDecode(raw) as Map<String, dynamic>;
+      if (map['cart_id'] != cartId) return null;
+      final list = map['options'] as List;
+      return list.map((e) => ShippingOption.fromJson(e as Map<String, dynamic>)).toList();
+    } catch (e) {
+      log(e.toString());
+      return null;
+    }
+  }
+
+  Future<void> setCachedShippingOptions(String cartId, List<ShippingOption> options) async {
+    try {
+      await _prefs.setString(
+        _cachedShippingKey,
+        jsonEncode({'cart_id': cartId, 'options': options.map((o) => o.toJson()).toList()}),
+      );
+    } catch (e) {
+      log(e.toString());
+    }
+  }
+
+  Future<void> clearCachedShippingOptions() async => _prefs.remove(_cachedShippingKey);
+
+  // ── Orders list cache (page 1) ────────────────────────────────────────────
+  static const String _cachedOrdersListKey = 'cached_orders_list';
+
+  List<Order>? get cachedOrdersList {
+    final raw = _prefs.getString(_cachedOrdersListKey);
+    if (raw == null) return null;
+    try {
+      final list = jsonDecode(raw) as List;
+      return list.map((e) => Order.fromJson(e as Map<String, dynamic>)).toList();
+    } catch (e) {
+      log(e.toString());
+      return null;
+    }
+  }
+
+  Future<void> setCachedOrdersList(List<Order> orders) async {
+    try {
+      await _prefs.setString(
+        _cachedOrdersListKey,
+        jsonEncode(orders.map((o) => o.toJson()).toList()),
+      );
+    } catch (e) {
+      log(e.toString());
+    }
+  }
+
+  Future<void> clearCachedOrdersList() async =>
+      _prefs.remove(_cachedOrdersListKey);
 
   // ── Cached order details (per id) ─────────────────────────────────────────
   static const String _cachedOrdersKey = 'cached_order_details';
@@ -473,6 +533,7 @@ class PreferenceRepository {
     await Future.wait([
       clearCartId(),
       clearCachedCart(),
+      clearCachedOrdersList(),
       clearSearchHistory(),
       clearWishlistAvailableIds(),
       _prefs.remove(_wishlistKey),
@@ -481,9 +542,12 @@ class PreferenceRepository {
   }
 
   Future<void> setWishlistProducts(List<Product> products) async {
+    final capped = products.length > _maxWishlistItems
+        ? products.sublist(0, _maxWishlistItems)
+        : products;
     await _prefs.setString(
       _wishlistKey,
-      jsonEncode(products.map((p) => p.toJson()).toList()),
+      jsonEncode(capped.map((p) => p.toJson()).toList()),
     );
   }
 }

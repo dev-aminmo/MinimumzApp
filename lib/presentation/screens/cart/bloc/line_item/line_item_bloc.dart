@@ -1,3 +1,4 @@
+import 'package:bloc_concurrency/bloc_concurrency.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:injectable/injectable.dart';
@@ -25,15 +26,19 @@ class LineItemBloc extends Bloc<LineItemEvent, LineItemState> {
       );
     });
 
+    // restartable: if a newer quantity update arrives while one is in-flight,
+    // discard the old response and only honour the latest. Safe because
+    // quantity updates are SET operations — last write wins on the server.
     on<_Update>((event, emit) async {
       emit(_Loading(lineItemId: event.lineId));
       final result = await lineItemUsecase.update(
           cartId: event.cartId, quantity: event.quantity, lineId: event.lineId);
+      if (emit.isDone) return; // handler was cancelled by a newer event
       result.when(
         (cart) => emit(_Success(cart)),
         (error) => emit(_Failure(error.message, lineItemId: event.lineId)),
       );
-    });
+    }, transformer: restartable());
 
     on<_Delete>((event, emit) async {
       emit(_Loading(lineItemId: event.lineId));

@@ -1,4 +1,5 @@
 export 'brand_item.dart';
+export 'product_attribute_group.dart';
 export 'product.dart';
 export 'product_category.dart';
 export 'product_collection.dart';
