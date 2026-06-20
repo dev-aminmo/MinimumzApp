@@ -47,6 +47,10 @@ class AuthenticationBloc
       final result = await _authUsecase.getCurrentCustomer();
       result.when((customer) {
         _storeCurrencyCode(customer);
+        // A confirmed customer session is never a guest. Clear the flag so
+        // wishlist/search sync works even if the user started as a guest and
+        // later signed in (and on every session restore).
+        PreferenceRepository.instance.setGuest(value: false);
         emit(_LoggedIn(customer));
         // Returning users restore their session here (no fresh login), so
         // re-register the FCM token — it may be new, rotated, or never sent.
@@ -75,6 +79,7 @@ class AuthenticationBloc
       final result = await _authUsecase.getCurrentCustomer();
       result.when((customer) {
         _storeCurrencyCode(customer);
+        PreferenceRepository.instance.setGuest(value: false);
         emit(_LoggedIn(customer));
         NotificationService.instance.registerToken();
       }, (error) {
@@ -135,6 +140,7 @@ class AuthenticationBloc
         phone: '');
     result.when((customer) {
       _storeCurrencyCode(customer);
+      PreferenceRepository.instance.setGuest(value: false);
       emit(_LoggedIn(customer));
       NotificationService.instance.registerToken();
     }, (error) {

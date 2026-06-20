@@ -8,6 +8,7 @@ import 'package:minimumz/common/extensions/extensions.dart';
 import 'package:minimumz/cubits/wishlist/wishlist_cubit.dart';
 import 'package:minimumz/data/data.dart';
 import 'package:minimumz/domain/repository/preference_repository.dart';
+import 'package:minimumz/domain/services/user_data_sync_service.dart';
 
 import '../../common/colors.dart';
 import '../components/index.dart';
@@ -31,9 +32,14 @@ class _WishlistScreenState extends State<WishlistScreen> {
   // IDs returned by the country-filtered API refresh; null = no filter applied yet
   Set<String>? _availableIds;
 
-  List<Product> get _visibleProducts => _availableIds != null
-      ? _allProducts.where((p) => _availableIds!.contains(p.id)).toList()
-      : _allProducts;
+  List<Product> get _visibleProducts {
+    final ids = _availableIds;
+    // A null/empty availability set means "not known yet" — it's only recomputed
+    // on login/country change and starts empty when the wishlist was empty. Don't
+    // hide the whole wishlist against a stale set; show everything in that case.
+    if (ids == null || ids.isEmpty) return _allProducts;
+    return _allProducts.where((p) => ids.contains(p.id)).toList();
+  }
 
   final PagingController<int, Product> _pagingController =
       PagingController(firstPageKey: 0);
@@ -42,9 +48,21 @@ class _WishlistScreenState extends State<WishlistScreen> {
   void initState() {
     super.initState();
     _allProducts = List<Product>.from(context.read<WishlistCubit>().state);
-    // Use pre-computed available IDs (set on country change / login) — no API call here.
     _availableIds = PreferenceRepository.instance.wishlistAvailableIds;
     _pagingController.addPageRequestListener(_loadPage);
+    // The stored availability set goes stale as items are added (it's only
+    // recomputed on login/country change). Refresh it for the current wishlist
+    // so newly added items appear here too.
+    _refreshAvailability();
+  }
+
+  Future<void> _refreshAvailability() async {
+    await filterWishlistForCountry(context.read<WishlistCubit>());
+    if (!mounted) return;
+    setState(() {
+      _availableIds = PreferenceRepository.instance.wishlistAvailableIds;
+    });
+    _pagingController.refresh();
   }
 
   void _loadPage(int pageKey) {
