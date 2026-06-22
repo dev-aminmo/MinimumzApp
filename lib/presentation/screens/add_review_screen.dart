@@ -28,7 +28,7 @@ class _AddReviewScreenState extends State<AddReviewScreen> {
   final _formKey = GlobalKey<FormState>();
   final _commentCtrl = TextEditingController();
   final _picker = ImagePicker();
-  int _rating = 3;
+  int _rating = 5;
   bool _loading = false;
   final List<XFile> _images = [];
 

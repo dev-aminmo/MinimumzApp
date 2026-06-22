@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io' show Platform;
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/widgets.dart';
@@ -142,7 +143,23 @@ class NotificationService {
     return settings.authorizationStatus;
   }
 
-  Future<String?> getToken() => _messaging.getToken();
+  Future<String?> getToken() => _resolveFcmToken();
+
+  /// On iOS, FCM cannot mint a token until APNs has handed the app its device
+  /// token. Right after permission is granted it can be briefly null, so wait
+  /// for it (with a short retry) before asking for the FCM token. Returns null
+  /// if APNs never provides one (e.g. simulator, or Push capability missing).
+  Future<String?> _resolveFcmToken() async {
+    if (Platform.isIOS) {
+      var apns = await _messaging.getAPNSToken();
+      for (var i = 0; apns == null && i < 5; i++) {
+        await Future.delayed(const Duration(seconds: 1));
+        apns = await _messaging.getAPNSToken();
+      }
+      if (apns == null) return null;
+    }
+    return _messaging.getToken();
+  }
 
   /// Syncs the device's FCM token with the backend. Called on app open, login,
   /// and signup. Compares against the last-registered token cached locally and
@@ -151,7 +168,7 @@ class NotificationService {
     try {
       final prefs = getIt<PreferenceRepository>();
       if (!prefs.notificationsEnabled) return;
-      final token = await _messaging.getToken();
+      final token = await _resolveFcmToken();
       if (token == null) return;
       if (prefs.registeredFcmToken == token) return; // already in sync
       await getIt<DataStore>().customers.updateFcmToken(token);

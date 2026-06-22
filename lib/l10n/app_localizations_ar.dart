@@ -149,6 +149,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get orderSummary => 'ملخص الطلب';
 
   @override
+  String get originalSubtotal => 'المجموع قبل الخصم';
+
+  @override
   String get subtotal => 'المجموع الفرعي';
 
   @override

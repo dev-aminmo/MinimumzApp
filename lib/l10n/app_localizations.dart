@@ -374,6 +374,12 @@ abstract class AppLocalizations {
   /// **'Order Summary'**
   String get orderSummary;
 
+  /// No description provided for @originalSubtotal.
+  ///
+  /// In en, this message translates to:
+  /// **'Original Subtotal'**
+  String get originalSubtotal;
+
   /// No description provided for @subtotal.
   ///
   /// In en, this message translates to:

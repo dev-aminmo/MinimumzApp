@@ -52,7 +52,7 @@ class _SignInWithEmailScreenState extends State<SignInWithEmailScreen> {
     return BlocConsumer<AuthenticationBloc, AuthenticationState>(
       listener: (context, state) {
         state.maybeMap(
-          loading: (_) => EasyLoading.show(maskType: EasyLoadingMaskType.black),
+          loading: (_) => EasyLoading.show(),
           loggedIn: (_) async {
             PreferenceRepository.instance.setGuest(value: false);
             final cartId = PreferenceRepository.instance.cartId;

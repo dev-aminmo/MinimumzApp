@@ -1,4 +1,5 @@
 import 'package:firebase_core/firebase_core.dart';
+import 'package:minimumz/firebase_options.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
@@ -6,6 +7,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:minimumz/services/notification_service.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:minimumz/common/colors.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:minimumz/l10n/app_localizations.dart';
 import 'package:minimumz/blocs/auth/authentication_bloc.dart';
@@ -25,6 +27,24 @@ import 'package:http/io_client.dart';
 import 'common/doh_client.dart';
 import 'di/di.dart';
 import 'observer.dart';
+
+/// Brand the global blocking loader so it matches the warm cream/gold theme
+/// instead of EasyLoading's stock dark box + black screen mask.
+void configLoading() {
+  EasyLoading.instance
+    ..loadingStyle = EasyLoadingStyle.custom
+    ..indicatorType = EasyLoadingIndicatorType.fadingCircle
+    ..indicatorSize = 38.0
+    ..radius = 18.0
+    ..backgroundColor = ColorConstant.cream
+    ..indicatorColor = ColorConstant.primary
+    ..textColor = ColorConstant.brownDark
+    ..maskColor = ColorConstant.brownDark.withValues(alpha: 0.12)
+    ..maskType = EasyLoadingMaskType.custom
+    ..contentPadding = const EdgeInsets.all(22)
+    ..userInteractions = false
+    ..dismissOnTap = false;
+}
 
 Future<void> main() async {
   await SentryFlutter.init(
@@ -49,7 +69,10 @@ Future<void> main() async {
       PaintingBinding.instance.imageCache.maximumSize = 150;
       FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
       Bloc.observer = MyBlocObserver();
-      await Firebase.initializeApp();
+      configLoading();
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
       await NotificationService.instance.init();
       await configureInjection();
       FlutterNativeSplash.remove();

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:minimumz/common/doh_cache_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -20,9 +21,10 @@ import 'package:minimumz/presentation/screens/home/widgets/product_card.dart';
 import '../components/index.dart';
 
 class _SuggestionItem {
+  final String id;
   final String name;
   final String? imageUrl;
-  const _SuggestionItem({required this.name, this.imageUrl});
+  const _SuggestionItem({required this.id, required this.name, this.imageUrl});
 }
 
 // ── Screen ────────────────────────────────────────────────────────────────────
@@ -112,6 +114,7 @@ class _SearchScreenState extends State<SearchScreen> {
         final m = e as Map<String, dynamic>;
         final img = (m['base_image'] as Map<String, dynamic>?)?['path'] as String?;
         return _SuggestionItem(
+          id: m['id']?.toString() ?? '',
           name: (m['name'] as String? ?? '').replaceAll(RegExp(r'<[^>]*>'), ''),
           imageUrl: img,
         );
@@ -138,6 +141,38 @@ class _SearchScreenState extends State<SearchScreen> {
     PreferenceRepository.instance.addSearchHistory(trimmed).then((_) {
       if (mounted) setState(() => _history = PreferenceRepository.instance.searchHistory);
     });
+  }
+
+  /// A product suggestion identifies a specific product, so open it directly by
+  /// id instead of re-running a fragile title search. Falls back to the title
+  /// search if the id is missing or the fetch fails.
+  Future<void> _openProduct(_SuggestionItem item) async {
+    if (item.id.isEmpty) {
+      _commitQuery(item.name);
+      return;
+    }
+
+    _focusNode.unfocus();
+    EasyLoading.show();
+    try {
+      final countryId = PreferenceRepository.instance.country?.id;
+      final res = await getIt<DataStore>().products.retrieve(
+        item.id,
+        queryParams: {if (countryId != null) 'country_id': countryId},
+      );
+      if (!mounted) return;
+      EasyLoading.dismiss();
+      final product = res?.product;
+      if (product != null) {
+        context.router.push(ProductDetailsRoute(product: product));
+      } else {
+        _commitQuery(item.name);
+      }
+    } catch (_) {
+      if (!mounted) return;
+      EasyLoading.dismiss();
+      _commitQuery(item.name);
+    }
   }
 
   void _removeHistory(String query) {
@@ -407,7 +442,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 style: context.bodyMedium,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis),
-            onTap: () => _commitQuery(name),
+            onTap: () => _openProduct(p),
           );
         }),
         const Gap(8),

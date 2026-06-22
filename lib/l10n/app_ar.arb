@@ -50,6 +50,7 @@
   "noShippingOptions": "لا توجد خيارات شحن متاحة",
   "paymentMethod": "طريقة الدفع",
   "orderSummary": "ملخص الطلب",
+  "originalSubtotal": "المجموع قبل الخصم",
   "subtotal": "المجموع الفرعي",
   "shipping": "الشحن",
   "tax": "الضريبة",

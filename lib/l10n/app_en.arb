@@ -50,6 +50,7 @@
   "noShippingOptions": "No shipping options available",
   "paymentMethod": "Payment Method",
   "orderSummary": "Order Summary",
+  "originalSubtotal": "Original Subtotal",
   "subtotal": "Subtotal",
   "shipping": "Shipping",
   "tax": "Tax",

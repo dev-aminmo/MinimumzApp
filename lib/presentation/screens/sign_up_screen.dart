@@ -59,7 +59,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     return BlocConsumer<AuthenticationBloc, AuthenticationState>(
       listener: (context, state) {
         state.maybeMap(
-          loading: (_) => EasyLoading.show(maskType: EasyLoadingMaskType.black),
+          loading: (_) => EasyLoading.show(),
           loggedIn: (_) async {
             getIt<PreferenceRepository>().setGuest(value: false);
             final cartId = getIt<PreferenceRepository>().cartId;

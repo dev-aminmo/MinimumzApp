@@ -346,6 +346,21 @@ class _CartBody extends StatelessWidget {
             title: context.l10n.orderSummary,
             child: Column(
               children: [
+                // When there's a discount, show the original (pre-discount) subtotal
+                // and the discount above the (post-discount) subtotal so customers
+                // can see their savings. cart.subTotal is already net of discount.
+                if ((cart.discountTotal ?? 0) > 0) ...[
+                  _SummaryRow(
+                      context.l10n.originalSubtotal,
+                      ((cart.subTotal ?? 0) + (cart.discountTotal ?? 0))
+                          .formatAsPrice(currencyCode, locale: locale),
+                      context),
+                  const Gap(8),
+                  _SummaryRow(context.l10n.discount,
+                      '- ${cart.discountTotal.formatAsPrice(currencyCode, locale: locale)}', context,
+                      color: Colors.green),
+                  const Gap(8),
+                ],
                 _SummaryRow(context.l10n.subtotal,
                     cart.subTotal.formatAsPrice(currencyCode, locale: locale), context),
                 const Gap(8),
@@ -355,12 +370,6 @@ class _CartBody extends StatelessWidget {
                   const Gap(8),
                   _SummaryRow(
                       context.l10n.tax, cart.taxTotal.formatAsPrice(currencyCode, locale: locale), context),
-                ],
-                if ((cart.discountTotal ?? 0) > 0) ...[
-                  const Gap(8),
-                  _SummaryRow(context.l10n.discount,
-                      '- ${cart.discountTotal.formatAsPrice(currencyCode, locale: locale)}', context,
-                      color: Colors.green),
                 ],
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 12),

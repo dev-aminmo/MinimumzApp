@@ -21,9 +21,11 @@ class HomeBundle {
 class HomeResource extends BaseResource {
   HomeResource(super.client);
 
-  Future<HomeBundle> fetch() async {
+  Future<HomeBundle> fetch({int? countryId}) async {
     try {
-      final response = await client.get('/store/home');
+      final response = await client.get('/store/home', queryParameters: {
+        if (countryId != null) 'country_id': countryId,
+      });
       if (response.statusCode == 200) {
         final data = response.data as Map<String, dynamic>;
 

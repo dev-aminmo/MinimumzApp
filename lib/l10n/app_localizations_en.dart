@@ -148,6 +148,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get orderSummary => 'Order Summary';
 
   @override
+  String get originalSubtotal => 'Original Subtotal';
+
+  @override
   String get subtotal => 'Subtotal';
 
   @override

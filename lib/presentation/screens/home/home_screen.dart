@@ -12,6 +12,7 @@ import 'package:gap/gap.dart';
 import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
 import 'package:minimumz/common/extensions/extensions.dart';
 import 'package:minimumz/common/pricing_utils.dart';
+import 'package:minimumz/common/cta_handler.dart';
 import 'package:minimumz/data/data.dart';
 import 'package:minimumz/di/di.dart';
 import 'package:minimumz/domain/repository/preference_repository.dart';
@@ -62,7 +63,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _fetchBundle() async {
     try {
-      final bundle = await getIt<DataStore>().home.fetch();
+      final bundle = await getIt<DataStore>().home.fetch(
+        countryId: PreferenceRepository.instance.country?.id,
+      );
       if (!mounted) return;
       PreferenceRepository.instance.setCachedSlider(bundle.slides);
       PreferenceRepository.instance.setCachedCollections(bundle.collections);
@@ -317,7 +320,9 @@ class _SliderTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
+    return GestureDetector(
+      onTap: () => handleCtaUrl(context, slide.callToActionUrl),
+      child: ClipRRect(
         borderRadius: BorderRadius.zero,
         child: Stack(
           fit: StackFit.expand,
@@ -376,6 +381,7 @@ class _SliderTile extends StatelessWidget {
               ),
           ],
         ),
+      ),
     );
   }
 }
