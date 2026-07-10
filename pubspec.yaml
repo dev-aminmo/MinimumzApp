@@ -78,6 +78,8 @@ dependencies:
   video_player: ^2.9.2
   chewie: ^1.8.5
   image_picker: ^1.1.2
+  appsflyer_sdk: ^6.18.0
+  share_plus: ^13.2.0
 
 dev_dependencies:
   flutter_test:

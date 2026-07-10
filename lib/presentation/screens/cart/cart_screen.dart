@@ -14,6 +14,9 @@ import 'package:minimumz/presentation/screens/cart/widgets/line_item_card.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:minimumz/cubits/locale/locale_cubit.dart';
 import 'package:minimumz/data/data.dart';
+import 'package:minimumz/services/appsflyer_service.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+import 'package:share_plus/share_plus.dart';
 import 'bloc/cart/cart_bloc.dart';
 import '../../routes/app_router.dart';
 
@@ -67,6 +70,22 @@ class _CartScreenState extends State<CartScreen> {
     } catch (_) {
       if (mounted) setState(() => _shippingLoading = false);
     }
+  }
+
+  /// Build a OneLink for the current cart and open the native share sheet.
+  /// Opening the link adds this cart's items to the recipient's own cart.
+  Future<void> _shareCart(BuildContext context, String cartId) async {
+    // Capture localized strings before the async gap.
+    final message = context.l10n.shareCartMessage;
+    final errorMsg = context.l10n.couldNotCreateShareLink;
+    EasyLoading.show();
+    final link = await AppsFlyerService.instance.generateCartShareLink(cartId);
+    EasyLoading.dismiss();
+    if (link == null) {
+      Fluttertoast.showToast(msg: errorMsg);
+      return;
+    }
+    await SharePlus.instance.share(ShareParams(text: '$message\n$link'));
   }
 
   Future<void> _checkout(BuildContext context, Cart cart) async {
@@ -141,7 +160,18 @@ class _CartScreenState extends State<CartScreen> {
           final hasItems = cart?.items?.isNotEmpty ?? false;
 
           return Scaffold(
-            appBar: CustomAppBar(title: context.l10n.cart),
+            appBar: CustomAppBar(
+              title: context.l10n.cart,
+              actions: hasItems && cart?.id != null
+                  ? [
+                      IconButton(
+                        icon: const Icon(Icons.ios_share_rounded),
+                        tooltip: context.l10n.shareCart,
+                        onPressed: () => _shareCart(context, cart!.id!),
+                      ),
+                    ]
+                  : null,
+            ),
             bottomNavigationBar: hasItems
                 ? SafeArea(
                     child: Padding(
@@ -340,6 +370,9 @@ class _CartBody extends StatelessWidget {
           ),
         ),
 
+        // ── Referral code + points redemption ─────────────────────
+        SliverToBoxAdapter(child: _LoyaltySection(cart: cart)),
+
         // ── Order summary ─────────────────────────────────────────
         SliverToBoxAdapter(
           child: _Section(
@@ -366,6 +399,18 @@ class _CartBody extends StatelessWidget {
                 const Gap(8),
                 _SummaryRow(context.l10n.shipping,
                     cart.shippingTotal.formatAsPrice(currencyCode, locale: locale), context),
+                if ((cart.referralDiscount ?? 0) > 0) ...[
+                  const Gap(8),
+                  _SummaryRow(context.l10n.referralDiscount,
+                      '- ${cart.referralDiscount.formatAsPrice(currencyCode, locale: locale)}', context,
+                      color: Colors.green),
+                ],
+                if ((cart.pointsDiscount ?? 0) > 0) ...[
+                  const Gap(8),
+                  _SummaryRow(context.l10n.pointsDiscount,
+                      '- ${cart.pointsDiscount.formatAsPrice(currencyCode, locale: locale)}', context,
+                      color: Colors.green),
+                ],
                 if ((cart.taxTotal ?? 0) > 0) ...[
                   const Gap(8),
                   _SummaryRow(
@@ -404,6 +449,144 @@ class _CartBody extends StatelessWidget {
               color: color ?? context.theme.textTheme.bodyMedium?.color,
             )),
       ],
+    );
+  }
+}
+
+// ── Referral code + points redemption ─────────────────────────────────────────
+
+class _LoyaltySection extends StatefulWidget {
+  const _LoyaltySection({required this.cart});
+  final Cart cart;
+
+  @override
+  State<_LoyaltySection> createState() => _LoyaltySectionState();
+}
+
+class _LoyaltySectionState extends State<_LoyaltySection> {
+  final _referralCtrl = TextEditingController();
+  bool _busy = false;
+  int _walletPoints = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadWalletPoints();
+  }
+
+  @override
+  void dispose() {
+    _referralCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadWalletPoints() async {
+    if (getIt<PreferenceRepository>().isGuest) return;
+    final balance = await getIt<DataStore>().wallet.getBalance(
+          countryId: PreferenceRepository.instance.country?.id,
+        );
+    if (mounted && balance != null) setState(() => _walletPoints = balance.points);
+  }
+
+  void _pushCart(StoreCartsRes? res) {
+    if (res?.cart != null && mounted) {
+      context.read<CartBloc>().add(CartEvent.refreshCart(res!.cart!));
+    }
+  }
+
+  Future<void> _run(Future<StoreCartsRes?> Function() action, {bool showError = true}) async {
+    if (_busy) return;
+    final fallback = context.l10n.somethingWentWrong; // capture before the async gap
+    setState(() => _busy = true);
+    try {
+      _pushCart(await action());
+    } on DioException catch (e) {
+      if (showError) {
+        final msg = e.response?.data is Map ? (e.response!.data['message'] ?? '') : '';
+        Fluttertoast.showToast(msg: msg.toString().isNotEmpty ? msg.toString() : fallback);
+      }
+    } catch (_) {
+      if (showError) Fluttertoast.showToast(msg: fallback);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (getIt<PreferenceRepository>().isGuest) return const SizedBox.shrink();
+    final cart = widget.cart;
+    final cartId = cart.id;
+    if (cartId == null) return const SizedBox.shrink();
+
+    final hasReferral = (cart.referralCode ?? '').isNotEmpty;
+    final redeeming = (cart.pointsRedeemed ?? 0) > 0;
+
+    return _Section(
+      title: context.l10n.rewards,
+      child: Column(
+        children: [
+          if (hasReferral)
+            Row(
+              children: [
+                const Icon(Icons.local_offer_rounded, size: 18, color: Colors.green),
+                const Gap(8),
+                Expanded(child: Text(cart.referralCode!, style: context.bodyMediumW600)),
+                TextButton(
+                  onPressed: _busy
+                      ? null
+                      : () => _run(() => getIt<DataStore>().carts.removeReferral(cartId: cartId),
+                          showError: false),
+                  child: Text(context.l10n.remove),
+                ),
+              ],
+            )
+          else
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _referralCtrl,
+                    textCapitalization: TextCapitalization.characters,
+                    decoration: InputDecoration(
+                      isDense: true,
+                      hintText: context.l10n.referralCodeHint,
+                      border: const OutlineInputBorder(),
+                    ),
+                  ),
+                ),
+                const Gap(8),
+                _busy
+                    ? const SizedBox(
+                        width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                    : TextButton(
+                        onPressed: () {
+                          final code = _referralCtrl.text.trim();
+                          if (code.isEmpty) return;
+                          _run(() => getIt<DataStore>().carts.applyReferral(cartId: cartId, code: code))
+                              .then((_) => _referralCtrl.clear());
+                        },
+                        child: Text(context.l10n.apply),
+                      ),
+              ],
+            ),
+          if (_walletPoints > 0) ...[
+            const Gap(4),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              value: redeeming,
+              onChanged: _busy
+                  ? null
+                  : (v) => _run(() => getIt<DataStore>()
+                      .carts
+                      .redeemPoints(cartId: cartId, points: v ? _walletPoints : 0)),
+              title: Text(context.l10n.redeemPoints, style: context.bodyMedium),
+              subtitle: Text('${context.l10n.walletBalance}: $_walletPoints',
+                  style: context.bodyExtraSmall?.copyWith(color: ColorConstant.manatee)),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }

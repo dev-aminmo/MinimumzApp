@@ -1,3 +1,5 @@
+import 'package:minimumz/common/image_url.dart';
+
 class ImageData {
   String? id;
   String? url;
@@ -17,7 +19,7 @@ class ImageData {
 
   ImageData.fromJson(Map<String, dynamic> json) {
     id = json['id'];
-    url = json['url'];
+    url = fixImageUrl(json['url']);
     createdAt = DateTime.tryParse(json['created_at'] ?? '')?.toLocal();
     updatedAt = DateTime.tryParse(json['updated_at'] ?? '')?.toLocal();
     deletedAt = DateTime.tryParse(json['deleted_at'] ?? '')?.toLocal();

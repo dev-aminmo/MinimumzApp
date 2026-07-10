@@ -2,6 +2,7 @@ import 'dart:developer';
 
 import 'package:minimumz/data/src/data/models/store/others/address.dart';
 import 'package:minimumz/data/src/data/models/store/orders/order.dart';
+import 'package:minimumz/domain/repository/preference_repository.dart';
 
 import '../models/request/index.dart';
 import '../models/response/index.dart';
@@ -19,8 +20,18 @@ class CustomersResource extends BaseResource {
       if (customHeaders != null) {
         client.options.headers.addAll(customHeaders);
       }
-      final response = await client.post('/store/customers', data: req?.toJson());
+      // Attach a referral code captured from an install deep link (new invitee).
+      final payload = req?.toJson() ?? <String, dynamic>{};
+      final pendingReferral = PreferenceRepository.instance.pendingReferralCode;
+      if (pendingReferral != null && pendingReferral.isNotEmpty) {
+        payload['referral_code'] = pendingReferral;
+      }
+
+      final response = await client.post('/store/customers', data: payload);
       if (response.statusCode == 200) {
+        if (pendingReferral != null) {
+          await PreferenceRepository.instance.clearPendingReferralCode();
+        }
         return StoreCustomersRes.fromJson(response.data);
       } else {
         throw response;

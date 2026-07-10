@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- AppsFlyer OneLink Universal Links — opens the app for product links.
+	     Replace with your OneLink subdomain (+ branded domain) from the
+	     AppsFlyer dashboard. After adding this file, enable the
+	     "Associated Domains" capability in Xcode (Signing & Capabilities)
+	     and in the Apple Developer account for the App ID. -->
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:minimumz.onelink.me</string>
+		<!-- Add a branded/custom domain too if configured:
+		<string>applinks:link.minimumz.com</string> -->
+	</array>
+</dict>
+</plist>

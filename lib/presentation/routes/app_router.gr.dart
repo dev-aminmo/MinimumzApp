@@ -95,6 +95,12 @@ abstract class _$AppRouter extends RootStackRouter {
         child: const HomeTabScreen(),
       );
     },
+    InviteEarnRoute.name: (routeData) {
+      return AutoRoutePage<dynamic>(
+        routeData: routeData,
+        child: const InviteEarnScreen(),
+      );
+    },
     NewPasswordRoute.name: (routeData) {
       final args = routeData.argsAs<NewPasswordRouteArgs>();
       return AutoRoutePage<dynamic>(
@@ -211,6 +217,12 @@ abstract class _$AppRouter extends RootStackRouter {
           key: args.key,
           email: args.email,
         ),
+      );
+    },
+    WalletRoute.name: (routeData) {
+      return AutoRoutePage<dynamic>(
+        routeData: routeData,
+        child: const WalletScreen(),
       );
     },
     WishlistRoute.name: (routeData) {
@@ -440,6 +452,20 @@ class HomeTabRoute extends PageRouteInfo<void> {
         );
 
   static const String name = 'HomeTabRoute';
+
+  static const PageInfo<void> page = PageInfo<void>(name);
+}
+
+/// generated route for
+/// [InviteEarnScreen]
+class InviteEarnRoute extends PageRouteInfo<void> {
+  const InviteEarnRoute({List<PageRouteInfo>? children})
+      : super(
+          InviteEarnRoute.name,
+          initialChildren: children,
+        );
+
+  static const String name = 'InviteEarnRoute';
 
   static const PageInfo<void> page = PageInfo<void>(name);
 }
@@ -811,6 +837,20 @@ class VerificationCodeRouteArgs {
   String toString() {
     return 'VerificationCodeRouteArgs{key: $key, email: $email}';
   }
+}
+
+/// generated route for
+/// [WalletScreen]
+class WalletRoute extends PageRouteInfo<void> {
+  const WalletRoute({List<PageRouteInfo>? children})
+      : super(
+          WalletRoute.name,
+          initialChildren: children,
+        );
+
+  static const String name = 'WalletRoute';
+
+  static const PageInfo<void> page = PageInfo<void>(name);
 }
 
 /// generated route for

@@ -32,6 +32,20 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+
+            <!-- AppsFlyer OneLink (App Links) — opens the app for product links.
+                 Replace the host with your OneLink subdomain (+ branded domain)
+                 from the AppsFlyer dashboard (OneLink → Branded links). onelink.me
+                 hosts are pre-verified by AppsFlyer so autoVerify works as-is. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="minimumz.onelink.me" />
+                <!-- If you set a branded/custom domain, add it here too and host
+                     its assetlinks.json:
+                <data android:scheme="https" android:host="link.minimumz.com" /> -->
+            </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->

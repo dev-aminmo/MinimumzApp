@@ -1,5 +1,6 @@
 import 'dart:developer';
 
+import 'package:dio/dio.dart';
 import 'package:minimumz/data/src/data/models/store/products/product.dart';
 
 import '../models/request/index.dart';
@@ -126,6 +127,32 @@ class ProductsResource extends BaseResource {
       }
     } catch (error,stackTrace) {
       log(error.toString(),stackTrace:stackTrace);
+      rethrow;
+    }
+  }
+
+  /// @description Visual (image) search — uploads a photo and returns visually
+  /// similar products. The backend forwards the image to the vision service
+  /// (CLIP + Qdrant) and returns the same {products, count} shape as `list`.
+  Future<StoreProductsListRes?> imageSearch({
+    required String imagePath,
+    int? countryId,
+    int limit = 20,
+  }) async {
+    try {
+      final formData = FormData.fromMap({
+        'image': await MultipartFile.fromFile(imagePath, filename: 'query.jpg'),
+        'limit': limit,
+        if (countryId != null) 'country_id': countryId,
+      });
+      final response = await client.post('/store/search/image', data: formData);
+      if (response.statusCode == 200) {
+        return StoreProductsListRes.fromJson(response.data);
+      } else {
+        throw response;
+      }
+    } catch (error, stackTrace) {
+      log(error.toString(), stackTrace: stackTrace);
       rethrow;
     }
   }

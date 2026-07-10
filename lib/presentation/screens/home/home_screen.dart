@@ -1169,10 +1169,33 @@ class _NewArrivalState extends State<NewArrival> {
     await Future.delayed(const Duration(milliseconds: 900));
     try {
       final products = await _fetchNetworkPage(0);
-      if (products != null && products.isNotEmpty) {
-        await PreferenceRepository.instance.setCachedNewArrivals(products);
-      }
+      if (products == null || products.isEmpty) return;
+      await PreferenceRepository.instance.setCachedNewArrivals(products);
+
+      // Apply the fresh data to the visible list too — not just the cache for
+      // next session. Without this, a returning user keeps seeing the stale
+      // cached list until the app is restarted.
+      if (!mounted || !_firstPageDiffers(products)) return;
+      _loadedCount = products.length;
+      _pagingController.value = PagingState<int, Product>(
+        itemList: products,
+        nextPageKey: products.length < _pageSize ? null : products.length,
+        error: null,
+      );
+      if (mounted) setState(() {});
     } catch (_) {}
+  }
+
+  /// True if the fresh first page differs from what's currently displayed
+  /// (by product id/length), so we only repaint when something actually changed.
+  bool _firstPageDiffers(List<Product> fresh) {
+    final current = _pagingController.itemList;
+    if (current == null || current.isEmpty) return true;
+    final n = fresh.length < current.length ? fresh.length : current.length;
+    for (var i = 0; i < n; i++) {
+      if (current[i].id != fresh[i].id) return true;
+    }
+    return current.length != fresh.length;
   }
 
   Future<void> _fetchPage(int offset) async {

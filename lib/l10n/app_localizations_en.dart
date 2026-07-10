@@ -778,6 +778,98 @@ class AppLocalizationsEn extends AppLocalizations {
   String get camera => 'Camera';
 
   @override
+  String get searchByImage => 'Search by image';
+
+  @override
+  String get imageSearchUnavailable => 'Image search is unavailable';
+
+  @override
+  String get wallet => 'Wallet';
+
+  @override
+  String get walletBalance => 'Points balance';
+
+  @override
+  String get points => 'points';
+
+  @override
+  String get noTransactions => 'No transactions yet';
+
+  @override
+  String get pointsEarned => 'Points earned';
+
+  @override
+  String get pointsSpent => 'Points spent';
+
+  @override
+  String get rewards => 'Rewards';
+
+  @override
+  String get referralDiscount => 'Referral discount';
+
+  @override
+  String get pointsDiscount => 'Points discount';
+
+  @override
+  String get referralCodeHint => 'Referral code';
+
+  @override
+  String get apply => 'Apply';
+
+  @override
+  String get remove => 'Remove';
+
+  @override
+  String get redeemPoints => 'Redeem points';
+
+  @override
+  String get inviteAndEarn => 'Invite & Earn';
+
+  @override
+  String get inviteEarnSubtitle =>
+      'Share your code with friends and earn points on their orders.';
+
+  @override
+  String get yourReferralCode => 'Your referral code';
+
+  @override
+  String get copy => 'Copy';
+
+  @override
+  String get shareYourCode => 'Share your code';
+
+  @override
+  String get codeStrength => 'Code strength';
+
+  @override
+  String get maxStrengthReached => 'Maximum strength reached 🎉';
+
+  @override
+  String usesToNextLevel(int count) {
+    return '$count more uses to level up';
+  }
+
+  @override
+  String get totalReferrals => 'Total referrals';
+
+  @override
+  String get somethingWentWrong => 'Something went wrong';
+
+  @override
+  String inviteShareMessage(String code) {
+    return 'Use my code $code on Mini Mumz and get a discount on your order!';
+  }
+
+  @override
+  String get shareCart => 'Share cart';
+
+  @override
+  String get shareCartMessage => 'Check out my cart on Mini Mumz:';
+
+  @override
+  String get couldNotCreateShareLink => 'Could not create share link';
+
+  @override
   String get removeItemGoToCart => 'To remove this item, go to your cart.';
 
   @override

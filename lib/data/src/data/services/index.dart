@@ -19,3 +19,5 @@ export 'slider.dart';
 export 'user_data.dart';
 export 'notifications.dart';
 export 'home.dart';
+export 'wallet.dart';
+export 'referral.dart';

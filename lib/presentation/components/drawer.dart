@@ -192,6 +192,20 @@ class _DrawerWidgetState extends State<DrawerWidget> {
                         horizontalTitleGap: 10.0,
                       ),
                       ListTile(
+                        leading: Icon(Icons.account_balance_wallet_outlined, color: color),
+                        onTap: loggedIn ? () => context.pushRoute(const WalletRoute()) : null,
+                        contentPadding: contentPadding,
+                        title: Text(context.l10n.wallet, style: TextStyle(color: color)),
+                        horizontalTitleGap: 10.0,
+                      ),
+                      ListTile(
+                        leading: Icon(Icons.card_giftcard_rounded, color: color),
+                        onTap: loggedIn ? () => context.pushRoute(const InviteEarnRoute()) : null,
+                        contentPadding: contentPadding,
+                        title: Text(context.l10n.inviteAndEarn, style: TextStyle(color: color)),
+                        horizontalTitleGap: 10.0,
+                      ),
+                      ListTile(
                         leading: Icon(minimumzIcons.wallet, color: color),
                         onTap: loggedIn ? () {} : null,
                         contentPadding: contentPadding,

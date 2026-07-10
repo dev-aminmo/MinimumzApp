@@ -47,6 +47,13 @@ class PreferenceRepository {
 
   bool get isGuest => _prefs.getBool(_guestKey) ?? false;
   String? get cartId => _prefs.getString(_cartKey);
+
+  // Referral code captured from an install deep link, applied at signup.
+  static const String _pendingReferralKey = 'pending_referral_code';
+  String? get pendingReferralCode => _prefs.getString(_pendingReferralKey);
+  Future<void> setPendingReferralCode(String code) =>
+      _prefs.setString(_pendingReferralKey, code);
+  Future<void> clearPendingReferralCode() => _prefs.remove(_pendingReferralKey);
   String? get cookie => _prefs.getString(_cookie);
   Future<void> setCookie(String cookie) async => await _prefs.setString(_cookie, cookie);
   Future<void> deleteCookie() async => await _prefs.remove(_cookie);

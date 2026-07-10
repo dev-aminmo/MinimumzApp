@@ -121,6 +121,13 @@ class Cart {
   /// Example: 8000
   final int? subTotal;
 
+  /// Referral discount applied (money), the applied code, points redeemed, and
+  /// their money value. Populated by the loyalty/referral checkout endpoints.
+  final num? referralDiscount;
+  final String? referralCode;
+  final int? pointsRedeemed;
+  final num? pointsDiscount;
+
   /// The amount that can be refunded
   ///
   /// Example: 8200
@@ -182,6 +189,10 @@ class Cart {
     this.refundedTotal,
     this.total,
     this.subTotal,
+    this.referralDiscount,
+    this.referralCode,
+    this.pointsRedeemed,
+    this.pointsDiscount,
     this.refundableAmount,
     this.giftCardTotal,
     this.giftCardTaxTotal,
@@ -254,6 +265,10 @@ class Cart {
       refundedTotal: json['refunded_total'],
       total: json['total'],
       subTotal: json['subtotal'],
+      referralDiscount: json['referral_discount'] as num?,
+      referralCode: json['referral_code'] as String?,
+      pointsRedeemed: json['points_redeemed'] as int?,
+      pointsDiscount: json['points_discount'] as num?,
       refundableAmount: json['refundable_amount'],
       giftCardTotal: json['gift_card_total'],
       giftCardTaxTotal: json['gift_card_tax_total'],
@@ -269,6 +284,10 @@ class Cart {
   static const _unset = Object();
 
   Cart copyWith({
+    num? referralDiscount,
+    String? referralCode,
+    int? pointsRedeemed,
+    num? pointsDiscount,
     List<LineItem>? items,
     int? subTotal,
     int? total,
@@ -307,6 +326,10 @@ class Cart {
       refundedTotal: refundedTotal,
       total: total ?? this.total,
       subTotal: subTotal ?? this.subTotal,
+      referralDiscount: referralDiscount ?? this.referralDiscount,
+      referralCode: referralCode ?? this.referralCode,
+      pointsRedeemed: pointsRedeemed ?? this.pointsRedeemed,
+      pointsDiscount: pointsDiscount ?? this.pointsDiscount,
       refundableAmount: refundableAmount,
       giftCardTotal: giftCardTotal,
       giftCardTaxTotal: giftCardTaxTotal,

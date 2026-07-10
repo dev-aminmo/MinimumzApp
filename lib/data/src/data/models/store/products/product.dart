@@ -1,3 +1,5 @@
+import 'package:minimumz/common/image_url.dart';
+
 import '../../../enum/enums.dart';
 import '../others/index.dart';
 import 'product_attribute_group.dart';
@@ -219,7 +221,7 @@ class Product  {
       images: images,
       options: options,
       id: json['id'],
-      thumbnail: json['thumbnail'],
+      thumbnail: fixImageUrl(json['thumbnail']),
       tags: tags,
       isGiftCard: json['is_giftcard'],
       subtitle: json['subtitle'],

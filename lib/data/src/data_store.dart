@@ -29,6 +29,8 @@ class DataStore {
     required this.userData,
     required this.notifications,
     required this.home,
+    required this.wallet,
+    required this.referral,
   });
 
   factory DataStore.initialize({
@@ -88,6 +90,8 @@ class DataStore {
       userData: UserDataResource(dio),
       notifications: NotificationsResource(dio),
       home: HomeResource(dio),
+      wallet: WalletResource(dio),
+      referral: ReferralResource(dio),
     );
   }
 
@@ -169,6 +173,8 @@ class DataStore {
   final UserDataResource userData;
   final NotificationsResource notifications;
   final HomeResource home;
+  final WalletResource wallet;
+  final ReferralResource referral;
 }
 
 class PingResult {

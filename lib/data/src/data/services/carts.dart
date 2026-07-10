@@ -306,6 +306,38 @@ class CartsResource extends BaseResource {
     }
   }
 
+  /// Apply a referral code (existing customer). Throws on 4xx so the caller can
+  /// surface the server message (invalid / own code / already used).
+  Future<StoreCartsRes?> applyReferral(
+      {required String cartId, required String code}) async {
+    final response =
+        await client.post('/store/carts/$cartId/referral', data: {'code': code});
+    if (response.statusCode == 200) {
+      return StoreCartsRes.fromJson(response.data);
+    }
+    throw response;
+  }
+
+  Future<StoreCartsRes?> removeReferral({required String cartId}) async {
+    final response = await client.delete('/store/carts/$cartId/referral');
+    if (response.statusCode == 200) {
+      return StoreCartsRes.fromJson(response.data);
+    }
+    throw response;
+  }
+
+  /// Redeem N wallet points against the cart (0 clears). Server caps to the
+  /// redeemable amount and validates the balance.
+  Future<StoreCartsRes?> redeemPoints(
+      {required String cartId, required int points}) async {
+    final response = await client
+        .post('/store/carts/$cartId/redeem-points', data: {'points': points});
+    if (response.statusCode == 200) {
+      return StoreCartsRes.fromJson(response.data);
+    }
+    throw response;
+  }
+
   /// Update a line item's quantity.
   ///
   /// Required fields:

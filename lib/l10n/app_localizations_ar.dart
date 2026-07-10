@@ -776,6 +776,98 @@ class AppLocalizationsAr extends AppLocalizations {
   String get camera => 'الكاميرا';
 
   @override
+  String get searchByImage => 'البحث بالصورة';
+
+  @override
+  String get imageSearchUnavailable => 'البحث بالصورة غير متاح حالياً';
+
+  @override
+  String get wallet => 'المحفظة';
+
+  @override
+  String get walletBalance => 'رصيد النقاط';
+
+  @override
+  String get points => 'نقطة';
+
+  @override
+  String get noTransactions => 'لا توجد معاملات بعد';
+
+  @override
+  String get pointsEarned => 'نقاط مكتسبة';
+
+  @override
+  String get pointsSpent => 'نقاط مستخدمة';
+
+  @override
+  String get rewards => 'المكافآت';
+
+  @override
+  String get referralDiscount => 'خصم الإحالة';
+
+  @override
+  String get pointsDiscount => 'خصم النقاط';
+
+  @override
+  String get referralCodeHint => 'رمز الإحالة';
+
+  @override
+  String get apply => 'تطبيق';
+
+  @override
+  String get remove => 'إزالة';
+
+  @override
+  String get redeemPoints => 'استخدام النقاط';
+
+  @override
+  String get inviteAndEarn => 'ادعُ واربح';
+
+  @override
+  String get inviteEarnSubtitle =>
+      'شارك رمزك مع أصدقائك واربح نقاطاً على طلباتهم.';
+
+  @override
+  String get yourReferralCode => 'رمز الإحالة الخاص بك';
+
+  @override
+  String get copy => 'نسخ';
+
+  @override
+  String get shareYourCode => 'شارك رمزك';
+
+  @override
+  String get codeStrength => 'قوة الرمز';
+
+  @override
+  String get maxStrengthReached => 'تم الوصول إلى أقصى قوة 🎉';
+
+  @override
+  String usesToNextLevel(int count) {
+    return '$count استخدامات أخرى للترقية';
+  }
+
+  @override
+  String get totalReferrals => 'إجمالي الإحالات';
+
+  @override
+  String get somethingWentWrong => 'حدث خطأ ما';
+
+  @override
+  String inviteShareMessage(String code) {
+    return 'استخدم رمزي $code في ميني مامز واحصل على خصم على طلبك!';
+  }
+
+  @override
+  String get shareCart => 'مشاركة السلة';
+
+  @override
+  String get shareCartMessage => 'اطلع على سلتي في ميني مامز:';
+
+  @override
+  String get couldNotCreateShareLink => 'تعذّر إنشاء رابط المشاركة';
+
+  @override
   String get removeItemGoToCart => 'لإزالة هذا المنتج، انتقل إلى سلة التسوق.';
 
   @override

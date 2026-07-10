@@ -3,12 +3,14 @@ import 'dart:async';
 import 'package:auto_route/auto_route.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:minimumz/common/doh_cache_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:gap/gap.dart';
 import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
 import 'package:minimumz/common/colors.dart';
+import 'package:minimumz/common/image_url.dart';
 import 'package:minimumz/common/pricing_utils.dart';
 import 'package:minimumz/domain/repository/preference_repository.dart';
 import 'package:minimumz/domain/model/product_filter.dart';
@@ -52,6 +54,11 @@ class _SearchScreenState extends State<SearchScreen> {
   List<String> _history    = [];
   ProductFilter _filter    = ProductFilter.empty;
 
+  // Image (visual) search: when active, results come from a picked photo via the
+  // vision service instead of a title query. _imagePath is the resized file.
+  bool _imageMode    = false;
+  String? _imagePath;
+
   final PagingController<int, Product> _pagingController =
       PagingController(firstPageKey: 0);
 
@@ -84,6 +91,10 @@ class _SearchScreenState extends State<SearchScreen> {
   void _onChanged(String query) {
     _debounce?.cancel();
     final trimmed = query.trim();
+    // Typing returns to text search, leaving image-search mode.
+    if (_imageMode) {
+      setState(() { _imageMode = false; _imagePath = null; });
+    }
     if (trimmed.isEmpty) {
       setState(() {
         _currentQuery      = '';
@@ -94,6 +105,59 @@ class _SearchScreenState extends State<SearchScreen> {
     }
     setState(() { _showSuggestions = true; _loadingSuggestions = true; });
     _debounce = Timer(const Duration(milliseconds: 400), () => _fetchSuggestions(trimmed));
+  }
+
+  /// Opens a Camera/Gallery sheet, then runs an image search with the picked photo.
+  Future<void> _onCameraTap() async {
+    FocusScope.of(context).unfocus();
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      builder: (sheetContext) => SafeArea(
+        child: Wrap(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+              child: Text(context.l10n.searchByImage,
+                  style: context.bodyLarge?.copyWith(fontWeight: FontWeight.w600)),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_camera_outlined),
+              title: Text(context.l10n.camera),
+              onTap: () => Navigator.pop(sheetContext, ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: Text(context.l10n.gallery),
+              onTap: () => Navigator.pop(sheetContext, ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (source != null) await _pickAndSearch(source);
+  }
+
+  Future<void> _pickAndSearch(ImageSource source) async {
+    // Resize/compress client-side to keep the upload small (CLIP needs only a
+    // small image anyway).
+    final XFile? file = await ImagePicker().pickImage(
+      source: source,
+      maxWidth: 1024,
+      maxHeight: 1024,
+      imageQuality: 80,
+    );
+    if (file == null || !mounted) return;
+
+    _focusNode.unfocus();
+    _controller.clear();
+    setState(() {
+      _imageMode       = true;
+      _imagePath       = file.path;
+      _currentQuery    = '';
+      _showSuggestions = false;
+      _suggestionItems = [];
+    });
+    _pagingController.refresh();
   }
 
   List<String> get _viewedIds   => PreferenceRepository.instance.recentlyViewedIds;
@@ -116,7 +180,7 @@ class _SearchScreenState extends State<SearchScreen> {
         return _SuggestionItem(
           id: m['id']?.toString() ?? '',
           name: (m['name'] as String? ?? '').replaceAll(RegExp(r'<[^>]*>'), ''),
-          imageUrl: img,
+          imageUrl: fixImageUrl(img),
         );
       }).toList();
       setState(() {
@@ -136,6 +200,8 @@ class _SearchScreenState extends State<SearchScreen> {
     setState(() {
       _currentQuery    = trimmed;
       _showSuggestions = false;
+      _imageMode       = false;
+      _imagePath       = null;
     });
     _pagingController.refresh();
     PreferenceRepository.instance.addSearchHistory(trimmed).then((_) {
@@ -188,6 +254,25 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   Future<void> _fetchPage(int pageKey) async {
+    // Image-search mode: the vision service returns a single ranked top-N list,
+    // so we append it as one (last) page.
+    if (_imageMode) {
+      if (_imagePath == null) return;
+      try {
+        final countryId = PreferenceRepository.instance.country?.id;
+        final res = await getIt<DataStore>().products.imageSearch(
+          imagePath: _imagePath!,
+          countryId: countryId,
+          limit: 50,
+        );
+        if (!mounted) return;
+        _pagingController.appendLastPage(filterPricedProducts(res?.products ?? []));
+      } catch (e) {
+        if (mounted) _pagingController.error = e;
+      }
+      return;
+    }
+
     if (_currentQuery.isEmpty) return;
     try {
       final countryId = PreferenceRepository.instance.country?.id;
@@ -225,10 +310,11 @@ class _SearchScreenState extends State<SearchScreen> {
     return Scaffold(
       resizeToAvoidBottomInset: false,
       appBar: SearchAppBar(
-        controller:  _controller,
-        focusNode:   _focusNode,
-        onChanged:   _onChanged,
-        onSubmitted: _commitQuery,
+        controller:   _controller,
+        focusNode:    _focusNode,
+        onChanged:    _onChanged,
+        onSubmitted:  _commitQuery,
+        onCameraTap:  _onCameraTap,
       ),
       body: SafeArea(
         child: Stack(
@@ -243,7 +329,7 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   Widget _buildResults(BuildContext context, double bottomPadding) {
-    if (_currentQuery.isEmpty) {
+    if (_currentQuery.isEmpty && !_imageMode) {
       return Center(
         child: Text(
           context.l10n.searchThroughStore,
@@ -254,50 +340,68 @@ class _SearchScreenState extends State<SearchScreen> {
 
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              TextButton.icon(
-                onPressed: () async {
-                  final result = await ProductSortSheet.show(context, _filter.sortBy);
-                  if (result != null && mounted) {
-                    setState(() => _filter = _filter.copyWith(sortBy: result.isEmpty ? null : result));
-                    _pagingController.refresh();
-                  }
-                },
-                icon: Icon(Icons.sort_rounded, size: 18,
-                    color: _filter.sortBy != null ? ColorConstant.primary : null),
-                label: Text(
-                  context.l10n.sortBy,
-                  style: TextStyle(
-                    color: _filter.sortBy != null ? ColorConstant.primary : null,
+        // Title-based sort/filter only apply to text search; in image mode show a
+        // chip indicating the active visual search instead.
+        if (_imageMode)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+            child: Row(
+              children: [
+                Chip(
+                  avatar: const Icon(Icons.image_search_outlined, size: 18),
+                  label: Text(context.l10n.searchByImage),
+                  onDeleted: () {
+                    setState(() { _imageMode = false; _imagePath = null; });
+                  },
+                ),
+              ],
+            ),
+          )
+        else
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton.icon(
+                  onPressed: () async {
+                    final result = await ProductSortSheet.show(context, _filter.sortBy);
+                    if (result != null && mounted) {
+                      setState(() => _filter = _filter.copyWith(sortBy: result.isEmpty ? null : result));
+                      _pagingController.refresh();
+                    }
+                  },
+                  icon: Icon(Icons.sort_rounded, size: 18,
+                      color: _filter.sortBy != null ? ColorConstant.primary : null),
+                  label: Text(
+                    context.l10n.sortBy,
+                    style: TextStyle(
+                      color: _filter.sortBy != null ? ColorConstant.primary : null,
+                    ),
                   ),
                 ),
-              ),
-              TextButton.icon(
-                onPressed: () async {
-                  final result = await ProductFilterSheet.show(context, _filter);
-                  if (result != null && mounted) {
-                    setState(() => _filter = result);
-                    _pagingController.refresh();
-                  }
-                },
-                icon: Icon(Icons.tune_outlined, size: 18,
-                    color: _filter.activeCount > 0 ? ColorConstant.primary : null),
-                label: Text(
-                  _filter.activeCount > 0
-                      ? context.l10n.activeFilters(_filter.activeCount)
-                      : context.l10n.filters,
-                  style: TextStyle(
-                    color: _filter.activeCount > 0 ? ColorConstant.primary : null,
+                TextButton.icon(
+                  onPressed: () async {
+                    final result = await ProductFilterSheet.show(context, _filter);
+                    if (result != null && mounted) {
+                      setState(() => _filter = result);
+                      _pagingController.refresh();
+                    }
+                  },
+                  icon: Icon(Icons.tune_outlined, size: 18,
+                      color: _filter.activeCount > 0 ? ColorConstant.primary : null),
+                  label: Text(
+                    _filter.activeCount > 0
+                        ? context.l10n.activeFilters(_filter.activeCount)
+                        : context.l10n.filters,
+                    style: TextStyle(
+                      color: _filter.activeCount > 0 ? ColorConstant.primary : null,
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
         Expanded(
           child: PagedGridView<int, Product>(
       pagingController: _pagingController,
@@ -327,7 +431,9 @@ class _SearchScreenState extends State<SearchScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                _pagingController.error?.toString() ?? context.l10n.searchFailed,
+                _imageMode
+                    ? context.l10n.imageSearchUnavailable
+                    : (_pagingController.error?.toString() ?? context.l10n.searchFailed),
                 style: context.bodyMedium?.copyWith(color: ColorConstant.manatee),
               ),
               const Gap(12),
@@ -468,12 +574,14 @@ class SearchAppBar extends StatelessWidget implements PreferredSizeWidget {
     required this.focusNode,
     required this.onChanged,
     required this.onSubmitted,
+    required this.onCameraTap,
   });
 
   final TextEditingController controller;
   final FocusNode focusNode;
   final ValueChanged<String> onChanged;
   final ValueChanged<String> onSubmitted;
+  final VoidCallback onCameraTap;
 
   bool get canPop => getIt<AppRouter>().canPop();
 
@@ -534,6 +642,12 @@ class SearchAppBar extends StatelessWidget implements PreferredSizeWidget {
                       fillColor:  context.theme.cardColor.withAlpha(50),
                       prefixIcon: Icon(minimumzIcons.search,
                           color: ColorConstant.manatee),
+                      suffixIcon: IconButton(
+                        icon: Icon(Icons.photo_camera_outlined,
+                            color: ColorConstant.manatee),
+                        tooltip: context.l10n.searchByImage,
+                        onPressed: onCameraTap,
+                      ),
                     ),
                   ),
                 ),

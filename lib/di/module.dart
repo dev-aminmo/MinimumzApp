@@ -7,7 +7,8 @@ abstract class RegisterCoreDependencies {
   static DataStore createDataStore() => DataStore.initialize(
       // TEMP local testing — restore the Hostinger URL before uploading to server.
       //baseUrl: 'http://192.168.10.51:8000/api',
-      baseUrl: 'https://darkorchid-mouse-412686.hostingersite.com/api',
+      baseUrl: 'http://157.245.240.32:8000/api',
+      //baseUrl: 'https://darkorchid-mouse-412686.hostingersite.com/api',
       //baseUrl: 'https://google.com/api',
       interceptors: [_authInterceptor, _localeInterceptor, TrafficInterceptor()],
   );

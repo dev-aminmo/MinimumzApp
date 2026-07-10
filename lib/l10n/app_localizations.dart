@@ -1586,6 +1586,180 @@ abstract class AppLocalizations {
   /// **'Camera'**
   String get camera;
 
+  /// No description provided for @searchByImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Search by image'**
+  String get searchByImage;
+
+  /// No description provided for @imageSearchUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Image search is unavailable'**
+  String get imageSearchUnavailable;
+
+  /// No description provided for @wallet.
+  ///
+  /// In en, this message translates to:
+  /// **'Wallet'**
+  String get wallet;
+
+  /// No description provided for @walletBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'Points balance'**
+  String get walletBalance;
+
+  /// No description provided for @points.
+  ///
+  /// In en, this message translates to:
+  /// **'points'**
+  String get points;
+
+  /// No description provided for @noTransactions.
+  ///
+  /// In en, this message translates to:
+  /// **'No transactions yet'**
+  String get noTransactions;
+
+  /// No description provided for @pointsEarned.
+  ///
+  /// In en, this message translates to:
+  /// **'Points earned'**
+  String get pointsEarned;
+
+  /// No description provided for @pointsSpent.
+  ///
+  /// In en, this message translates to:
+  /// **'Points spent'**
+  String get pointsSpent;
+
+  /// No description provided for @rewards.
+  ///
+  /// In en, this message translates to:
+  /// **'Rewards'**
+  String get rewards;
+
+  /// No description provided for @referralDiscount.
+  ///
+  /// In en, this message translates to:
+  /// **'Referral discount'**
+  String get referralDiscount;
+
+  /// No description provided for @pointsDiscount.
+  ///
+  /// In en, this message translates to:
+  /// **'Points discount'**
+  String get pointsDiscount;
+
+  /// No description provided for @referralCodeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Referral code'**
+  String get referralCodeHint;
+
+  /// No description provided for @apply.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply'**
+  String get apply;
+
+  /// No description provided for @remove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get remove;
+
+  /// No description provided for @redeemPoints.
+  ///
+  /// In en, this message translates to:
+  /// **'Redeem points'**
+  String get redeemPoints;
+
+  /// No description provided for @inviteAndEarn.
+  ///
+  /// In en, this message translates to:
+  /// **'Invite & Earn'**
+  String get inviteAndEarn;
+
+  /// No description provided for @inviteEarnSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Share your code with friends and earn points on their orders.'**
+  String get inviteEarnSubtitle;
+
+  /// No description provided for @yourReferralCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Your referral code'**
+  String get yourReferralCode;
+
+  /// No description provided for @copy.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy'**
+  String get copy;
+
+  /// No description provided for @shareYourCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Share your code'**
+  String get shareYourCode;
+
+  /// No description provided for @codeStrength.
+  ///
+  /// In en, this message translates to:
+  /// **'Code strength'**
+  String get codeStrength;
+
+  /// No description provided for @maxStrengthReached.
+  ///
+  /// In en, this message translates to:
+  /// **'Maximum strength reached 🎉'**
+  String get maxStrengthReached;
+
+  /// No description provided for @usesToNextLevel.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} more uses to level up'**
+  String usesToNextLevel(int count);
+
+  /// No description provided for @totalReferrals.
+  ///
+  /// In en, this message translates to:
+  /// **'Total referrals'**
+  String get totalReferrals;
+
+  /// No description provided for @somethingWentWrong.
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong'**
+  String get somethingWentWrong;
+
+  /// No description provided for @inviteShareMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Use my code {code} on Mini Mumz and get a discount on your order!'**
+  String inviteShareMessage(String code);
+
+  /// No description provided for @shareCart.
+  ///
+  /// In en, this message translates to:
+  /// **'Share cart'**
+  String get shareCart;
+
+  /// No description provided for @shareCartMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Check out my cart on Mini Mumz:'**
+  String get shareCartMessage;
+
+  /// No description provided for @couldNotCreateShareLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not create share link'**
+  String get couldNotCreateShareLink;
+
   /// No description provided for @removeItemGoToCart.
   ///
   /// In en, this message translates to:

@@ -37,6 +37,8 @@ class AppRouter extends _$AppRouter {
         AutoRoute(page: AddReviewRoute.page),
         AutoRoute(page: CollectionRoute.page),
         AutoRoute(page: RecentlyViewedRoute.page),
+        AutoRoute(page: WalletRoute.page),
+        AutoRoute(page: InviteEarnRoute.page),
         AutoRoute(page: CartRoute.page),
         AutoRoute(page: OrderConfirmedRoute.page),
         AutoRoute(

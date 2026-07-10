@@ -24,6 +24,7 @@ import 'package:minimumz/presentation/screens/home/bloc/products/products_bloc.d
 import 'package:minimumz/presentation/theme/theme.dart';
 import 'package:google_fonts/src/google_fonts_base.dart' as gfb;
 import 'package:http/io_client.dart';
+import 'package:minimumz/services/appsflyer_service.dart';
 import 'common/doh_client.dart';
 import 'di/di.dart';
 import 'observer.dart';
@@ -75,6 +76,9 @@ Future<void> main() async {
       );
       await NotificationService.instance.init();
       await configureInjection();
+      // AppsFlyer attribution + OneLink deep linking (product links → details).
+      // Init after DI so the router is available to the deep-link callback.
+      await AppsFlyerService.instance.init();
       FlutterNativeSplash.remove();
       runApp(const minimumzApp());
     },
