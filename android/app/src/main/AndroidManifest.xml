@@ -33,18 +33,30 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
 
-            <!-- AppsFlyer OneLink (App Links) — opens the app for product links.
-                 Replace the host with your OneLink subdomain (+ branded domain)
-                 from the AppsFlyer dashboard (OneLink → Branded links). onelink.me
-                 hosts are pre-verified by AppsFlyer so autoVerify works as-is. -->
+            <!-- Native App Links — opens the app for /product /cart /r links.
+                 IMPORTANT: the host MUST be a real HTTPS domain (not an IP), and
+                 it must MATCH the API host in module.dart (the deep-link base is
+                 derived from it). Host /.well-known/assetlinks.json on it.
+                 TODO: replace with your production domain. -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="https" android:host="minimumz.onelink.me" />
-                <!-- If you set a branded/custom domain, add it here too and host
-                     its assetlinks.json:
-                <data android:scheme="https" android:host="link.minimumz.com" /> -->
+                <data android:scheme="https"
+                      android:host="darkorchid-mouse-412686.hostingersite.com"
+                      android:pathPrefix="/link" />
+            </intent-filter>
+
+            <!-- Custom scheme — opens the app for minimumz://product|cart|r/<value>
+                 from a tap, with no domain / HTTPS / asset verification needed.
+                 Works everywhere the app is installed (good for dev + in-app
+                 sharing). It is NOT a substitute for the HTTPS App Link above for
+                 links shared to non-users in messengers. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="minimumz" />
             </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.

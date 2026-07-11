@@ -2,12 +2,7 @@ import 'dart:async';
 import 'dart:developer';
 
 import 'package:appsflyer_sdk/appsflyer_sdk.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
-import 'package:minimumz/data/data.dart';
-import 'package:minimumz/di/di.dart';
-import 'package:minimumz/domain/repository/preference_repository.dart';
-import 'package:minimumz/presentation/routes/app_router.dart';
-import 'package:minimumz/presentation/screens/cart/bloc/cart/cart_bloc.dart';
+import 'package:minimumz/services/deeplink/deep_link_target.dart';
 
 /// AppsFlyer attribution + OneLink deep linking.
 ///
@@ -65,104 +60,45 @@ class AppsFlyerService {
 
   // ── Deep link handling ──────────────────────────────────────────────────────
 
+  void Function(DeepLinkTarget)? _onTarget;
+
+  /// Register the handler that receives incoming links as driver-agnostic
+  /// targets. Routing (open product / copy cart / capture referral) lives in
+  /// DeepLinkService, so this service is only SDK glue + link generation.
+  void onIncomingTarget(void Function(DeepLinkTarget) handler) => _onTarget = handler;
+
   void _onDeepLinking(DeepLinkResult result) {
-    switch (result.status) {
-      case Status.FOUND:
-        final dl = result.deepLink;
-        final value = dl?.deepLinkValue;
-
-        // Referral → remember the code; it's applied at signup (new invitee).
-        final referralCode = dl?.getStringValue('referral_code');
-        if (value == 'referral' && referralCode != null && referralCode.isNotEmpty) {
-          PreferenceRepository.instance.setPendingReferralCode(referralCode);
-          return;
-        }
-
-        // Shared cart → merge items into the user's own cart.
-        final cartId = dl?.getStringValue('cart_id');
-        if (value == 'cart' && cartId != null && cartId.isNotEmpty) {
-          _copySharedCart(cartId);
-          return;
-        }
-
-        // Product → open details.
-        final productId =
-            dl?.getStringValue('product_id') ?? dl?.getStringValue('cta_id');
-        final marker = value ?? dl?.getStringValue('cta_type');
-        if (productId != null &&
-            productId.isNotEmpty &&
-            (marker == 'product' || dl?.getStringValue('product_id') != null)) {
-          _routeToProduct(productId);
-        }
-        break;
-      case Status.NOT_FOUND:
-        log('AppsFlyer deep link: not found');
-        break;
-      case Status.ERROR:
+    if (result.status != Status.FOUND) {
+      if (result.status == Status.ERROR) {
         log('AppsFlyer deep link error: ${result.error}');
-        break;
-      case Status.PARSE_ERROR:
-        log('AppsFlyer deep link parse error');
-        break;
+      }
+      return;
     }
-  }
 
-  Future<void> _routeToProduct(String id) async {
-    EasyLoading.show();
-    try {
-      final countryId = PreferenceRepository.instance.country?.id;
-      final res = await getIt<DataStore>().products.retrieve(
-        id,
-        queryParams: {if (countryId != null) 'country_id': countryId},
-      );
-      EasyLoading.dismiss();
-      final product = res?.product;
-      if (product != null) {
-        getIt<AppRouter>().push(ProductDetailsRoute(product: product));
-      }
-    } catch (e, st) {
-      EasyLoading.dismiss();
-      log('AppsFlyer product route failed for id=$id: $e', stackTrace: st);
+    final dl = result.deepLink;
+    final value = dl?.deepLinkValue;
+    DeepLinkTarget? target;
+
+    final referralCode = dl?.getStringValue('referral_code');
+    if (value == 'referral' && referralCode != null && referralCode.isNotEmpty) {
+      target = DeepLinkTarget.referral(referralCode);
     }
-  }
 
-  /// Retrieve a shared cart by id and add its items to the current user's cart.
-  Future<void> _copySharedCart(String sharedCartId) async {
-    EasyLoading.show();
-    try {
-      final res = await getIt<DataStore>().carts.retrieve(cartId: sharedCartId);
-      final items = res?.cart?.items ?? const <LineItem>[];
-      final myCartId = CartBloc.instance.state.whenOrNull(loaded: (c) => c.id);
-
-      if (myCartId == null || items.isEmpty) {
-        EasyLoading.dismiss();
-        return;
-      }
-
-      var added = 0;
-      for (final item in items) {
-        final variantId = item.variantId;
-        final qty = item.quantity ?? 0;
-        if (variantId != null && qty > 0) {
-          await getIt<DataStore>().carts.addLineItem(
-                cartId: myCartId,
-                variantId: variantId,
-                quantity: qty,
-              );
-          added++;
-        }
-      }
-
-      CartBloc.instance.add(const CartEvent.loadCart());
-      EasyLoading.dismiss();
-      if (added > 0) {
-        getIt<AppRouter>().push(const CartRoute());
-      }
-    } catch (e, st) {
-      EasyLoading.dismiss();
-      log('AppsFlyer copy shared cart failed for id=$sharedCartId: $e',
-          stackTrace: st);
+    final cartId = dl?.getStringValue('cart_id');
+    if (target == null && value == 'cart' && cartId != null && cartId.isNotEmpty) {
+      target = DeepLinkTarget.cart(cartId);
     }
+
+    final productId = dl?.getStringValue('product_id') ?? dl?.getStringValue('cta_id');
+    final marker = value ?? dl?.getStringValue('cta_type');
+    if (target == null &&
+        productId != null &&
+        productId.isNotEmpty &&
+        (marker == 'product' || dl?.getStringValue('product_id') != null)) {
+      target = DeepLinkTarget.product(productId);
+    }
+
+    if (target != null) _onTarget?.call(target);
   }
 
   // ── Link generation (cart sharing) ──────────────────────────────────────────

@@ -56,5 +56,21 @@
 		<string>Used to take photos for your review</string>
 		<key>NSPhotoLibraryAddUsageDescription</key>
 		<string>Used to save photos to your library</string>
+		<!-- Custom URL scheme — opens the app for minimumz://product|cart|r/<value>.
+		     No domain/HTTPS needed; complements the Universal Links in the
+		     entitlements (which handle links tapped by non-app-users). -->
+		<key>CFBundleURLTypes</key>
+		<array>
+			<dict>
+				<key>CFBundleTypeRole</key>
+				<string>Editor</string>
+				<key>CFBundleURLName</key>
+				<string>com.store.minimumz</string>
+				<key>CFBundleURLSchemes</key>
+				<array>
+					<string>minimumz</string>
+				</array>
+			</dict>
+		</array>
 	</dict>
 </plist>

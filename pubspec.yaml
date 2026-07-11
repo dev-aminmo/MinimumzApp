@@ -80,6 +80,7 @@ dependencies:
   image_picker: ^1.1.2
   appsflyer_sdk: ^6.18.0
   share_plus: ^13.2.0
+  app_links: ^7.0.0
 
 dev_dependencies:
   flutter_test:

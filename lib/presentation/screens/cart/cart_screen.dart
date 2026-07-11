@@ -14,7 +14,7 @@ import 'package:minimumz/presentation/screens/cart/widgets/line_item_card.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:minimumz/cubits/locale/locale_cubit.dart';
 import 'package:minimumz/data/data.dart';
-import 'package:minimumz/services/appsflyer_service.dart';
+import 'package:minimumz/services/deeplink/deep_link_service.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:share_plus/share_plus.dart';
 import 'bloc/cart/cart_bloc.dart';
@@ -79,7 +79,7 @@ class _CartScreenState extends State<CartScreen> {
     final message = context.l10n.shareCartMessage;
     final errorMsg = context.l10n.couldNotCreateShareLink;
     EasyLoading.show();
-    final link = await AppsFlyerService.instance.generateCartShareLink(cartId);
+    final link = await DeepLinkService.instance.shareCart(cartId);
     EasyLoading.dismiss();
     if (link == null) {
       Fluttertoast.showToast(msg: errorMsg);

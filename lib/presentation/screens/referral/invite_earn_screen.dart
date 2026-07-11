@@ -9,7 +9,7 @@ import 'package:minimumz/common/extensions/extensions.dart';
 import 'package:minimumz/data/data.dart';
 import 'package:minimumz/di/di.dart';
 import 'package:minimumz/presentation/components/index.dart';
-import 'package:minimumz/services/appsflyer_service.dart';
+import 'package:minimumz/services/deeplink/deep_link_service.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 
 @RoutePage()
@@ -53,7 +53,7 @@ class _InviteEarnScreenState extends State<InviteEarnScreen> {
     final errorMsg = context.l10n.couldNotCreateShareLink;
 
     EasyLoading.show();
-    final link = await AppsFlyerService.instance.generateReferralLink(code);
+    final link = await DeepLinkService.instance.shareReferral(code);
     EasyLoading.dismiss();
     if (link == null) {
       Fluttertoast.showToast(msg: errorMsg);
