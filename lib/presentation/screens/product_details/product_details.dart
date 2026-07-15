@@ -10,6 +10,7 @@ import 'package:gap/gap.dart';
 import 'package:intl/intl.dart';
 import 'package:minimumz/cubits/locale/locale_cubit.dart';
 import 'package:minimumz/cubits/wishlist/wishlist_cubit.dart';
+import 'package:minimumz/services/reco_event_tracker.dart';
 import 'package:minimumz/di/di.dart';
 import 'package:minimumz/domain/repository/preference_repository.dart';
 import 'package:minimumz/presentation/routes/app_router.dart';
@@ -235,6 +236,10 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
     _startAutoSlide();
     _loadReviews();
     _loadRelated();
+
+    // Record a "view details" signal for recommendations (any open, anywhere).
+    final pid = int.tryParse(widget.product.id ?? '');
+    if (pid != null) RecoEventTracker.instance.view(pid);
     _recordView();
   }
 

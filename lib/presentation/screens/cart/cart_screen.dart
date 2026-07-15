@@ -496,20 +496,78 @@ class _LoyaltySectionState extends State<_LoyaltySection> {
 
   Future<void> _run(Future<StoreCartsRes?> Function() action, {bool showError = true}) async {
     if (_busy) return;
-    final fallback = context.l10n.somethingWentWrong; // capture before the async gap
     setState(() => _busy = true);
     try {
       _pushCart(await action());
     } on DioException catch (e) {
-      if (showError) {
-        final msg = e.response?.data is Map ? (e.response!.data['message'] ?? '') : '';
-        Fluttertoast.showToast(msg: msg.toString().isNotEmpty ? msg.toString() : fallback);
+      if (showError && mounted) {
+        final data = e.response?.data;
+        final reason = data is Map ? data['reason']?.toString() : null;
+        final serverMsg = data is Map ? data['message']?.toString() : null;
+        _showError(_localizedError(reason, serverMsg));
       }
     } catch (_) {
-      if (showError) Fluttertoast.showToast(msg: fallback);
+      if (showError && mounted) _showError(context.l10n.somethingWentWrong);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  /// Map the API's stable `reason` key to a localized message, falling back to
+  /// the server message and finally a generic string.
+  String _localizedError(String? reason, String? serverMsg) {
+    final l = context.l10n;
+    switch (reason) {
+      case 'invalid_code':
+        return l.referralInvalidCode;
+      case 'own_code':
+        return l.referralOwnCode;
+      case 'blocked':
+        return l.referralBlocked;
+      case 'code_already_used':
+        return l.referralAlreadyUsed;
+      case 'new_invitee_locked':
+        return l.referralAlreadyHaveFirstOrder;
+      case 'insufficient_points':
+        return l.notEnoughPoints;
+      default:
+        return (serverMsg != null && serverMsg.isNotEmpty) ? serverMsg : l.somethingWentWrong;
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  /// A small celebratory banner shown when the customer already holds the
+  /// new-invitee first-order discount — so no code field is offered.
+  Widget _firstOrderDiscountBanner(BuildContext context, num? percent) {
+    final p = percent ?? 0;
+    final pctStr = p == p.roundToDouble() ? p.toInt().toString() : p.toString();
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.green.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.green.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.card_giftcard_rounded, size: 18, color: Colors.green),
+          const Gap(8),
+          Expanded(
+            child: Text(
+              context.l10n.firstOrderDiscountUnlocked(pctStr),
+              style: context.bodySmall?.copyWith(
+                color: Colors.green.shade800,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -519,6 +577,7 @@ class _LoyaltySectionState extends State<_LoyaltySection> {
     final cartId = cart.id;
     if (cartId == null) return const SizedBox.shrink();
 
+    final locked = cart.referralLocked;
     final hasReferral = (cart.referralCode ?? '').isNotEmpty;
     final redeeming = (cart.pointsRedeemed ?? 0) > 0;
 
@@ -526,7 +585,9 @@ class _LoyaltySectionState extends State<_LoyaltySection> {
       title: context.l10n.rewards,
       child: Column(
         children: [
-          if (hasReferral)
+          if (locked)
+            _firstOrderDiscountBanner(context, cart.referralPercent)
+          else if (hasReferral)
             Row(
               children: [
                 const Icon(Icons.local_offer_rounded, size: 18, color: Colors.green),

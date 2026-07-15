@@ -38,6 +38,7 @@
   "allBrands": "جميع العلامات",
   "bestSellers": "الأكثر مبيعاً",
   "newArrival": "وصل حديثاً",
+  "forYou": "مختار لك",
   "viewAll": "عرض الكل",
 
   "cart": "السلة",
@@ -348,5 +349,13 @@
   "shareCartMessage": "اطلع على سلتي في ميني مامز:",
   "couldNotCreateShareLink": "تعذّر إنشاء رابط المشاركة",
   "removeItemGoToCart": "لإزالة هذا المنتج، انتقل إلى سلة التسوق.",
-  "goToCart": "الذهاب إلى السلة"
+  "goToCart": "الذهاب إلى السلة",
+  "referralInvalidCode": "رمز الإحالة غير صالح.",
+  "referralOwnCode": "لا يمكنك استخدام رمز الإحالة الخاص بك.",
+  "referralBlocked": "لا يمكن تطبيق رمز الإحالة هذا.",
+  "referralAlreadyUsed": "لقد استخدمت رمز الإحالة هذا من قبل.",
+  "notEnoughPoints": "ليس لديك نقاط كافية.",
+  "firstOrderDiscountUnlocked": "🎉 لقد حصلت على خصم {percent}٪ على طلبك الأول!",
+  "@firstOrderDiscountUnlocked": { "placeholders": { "percent": { "type": "String" } } },
+  "referralAlreadyHaveFirstOrder": "لديك بالفعل خصم على الطلب الأول 🎉"
 }

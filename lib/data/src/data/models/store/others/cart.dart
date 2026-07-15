@@ -128,6 +128,13 @@ class Cart {
   final int? pointsRedeemed;
   final num? pointsDiscount;
 
+  /// The referral discount percent applied to the items subtotal.
+  final num? referralPercent;
+
+  /// True when the customer already holds the new-invitee first-order discount,
+  /// so applying another referral code is blocked (server-authoritative).
+  final bool referralLocked;
+
   /// The amount that can be refunded
   ///
   /// Example: 8200
@@ -193,6 +200,8 @@ class Cart {
     this.referralCode,
     this.pointsRedeemed,
     this.pointsDiscount,
+    this.referralPercent,
+    this.referralLocked = false,
     this.refundableAmount,
     this.giftCardTotal,
     this.giftCardTaxTotal,
@@ -269,6 +278,8 @@ class Cart {
       referralCode: json['referral_code'] as String?,
       pointsRedeemed: json['points_redeemed'] as int?,
       pointsDiscount: json['points_discount'] as num?,
+      referralPercent: json['referral_percent'] as num?,
+      referralLocked: json['referral_locked'] == true,
       refundableAmount: json['refundable_amount'],
       giftCardTotal: json['gift_card_total'],
       giftCardTaxTotal: json['gift_card_tax_total'],
@@ -288,6 +299,8 @@ class Cart {
     String? referralCode,
     int? pointsRedeemed,
     num? pointsDiscount,
+    num? referralPercent,
+    bool? referralLocked,
     List<LineItem>? items,
     int? subTotal,
     int? total,
@@ -330,6 +343,8 @@ class Cart {
       referralCode: referralCode ?? this.referralCode,
       pointsRedeemed: pointsRedeemed ?? this.pointsRedeemed,
       pointsDiscount: pointsDiscount ?? this.pointsDiscount,
+      referralPercent: referralPercent ?? this.referralPercent,
+      referralLocked: referralLocked ?? this.referralLocked,
       refundableAmount: refundableAmount,
       giftCardTotal: giftCardTotal,
       giftCardTaxTotal: giftCardTaxTotal,

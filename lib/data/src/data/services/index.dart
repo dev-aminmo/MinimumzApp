@@ -21,3 +21,5 @@ export 'notifications.dart';
 export 'home.dart';
 export 'wallet.dart';
 export 'referral.dart';
+export 'feed.dart';
+export 'reco_events.dart';

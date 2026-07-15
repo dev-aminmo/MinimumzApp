@@ -31,6 +31,8 @@ class DataStore {
     required this.home,
     required this.wallet,
     required this.referral,
+    required this.feed,
+    required this.recoEvents,
   });
 
   factory DataStore.initialize({
@@ -92,6 +94,8 @@ class DataStore {
       home: HomeResource(dio),
       wallet: WalletResource(dio),
       referral: ReferralResource(dio),
+      feed: FeedResource(dio),
+      recoEvents: RecoEventsResource(dio),
     );
   }
 
@@ -175,6 +179,8 @@ class DataStore {
   final HomeResource home;
   final WalletResource wallet;
   final ReferralResource referral;
+  final FeedResource feed;
+  final RecoEventsResource recoEvents;
 }
 
 class PingResult {

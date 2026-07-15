@@ -19,6 +19,7 @@ import 'package:minimumz/domain/repository/preference_repository.dart';
 import 'package:minimumz/domain/model/product_filter.dart';
 import 'package:minimumz/presentation/screens/cart/bloc/cart/cart_bloc.dart';
 import 'package:minimumz/presentation/screens/home/widgets/index.dart';
+import 'package:minimumz/presentation/screens/home/widgets/for_you_feed.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:sliver_tools/sliver_tools.dart';
 
@@ -167,7 +168,7 @@ class _HomeScreenState extends State<HomeScreen> {
           const SliverGap(10),
           _BrandsSection(prefetched: _bundle?.brands),
           const SliverGap(10),
-          NewArrival(key: ValueKey('na_$_resetKey')),
+          ForYouFeed(key: ValueKey('fy_$_resetKey')),
         ],
       )),
     );
@@ -1005,7 +1006,16 @@ class _BrandsSectionState extends State<_BrandsSection> with WidgetsBindingObser
           Headline(
             headline: context.l10n.brands,
             onViewAllTap: _brands?.isNotEmpty == true
-                ? () => _showAllBrands(context, _brands!)
+                ? () async {
+                    // The home row is a prefetched subset — fetch ALL brands for
+                    // the "view all" sheet.
+                    List<BrandItem> all = _brands!;
+                    try {
+                      final fetched = await getIt<DataStore>().brands.list(limit: 200);
+                      if (fetched.isNotEmpty) all = fetched;
+                    } catch (_) {}
+                    if (context.mounted) _showAllBrands(context, all);
+                  }
                 : null,
           ),
           const Gap(10),

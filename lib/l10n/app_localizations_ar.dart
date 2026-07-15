@@ -116,6 +116,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get newArrival => 'وصل حديثاً';
 
   @override
+  String get forYou => 'مختار لك';
+
+  @override
   String get viewAll => 'عرض الكل';
 
   @override
@@ -872,4 +875,28 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get goToCart => 'الذهاب إلى السلة';
+
+  @override
+  String get referralInvalidCode => 'رمز الإحالة غير صالح.';
+
+  @override
+  String get referralOwnCode => 'لا يمكنك استخدام رمز الإحالة الخاص بك.';
+
+  @override
+  String get referralBlocked => 'لا يمكن تطبيق رمز الإحالة هذا.';
+
+  @override
+  String get referralAlreadyUsed => 'لقد استخدمت رمز الإحالة هذا من قبل.';
+
+  @override
+  String get notEnoughPoints => 'ليس لديك نقاط كافية.';
+
+  @override
+  String firstOrderDiscountUnlocked(String percent) {
+    return '🎉 لقد حصلت على خصم $percent٪ على طلبك الأول!';
+  }
+
+  @override
+  String get referralAlreadyHaveFirstOrder =>
+      'لديك بالفعل خصم على الطلب الأول 🎉';
 }

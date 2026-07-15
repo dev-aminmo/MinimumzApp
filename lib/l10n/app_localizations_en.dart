@@ -115,6 +115,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get newArrival => 'New Arrival';
 
   @override
+  String get forYou => 'For You';
+
+  @override
   String get viewAll => 'View All';
 
   @override
@@ -874,4 +877,28 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get goToCart => 'Go to cart';
+
+  @override
+  String get referralInvalidCode => 'This referral code is not valid.';
+
+  @override
+  String get referralOwnCode => 'You cannot use your own referral code.';
+
+  @override
+  String get referralBlocked => 'This referral code cannot be applied.';
+
+  @override
+  String get referralAlreadyUsed => 'You have already used this referral code.';
+
+  @override
+  String get notEnoughPoints => 'You don\'t have enough points.';
+
+  @override
+  String firstOrderDiscountUnlocked(String percent) {
+    return '🎉 You\'ve unlocked $percent% off your first order!';
+  }
+
+  @override
+  String get referralAlreadyHaveFirstOrder =>
+      'You already have a first-order discount 🎉';
 }

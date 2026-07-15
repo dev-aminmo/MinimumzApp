@@ -38,6 +38,7 @@
   "allBrands": "All Brands",
   "bestSellers": "Best Sellers",
   "newArrival": "New Arrival",
+  "forYou": "For You",
   "viewAll": "View All",
 
   "cart": "Cart",
@@ -348,5 +349,13 @@
   "shareCartMessage": "Check out my cart on Mini Mumz:",
   "couldNotCreateShareLink": "Could not create share link",
   "removeItemGoToCart": "To remove this item, go to your cart.",
-  "goToCart": "Go to cart"
+  "goToCart": "Go to cart",
+  "referralInvalidCode": "This referral code is not valid.",
+  "referralOwnCode": "You cannot use your own referral code.",
+  "referralBlocked": "This referral code cannot be applied.",
+  "referralAlreadyUsed": "You have already used this referral code.",
+  "notEnoughPoints": "You don't have enough points.",
+  "firstOrderDiscountUnlocked": "🎉 You've unlocked {percent}% off your first order!",
+  "@firstOrderDiscountUnlocked": { "placeholders": { "percent": { "type": "String" } } },
+  "referralAlreadyHaveFirstOrder": "You already have a first-order discount 🎉"
 }

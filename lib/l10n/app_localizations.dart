@@ -308,6 +308,12 @@ abstract class AppLocalizations {
   /// **'New Arrival'**
   String get newArrival;
 
+  /// No description provided for @forYou.
+  ///
+  /// In en, this message translates to:
+  /// **'For You'**
+  String get forYou;
+
   /// No description provided for @viewAll.
   ///
   /// In en, this message translates to:
@@ -1771,6 +1777,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Go to cart'**
   String get goToCart;
+
+  /// No description provided for @referralInvalidCode.
+  ///
+  /// In en, this message translates to:
+  /// **'This referral code is not valid.'**
+  String get referralInvalidCode;
+
+  /// No description provided for @referralOwnCode.
+  ///
+  /// In en, this message translates to:
+  /// **'You cannot use your own referral code.'**
+  String get referralOwnCode;
+
+  /// No description provided for @referralBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'This referral code cannot be applied.'**
+  String get referralBlocked;
+
+  /// No description provided for @referralAlreadyUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'You have already used this referral code.'**
+  String get referralAlreadyUsed;
+
+  /// No description provided for @notEnoughPoints.
+  ///
+  /// In en, this message translates to:
+  /// **'You don\'t have enough points.'**
+  String get notEnoughPoints;
+
+  /// No description provided for @firstOrderDiscountUnlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'🎉 You\'ve unlocked {percent}% off your first order!'**
+  String firstOrderDiscountUnlocked(String percent);
+
+  /// No description provided for @referralAlreadyHaveFirstOrder.
+  ///
+  /// In en, this message translates to:
+  /// **'You already have a first-order discount 🎉'**
+  String get referralAlreadyHaveFirstOrder;
 }
 
 class _AppLocalizationsDelegate
