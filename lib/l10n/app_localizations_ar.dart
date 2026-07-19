@@ -119,6 +119,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get forYou => 'مختار لك';
 
   @override
+  String get profile => 'حسابي';
+
+  @override
   String get viewAll => 'عرض الكل';
 
   @override

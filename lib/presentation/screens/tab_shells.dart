@@ -28,3 +28,10 @@ class CartTabScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) => const AutoRouter();
 }
+
+@RoutePage()
+class ProfileTabScreen extends StatelessWidget {
+  const ProfileTabScreen({super.key});
+  @override
+  Widget build(BuildContext context) => const AutoRouter();
+}

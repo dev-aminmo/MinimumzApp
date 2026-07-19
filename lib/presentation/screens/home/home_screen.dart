@@ -17,7 +17,6 @@ import 'package:minimumz/data/data.dart';
 import 'package:minimumz/di/di.dart';
 import 'package:minimumz/domain/repository/preference_repository.dart';
 import 'package:minimumz/domain/model/product_filter.dart';
-import 'package:minimumz/presentation/screens/cart/bloc/cart/cart_bloc.dart';
 import 'package:minimumz/presentation/screens/home/widgets/index.dart';
 import 'package:minimumz/presentation/screens/home/widgets/for_you_feed.dart';
 import 'package:skeletonizer/skeletonizer.dart';
@@ -26,10 +25,8 @@ import 'package:sliver_tools/sliver_tools.dart';
 import '../../../common/colors.dart';
 import '../../components/index.dart';
 import '../../routes/app_router.dart';
-import '../dashboard_screen.dart';
 import '../../../cubits/locale/locale_cubit.dart';
 import 'bloc/collections/collections_bloc.dart';
-import 'bloc/products/products_bloc.dart';
 import '../../../common/network_log.dart';
 import '../../../common/country_change_notifier.dart';
 
@@ -118,36 +115,37 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
               ),
-              leading: Padding(
-                padding: const EdgeInsetsDirectional.only(start: 20),
-                child: Hero(
-                  tag: 'search_back',
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      borderRadius: const BorderRadius.all(Radius.circular(50)),
-                      onTap: () {
-                        Scaffold.of(context).openDrawer();
-                      },
-                      child: Ink(
-                        width: 45,
-                        height: 45,
-
-                        decoration: ShapeDecoration(
-                          color: context.theme.cardColor,
-                          shape: const CircleBorder(),
-                        ),
-                        child: Icon(
-                          minimumzIcons.menu_horizontal,
-                          size: 13,
-                          color: context.theme.iconTheme.color,
-                        ),
-                      ),
-                    ),
-
-                  ),
-                ),
-              ),
+              // leading: Padding(
+              //   padding: const EdgeInsetsDirectional.only(start: 20),
+              //   child: Hero(
+              //     tag: 'search_back',
+              //     child: Material(
+              //       color: Colors.transparent,
+              //       child: InkWell(
+              //         borderRadius: const BorderRadius.all(Radius.circular(50)),
+              //         onTap: () {
+              //           // Profile moved from a drawer to the last bottom-nav tab.
+              //           context.tabsRouter.setActiveIndex(3);
+              //         },
+              //         child: Ink(
+              //           width: 45,
+              //           height: 45,
+              //
+              //           decoration: ShapeDecoration(
+              //             color: context.theme.cardColor,
+              //             shape: const CircleBorder(),
+              //           ),
+              //           child: Icon(
+              //             minimumzIcons.menu_horizontal,
+              //             size: 13,
+              //             color: context.theme.iconTheme.color,
+              //           ),
+              //         ),
+              //       ),
+              //
+              //     ),
+              //   ),
+              // ),
               actions: const [
                 NotificationBellButton(),
                 SizedBox(width: 10),

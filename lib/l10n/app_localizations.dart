@@ -314,6 +314,12 @@ abstract class AppLocalizations {
   /// **'For You'**
   String get forYou;
 
+  /// No description provided for @profile.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile'**
+  String get profile;
+
   /// No description provided for @viewAll.
   ///
   /// In en, this message translates to:

@@ -156,6 +156,18 @@ abstract class _$AppRouter extends RootStackRouter {
         ),
       );
     },
+    ProfileRoute.name: (routeData) {
+      return AutoRoutePage<dynamic>(
+        routeData: routeData,
+        child: const ProfileScreen(),
+      );
+    },
+    ProfileTabRoute.name: (routeData) {
+      return AutoRoutePage<dynamic>(
+        routeData: routeData,
+        child: const ProfileTabScreen(),
+      );
+    },
     RecentlyViewedRoute.name: (routeData) {
       return AutoRoutePage<dynamic>(
         routeData: routeData,
@@ -658,6 +670,34 @@ class ProductDetailsRouteArgs {
   String toString() {
     return 'ProductDetailsRouteArgs{key: $key, product: $product}';
   }
+}
+
+/// generated route for
+/// [ProfileScreen]
+class ProfileRoute extends PageRouteInfo<void> {
+  const ProfileRoute({List<PageRouteInfo>? children})
+      : super(
+          ProfileRoute.name,
+          initialChildren: children,
+        );
+
+  static const String name = 'ProfileRoute';
+
+  static const PageInfo<void> page = PageInfo<void>(name);
+}
+
+/// generated route for
+/// [ProfileTabScreen]
+class ProfileTabRoute extends PageRouteInfo<void> {
+  const ProfileTabRoute({List<PageRouteInfo>? children})
+      : super(
+          ProfileTabRoute.name,
+          initialChildren: children,
+        );
+
+  static const String name = 'ProfileTabRoute';
+
+  static const PageInfo<void> page = PageInfo<void>(name);
 }
 
 /// generated route for

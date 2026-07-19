@@ -118,6 +118,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get forYou => 'For You';
 
   @override
+  String get profile => 'Profile';
+
+  @override
   String get viewAll => 'View All';
 
   @override

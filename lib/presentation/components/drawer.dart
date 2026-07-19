@@ -25,8 +25,12 @@ import '../../cubits/wishlist/wishlist_cubit.dart';
 import '../../../domain/services/user_data_sync_service.dart';
 import '../../../common/country_change_notifier.dart';
 
+/// The account/profile menu. Rendered either as a side drawer (isDrawer: true)
+/// or as the body of the Profile tab screen (isDrawer: false).
 class DrawerWidget extends StatefulWidget {
-  const DrawerWidget({super.key});
+  const DrawerWidget({super.key, this.isDrawer = true});
+
+  final bool isDrawer;
 
   @override
   State<DrawerWidget> createState() => _DrawerWidgetState();
@@ -47,10 +51,7 @@ class _DrawerWidgetState extends State<DrawerWidget> {
         final loggedIn = state.maybeMap(loggedIn: (_) => true, orElse: () => false);
         final isGuest = state.maybeMap(loggedInAsGuest: (_) => true, orElse: () => false);
         final color = loggedIn ? null : ColorConstant.manatee;
-        return Drawer(
-          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-          surfaceTintColor: Theme.of(context).scaffoldBackgroundColor,
-          child: SafeArea(
+        final content = SafeArea(
             bottom: false,
             child: Column(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -66,19 +67,20 @@ class _DrawerWidgetState extends State<DrawerWidget> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Image.asset('assets/images/logo_minimumz.png', height: 36),
-                          InkWell(
-                            borderRadius: const BorderRadius.all(Radius.circular(50)),
-                            onTap: () => Scaffold.of(context).closeDrawer(),
-                            child: Ink(
-                              width: 45,
-                              height: 45,
-                              decoration: ShapeDecoration(
-                                color: context.theme.cardColor,
-                                shape: const CircleBorder(),
+                          if (widget.isDrawer)
+                            InkWell(
+                              borderRadius: const BorderRadius.all(Radius.circular(50)),
+                              onTap: () => Scaffold.of(context).closeDrawer(),
+                              child: Ink(
+                                width: 45,
+                                height: 45,
+                                decoration: ShapeDecoration(
+                                  color: context.theme.cardColor,
+                                  shape: const CircleBorder(),
+                                ),
+                                child: const Icon(minimumzIcons.menu_vertical),
                               ),
-                              child: const Icon(minimumzIcons.menu_vertical),
                             ),
-                          ),
                         ],
                       ),
                     ),
@@ -216,8 +218,8 @@ class _DrawerWidgetState extends State<DrawerWidget> {
                     ListTile(
                       leading: const Icon(minimumzIcons.heart),
                       onTap: () {
-                        Scaffold.of(context).closeDrawer();
-                        AutoTabsRouter.of(context).setActiveIndex(2);
+                        if (widget.isDrawer) Scaffold.of(context).closeDrawer();
+                        context.pushRoute(const WishlistRoute());
                       },
                       contentPadding: contentPadding,
                       title: Text(context.l10n.wishlist),
@@ -348,8 +350,18 @@ class _DrawerWidgetState extends State<DrawerWidget> {
                 ),
               ],
             ),
-          ),
-        );
+          );
+
+        return widget.isDrawer
+            ? Drawer(
+                backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+                surfaceTintColor: Theme.of(context).scaffoldBackgroundColor,
+                child: content,
+              )
+            : Container(
+                color: Theme.of(context).scaffoldBackgroundColor,
+                child: content,
+              );
       },
     );
   }

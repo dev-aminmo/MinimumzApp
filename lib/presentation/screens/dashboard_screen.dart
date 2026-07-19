@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -37,8 +35,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
           routes: const [
             HomeTabRoute(),
             CategoriesTabRoute(),
-            WishlistTabRoute(),
             CartTabRoute(),
+            ProfileTabRoute(),
           ],
           builder: (context, child) {
             final tabsRouter = AutoTabsRouter.of(context);
@@ -81,11 +79,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
               },
               child: Scaffold(
               key: _scaffoldKey,
-              drawer: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
-                child: const DrawerWidget(),
-              ),
-              drawerEdgeDragWidth: MediaQuery.of(context).size.width / 4,
               body: child,
               bottomNavigationBar: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -105,7 +98,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               // Re-tapping active tab pops it to its root
                               tabsRouter
                                   .innerRouterOf<StackRouter>(
-                                    [HomeTabRoute.name, CategoriesTabRoute.name, WishlistTabRoute.name, CartTabRoute.name][index],
+                                    [HomeTabRoute.name, CategoriesTabRoute.name, CartTabRoute.name, ProfileTabRoute.name][index],
                                   )
                                   ?.popUntilRoot();
                             } else {
@@ -132,18 +125,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               label: context.l10n.categories,
                             ),
                             NavigationDestination(
-                              icon: Icon(minimumzIcons.heart,
-                                  color: const Color(0xff8F959E)),
-                              selectedIcon: Icon(minimumzIcons.heart,
-                                  color: ColorConstant.primary),
-                              label: context.l10n.wishlist,
-                            ),
-                            NavigationDestination(
                               icon: Icon(minimumzIcons.bag,
                                   color: const Color(0xff8F959E)),
                               selectedIcon: Icon(minimumzIcons.bag,
                                   color: ColorConstant.primary),
                               label: context.l10n.cart,
+                            ),
+                            NavigationDestination(
+                              icon: const Icon(Icons.person_outline,
+                                  color: Color(0xff8F959E)),
+                              selectedIcon: Icon(Icons.person,
+                                  color: ColorConstant.primary),
+                              label: context.l10n.profile,
                             ),
                           ],
                         ),
@@ -159,7 +152,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               0;
                           if (count == 0) return const SizedBox.shrink();
                           final isRTL = context.isRTL;
-                          // Cart is the 4th destination (index 3)
+                          // Cart is now the 3rd destination (index 2 of 4);
+                          // Profile is last. The cart cell sits 1.5 cells in from
+                          // the trailing edge.
                           final itemWidth =
                               MediaQuery.of(context).size.width / 4;
                           final badge = Container(
@@ -183,12 +178,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           return isRTL
                               ? Positioned(
                                   top: 8,
-                                  left: itemWidth / 2 - 4,
+                                  left: itemWidth * 1.5 - 4,
                                   child: badge,
                                 )
                               : Positioned(
                                   top: 8,
-                                  right: itemWidth / 2 - 4,
+                                  right: itemWidth * 1.5 - 4,
                                   child: badge,
                                 );
                         },

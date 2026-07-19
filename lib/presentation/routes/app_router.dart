@@ -11,6 +11,7 @@ import '../screens/account_information/address_book_screen.dart';
 import '../screens/notifications_screen.dart';
 import '../screens/settings_screen.dart';
 import '../screens/categories_screen.dart';
+import '../screens/profile/profile_screen.dart';
 
 part 'app_router.gr.dart';
 
@@ -72,18 +73,6 @@ class AppRouter extends _$AppRouter {
               ],
             ),
             AutoRoute(
-              page: WishlistTabRoute.page,
-              children: [
-                AutoRoute(page: WishlistRoute.page, initial: true),
-                AutoRoute(page: ProductDetailsRoute.page),
-                AutoRoute(page: CollectionRoute.page),
-                AutoRoute(page: ReviewsRoute.page),
-                AutoRoute(page: AddReviewRoute.page),
-                AutoRoute(page: CartRoute.page),
-                AutoRoute(page: OrderConfirmedRoute.page),
-              ],
-            ),
-            AutoRoute(
               page: CartTabRoute.page,
               children: [
                 AutoRoute(page: CartRoute.page, initial: true),
@@ -91,6 +80,27 @@ class AppRouter extends _$AppRouter {
                 AutoRoute(page: CollectionRoute.page),
                 AutoRoute(page: ReviewsRoute.page),
                 AutoRoute(page: AddReviewRoute.page),
+                AutoRoute(page: OrderConfirmedRoute.page),
+              ],
+            ),
+            AutoRoute(
+              page: ProfileTabRoute.page,
+              children: [
+                AutoRoute(page: ProfileRoute.page, initial: true),
+                AutoRoute(page: WishlistRoute.page),
+                AutoRoute(page: RecentlyViewedRoute.page),
+                AutoRoute(page: OrdersRoute.page),
+                AutoRoute(page: OrderDetailsRoute.page),
+                AutoRoute(page: AccountInformationRoute.page),
+                AutoRoute(page: AddressBookRoute.page),
+                AutoRoute(page: SettingsRoute.page),
+                AutoRoute(page: WalletRoute.page),
+                AutoRoute(page: InviteEarnRoute.page),
+                AutoRoute(page: ProductDetailsRoute.page),
+                AutoRoute(page: CollectionRoute.page),
+                AutoRoute(page: ReviewsRoute.page),
+                AutoRoute(page: AddReviewRoute.page),
+                AutoRoute(page: CartRoute.page),
                 AutoRoute(page: OrderConfirmedRoute.page),
               ],
             ),
