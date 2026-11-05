@@ -1,4 +1,17 @@
-import 'dart:ui';
+import 'package:flutter/material.dart';
+
+/// Surface for a product card — the image well and the info block beneath it.
+///
+/// Light mode is plain white: product shots are themselves photographed on
+/// white, so the beige theme surface made them look like they were floating on
+/// a tinted panel. Dark mode keeps the themed card colour, since white glares.
+///
+/// Shared by every product card in the app (grid cards, related-product cards)
+/// so they cannot drift apart again.
+Color productCardSurface(BuildContext context) =>
+    Theme.of(context).brightness == Brightness.dark
+        ? Theme.of(context).cardColor
+        : Colors.white;
 
 class ColorConstant {
   // --kid-color-gold: primary action / active state

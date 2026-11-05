@@ -286,7 +286,7 @@ class _VariantPickerBodyState extends State<_VariantPickerBody> {
                     height: 64,
                     child: thumbnail == null
                         ? Container(
-                            color: ColorConstant.beige,
+                            color: productCardSurface(context),
                             child: const Icon(
                                 Icons.image_not_supported_outlined,
                                 size: 24,
@@ -297,7 +297,7 @@ class _VariantPickerBodyState extends State<_VariantPickerBody> {
                             imageUrl: thumbnail,
                             fit: BoxFit.cover,
                             errorWidget: (_, __, ___) => Container(
-                              color: ColorConstant.beige,
+                              color: productCardSurface(context),
                               child: const Icon(Icons.broken_image_outlined,
                                   size: 24, color: Colors.grey),
                             ),

@@ -828,14 +828,14 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                               imageUrl: url,
                               fit: BoxFit.cover,
                               placeholder: (_, __) => Container(
-                                color: ColorConstant.beige,
+                                color: productCardSurface(context),
                                 child: Center(
                                   child: LoadingAnimationWidget.threeArchedCircle(
                                       color: ColorConstant.primary, size: 18),
                                 ),
                               ),
                               errorWidget: (_, __, ___) => Container(
-                                color: ColorConstant.beige,
+                                color: productCardSurface(context),
                                 child: const Icon(Icons.broken_image_outlined,
                                     size: 24, color: Colors.grey),
                               ),
@@ -1514,7 +1514,7 @@ class ProductDetailsRelatedCard extends StatelessWidget {
       onTap: () => context.router.push(ProductDetailsRoute(product: product)),
       child: Container(
         decoration: BoxDecoration(
-          color: context.theme.cardColor,
+          color: productCardSurface(context),
           borderRadius: BorderRadius.circular(14),
           boxShadow: [
             BoxShadow(
@@ -1538,13 +1538,13 @@ class ProductDetailsRelatedCard extends StatelessWidget {
                         imageUrl: product.thumbnail!,
                         fit: BoxFit.cover,
                         errorWidget: (_, __, ___) => Container(
-                          color: ColorConstant.beige,
+                          color: productCardSurface(context),
                           child: const Icon(Icons.broken_image_outlined,
                               color: Colors.grey),
                         ),
                       )
                     : Container(
-                        color: ColorConstant.beige,
+                        color: productCardSurface(context),
                         child: const Icon(Icons.image_not_supported_outlined,
                             color: Colors.grey),
                       ),
@@ -1555,19 +1555,21 @@ class ProductDetailsRelatedCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Price sits above the description, matching the grid card.
+                  if (price != null) ...[
+                    Text(
+                      price.formatAsPrice(effective, locale: locale),
+                      style: context.bodyExtraSmall
+                          ?.copyWith(color: Colors.black, fontWeight: FontWeight.w600),
+                    ),
+                    const Gap(4),
+                  ],
                   Text(
                     product.localizedTitle(locale) ?? '',
                     style: context.bodyExtraSmallW500,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const Gap(4),
-                  if (price != null)
-                    Text(
-                      price.formatAsPrice(effective, locale: locale),
-                      style: context.bodyExtraSmall
-                          ?.copyWith(color: Colors.black, fontWeight: FontWeight.w600),
-                    ),
                 ],
               ),
             ),

@@ -58,7 +58,7 @@ class ProductCard extends StatelessWidget {
       child: Card(
         elevation: 0,
         margin: EdgeInsets.zero,
-        color: context.theme.cardColor,
+        color: productCardSurface(context),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
@@ -109,14 +109,7 @@ class ProductCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        product.localizedTitle(locale) ?? '',
-                        style: context.bodyExtraSmallW500?.copyWith(fontSize: 13),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const Spacer(),
-                      // ── Price + Button ──────────────────────────────
+                      // ── Price + Button (above the description) ──────
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
@@ -154,6 +147,15 @@ class ProductCard extends StatelessWidget {
                           ],
                         ],
                       ),
+                      // ── Description, under the price ───────────────
+                      const Gap(6),
+                      Text(
+                        product.localizedTitle(locale) ?? '',
+                        style: context.bodyExtraSmallW500?.copyWith(fontSize: 13),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const Spacer(),
                       // ── Views + Rating (space always reserved) ─────
                       const Gap(5),
                       Visibility(
@@ -221,7 +223,7 @@ class _ProductImage extends StatelessWidget {
     }
     if (product.thumbnail == null) {
       return Container(
-        color: ColorConstant.beige,
+        color: productCardSurface(context),
         child: const Center(
           child: Icon(Icons.image_not_supported_outlined,
               size: 40, color: Colors.grey),
@@ -233,14 +235,14 @@ class _ProductImage extends StatelessWidget {
       imageUrl: product.thumbnail!,
       fit: BoxFit.cover,
       placeholder: (_, __) => Container(
-        color: ColorConstant.beige,
+        color: productCardSurface(context),
         child: Center(
           child: LoadingAnimationWidget.threeArchedCircle(
               color: ColorConstant.primary, size: 22),
         ),
       ),
       errorWidget: (_, __, ___) => Container(
-        color: ColorConstant.beige,
+        color: productCardSurface(context),
         child: const Center(
           child: Icon(Icons.broken_image_outlined, size: 40, color: Colors.grey),
         ),

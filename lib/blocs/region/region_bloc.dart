@@ -27,10 +27,17 @@ class RegionBloc extends Bloc<RegionEvent, RegionState> {
       // Serve cache immediately — UI is instant
       emit(RegionState.loaded(cached));
       // Emitter is still open; revalidate in background
-      final fresh = (await _usecase()).tryGetSuccess();
-      if (fresh != null && _hasChanged(cached, fresh)) {
-        await prefRepo.setCachedRegions(fresh);
-        emit(RegionState.loaded(fresh));
+      final payload = (await _usecase()).tryGetSuccess();
+      if (payload != null) {
+        // Also resolve here: regions and the chosen country are cached under
+        // separate keys, so an install that cached regions but failed to save a
+        // country would otherwise never auto-select one. _resolveCountry() is a
+        // no-op once a country exists.
+        await _resolveCountry(payload, prefRepo);
+        if (_hasChanged(cached, payload.regions)) {
+          await prefRepo.setCachedRegions(payload.regions);
+          emit(RegionState.loaded(payload.regions));
+        }
       }
       return;
     }
@@ -38,56 +45,64 @@ class RegionBloc extends Bloc<RegionEvent, RegionState> {
     // First launch — no cache yet
     emit(const RegionState.loading());
     final result = await _usecase();
-    final regions = result.tryGetSuccess();
-    if (regions != null) {
-      await _resolveCountry(regions, prefRepo);
-      await prefRepo.setCachedRegions(regions);
-      emit(RegionState.loaded(regions));
+    final payload = result.tryGetSuccess();
+    if (payload != null) {
+      await _resolveCountry(payload, prefRepo);
+      await prefRepo.setCachedRegions(payload.regions);
+      emit(RegionState.loaded(payload.regions));
     } else {
       emit(RegionState.error(result.tryGetError()?.message));
     }
   }
 
-  // Detects and persists the user's country on first launch only.
+  /// Auto-selects the shipping country when the user has not picked one.
+  ///
+  /// A saved country always wins — this returns immediately once one exists, so
+  /// an explicit choice is never overwritten. Otherwise it takes the country the
+  /// backend resolved from the request IP (`detected` on /store/regions), which
+  /// replaced the on-device lookup: that hit a third-party geo API directly from
+  /// the phone and now returns a Cloudflare challenge, so every install silently
+  /// fell back to Saudi Arabia.
   Future<void> _resolveCountry(
-      List<Region> regions, PreferenceRepository prefRepo) async {
+      RegionsPayload payload, PreferenceRepository prefRepo) async {
+    final regions = payload.regions;
     if (!(regions.firstOrNull?.countries?.isNotEmpty ?? false)) return;
     if (prefRepo.country != null && prefRepo.region != null) return;
 
-    final detectedCode = await GeoIpService.detectCountryCode();
+    // 1. Where the server placed this IP.
+    var match = _findCountry(
+        regions, payload.detectedCountryId, payload.detectedIso2);
 
-    Region? targetRegion;
-    Country? targetCountry;
+    // 2. Outside the served markets, or an IP the server could not place: take
+    //    the store's own default, so the app shows the same currency the website
+    //    would. Hardcoding a country here is what made the two disagree.
+    match ??= _findCountry(
+        regions, payload.defaultCountryId, payload.defaultIso2);
 
-    outer:
-    for (final region in regions) {
-      for (final country in region.countries ?? <Country>[]) {
-        if (country.iso2?.toUpperCase() == detectedCode) {
-          targetRegion = region;
-          targetCountry = country;
-          break outer;
-        }
-      }
-    }
+    // 3. Server too old to send `default` — keep the historical behaviour.
+    match ??= _findCountry(regions, null, 'SA');
 
-    if (targetCountry == null) {
-      outer:
-      for (final region in regions) {
-        for (final country in region.countries ?? <Country>[]) {
-          if (country.iso2?.toUpperCase() == 'SA') {
-            targetRegion = region;
-            targetCountry = country;
-            break outer;
-          }
-        }
-      }
-    }
-
-    targetRegion ??= regions.first;
-    targetCountry ??= regions.first.countries!.first;
+    final targetRegion = match?.$1 ?? regions.first;
+    final targetCountry = match?.$2 ?? regions.first.countries!.first;
 
     await prefRepo.setRegion(targetRegion);
     await prefRepo.setCountry(targetCountry);
+  }
+
+  /// First region/country matching [countryId], else [iso2]. Null if neither is
+  /// supplied or nothing matches.
+  (Region, Country)? _findCountry(
+      List<Region> regions, int? countryId, String? iso2) {
+    if (countryId == null && iso2 == null) return null;
+
+    for (final region in regions) {
+      for (final country in region.countries ?? <Country>[]) {
+        final byId = countryId != null && country.id == countryId;
+        final byIso = iso2 != null && country.iso2?.toUpperCase() == iso2;
+        if (byId || byIso) return (region, country);
+      }
+    }
+    return null;
   }
 
   // Compares cached vs fresh regions by count, IDs, and per-region country count.
