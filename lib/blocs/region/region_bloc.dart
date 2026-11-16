@@ -5,11 +5,16 @@ import 'package:minimumz/di/di.dart';
 import 'package:minimumz/domain/usecase/retrieve_regions_usecase.dart';
 import 'package:minimumz/data/data.dart';
 
+import '../../common/country_change_notifier.dart';
 import '../../domain/repository/preference_repository.dart';
 
 part 'region_event.dart';
 part 'region_state.dart';
 part 'region_bloc.freezed.dart';
+
+/// TEMP (testing): when true, the country detected from the IP replaces the
+/// saved one on every app launch. Flip back to false before release.
+const bool kRedetectCountryOnLaunch = true;
 
 @injectable
 class RegionBloc extends Bloc<RegionEvent, RegionState> {
@@ -67,6 +72,30 @@ class RegionBloc extends Bloc<RegionEvent, RegionState> {
       RegionsPayload payload, PreferenceRepository prefRepo) async {
     final regions = payload.regions;
     if (!(regions.firstOrNull?.countries?.isNotEmpty ?? false)) return;
+
+    // TEMP (testing): re-detect on every launch — the IP-detected country
+    // overrides the saved one. Set kRedetectCountryOnLaunch = false to restore
+    // "a saved country always wins".
+    if (kRedetectCountryOnLaunch) {
+      final detected = _findCountry(
+          regions, payload.detectedCountryId, payload.detectedIso2);
+      if (detected != null) {
+        final (region, country) = detected;
+        if (country.id != prefRepo.country?.id) {
+          await prefRepo.setRegion(region);
+          await prefRepo.setCountry(country);
+          if (region.currencyCode != null) {
+            await prefRepo.setCurrencyCode(region.currencyCode!);
+          }
+          await prefRepo.clearLocaleSensitiveCaches();
+          // Home listens to this and refetches with the new country.
+          CountryChangeNotifier.instance.notify();
+        }
+        return;
+      }
+      // Server could not place the IP — fall through to the normal logic.
+    }
+
     if (prefRepo.country != null && prefRepo.region != null) return;
 
     // 1. Where the server placed this IP.

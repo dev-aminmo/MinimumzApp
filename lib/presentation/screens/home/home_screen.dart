@@ -1506,6 +1506,50 @@ class _ApiPingBannerState extends State<_ApiPingBanner> {
     });
   }
 
+  /// IP the server saw + the country it detected from it, and the country the
+  /// app is actually using — makes geo-detection testable on a device.
+  Widget _buildGeoInfo(Color color) {
+    final body = _body;
+    if (body == null) return const SizedBox.shrink();
+
+    String? iso(dynamic block) =>
+        block is Map ? block['iso_2']?.toString().toUpperCase() : null;
+
+    final ip = body['client_ip']?.toString() ?? '—';
+    final served = iso(body['detected']);
+    final raw = body['client_country']?.toString().toUpperCase();
+    final detected = served ??
+        (raw != null && raw.isNotEmpty
+            ? 'detected $raw and it\'s not listed'
+            : 'could not be detected');
+    final fallback = iso(body['default']);
+    final appCountry = PreferenceRepository.instance.country;
+    final using = appCountry?.iso2?.toUpperCase() ?? '—';
+
+    final style = TextStyle(fontSize: 12, color: color, height: 1.5);
+    final bold = style.copyWith(fontWeight: FontWeight.w700);
+
+    Widget row(String label, String value) => Row(
+          children: [
+            SizedBox(width: 110, child: Text(label, style: style)),
+            Expanded(child: SelectableText(value, style: bold)),
+          ],
+        );
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 4, 14, 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          row('Your IP', ip),
+          row('Detected country', detected),
+          if (fallback != null) row('Store default', fallback),
+          row('App is using', using),
+        ],
+      ),
+    );
+  }
+
   Widget _buildBodyBox({
     required Color color,
     required Color bgColor,
@@ -1664,6 +1708,7 @@ class _ApiPingBannerState extends State<_ApiPingBanner> {
                     ],
                   ),
                 ),
+                _buildGeoInfo(color),
                 if (_body != null)
                   _buildBodyBox(
                     color: color,
